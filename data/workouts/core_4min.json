@@ -1,0 +1,12 @@
+
+{
+  "id": "core_4min_v1",
+  "name": "Core ved pult (4 min)",
+  "default_rest_seconds": 10,
+  "exercises": [
+    { "name": "Sittende kneløft", "duration_seconds": 40 },
+    { "name": "Isometrisk magepress", "duration_seconds": 40 },
+    { "name": "Sittende rotasjoner", "duration_seconds": 40 },
+    { "name": "Sittende tåhev", "duration_seconds": 40 }
+  ]
+}

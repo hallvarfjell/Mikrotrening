@@ -1,0 +1,10 @@
+
+{
+  "id": "handledd_3min_v1",
+  "name": "Håndledd (3 min)",
+  "default_rest_seconds": 10,
+  "exercises": [
+    { "name": "Fleksjon/ekstensjon", "duration_seconds": 30 },
+    { "name": "Pronasjons-/supinasjon", "duration_seconds": 30 },
+    { "name": "Fingerstrekk", "duration_seconds": 30 }
+  ]

@@ -1,0 +1,13 @@
+
+{
+  "id": "nakke_5min_v1",
+  "name": "Nakke og skuldre (5 min)",
+  "default_rest_seconds": 10,
+  "exercises": [
+    { "name": "Nakkestrekk frem/tilbake", "duration_seconds": 45 },
+    { "name": "Skulderrulling", "duration_seconds": 45 },
+    { "name": "Nakkeside til side", "duration_seconds": 45 },
+    { "name": "Håndleddssirkler", "duration_seconds": 45 },
+    { "name": "Sitt-til-stå", "duration_seconds": 30 }
+  ]
+}

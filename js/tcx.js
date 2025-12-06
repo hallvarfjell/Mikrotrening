@@ -2,20 +2,23 @@
 // Genererer TCX med én aktivitet per dag, én lap per økt, trackpoints per sekund.
 // Sport="Other". Tider i UTC (Z). Laster ned som fil.
 
-function toUtcISOString(localIso) {
-  const d = new Date(localIso);
-  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().replace('.000','');
-}
-
-function pad2(n){ return String(n).padStart(2,'0'); }
-
+// Lag <Id> for dagen (UTC midnatt)
 function dayStartUtcId(dateStr) {
-  // dateStr = 'YYYY-MM-DD' i lokal tid → bruk 00:00Z samme dato
+  // dateStr "YYYY-MM-DD" → midnatt lokal, konverter til UTC Z
   const [y,m,d] = dateStr.split('-').map(Number);
   const localMidnight = new Date(y, m-1, d, 0, 0, 0);
   const utcIso = new Date(localMidnight.getTime() - localMidnight.getTimezoneOffset()*60000)
                     .toISOString().replace('.000','');
-  return utcIso; // f.eks. 2025-12-05T00:00:00Z
+  return utcIso; // ex: 2025-12-05T00:00:00Z
+}
+
+function escapeXml(str) {
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&apos;');
 }
 
 export function generateTCXForDay(dateStr, sessions) {
@@ -29,21 +32,22 @@ export function generateTCXForDay(dateStr, sessions) {
   xml += `      <Id>${dayStartUtcId(dateStr)}</Id>\n`;
 
   for (const s of sorted) {
-    const startUtc = toUtcISOString(s.started_at);
-    const endUtc = toUtcISOString(s.ended_at);
+    // started_at og ended_at er allerede ISO i UTC (Z) fra appen
+    const startIso = s.started_at.replace('.000','');
+    const endIso = s.ended_at.replace('.000','');
     const totalSec = Math.max(1, Math.round((new Date(s.ended_at) - new Date(s.started_at)) / 1000));
-    xml += `      <Lap StartTime="${startUtc}">\n`;
+
+    xml += `      <Lap StartTime="${startIso}">\n`;
     xml += `        <TotalTimeSeconds>${totalSec}</TotalTimeSeconds>\n`;
     xml += `        <Intensity>Active</Intensity>\n`;
     xml += `        <TriggerMethod>Manual</TriggerMethod>\n`;
     xml += `        <Track>\n`;
 
-    // Trackpoints per sekund fra start til slutt
+    // Trackpoints per sekund fra start til slutt (bruk direkte UTC fra Date.toISOString())
     const startMs = new Date(s.started_at).getTime();
     const endMs = new Date(s.ended_at).getTime();
     for (let t = startMs; t <= endMs; t += 1000) {
-      const isoUtc = new Date(t - (new Date(s.started_at)).getTimezoneOffset()*60000)
-        .toISOString().replace('.000','');
+      const isoUtc = new Date(t).toISOString().replace('.000','');
       xml += `          <Trackpoint><Time>${isoUtc}</Time></Trackpoint>\n`;
     }
 
@@ -60,15 +64,6 @@ export function generateTCXForDay(dateStr, sessions) {
   return xml;
 }
 
-function escapeXml(str) {
-  return String(str)
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;')
-    .replace(/'/g,'&apos;');
-}
-
 export function downloadTCX(dateStr, xml) {
   const blob = new Blob([xml], {type: 'application/vnd.garmin.tcx+xml'});
   const a = document.createElement('a');
@@ -76,3 +71,4 @@ export function downloadTCX(dateStr, xml) {
   a.download = `microdesk_${dateStr}.tcx`;
   a.click();
   URL.revokeObjectURL(a.href);
+}

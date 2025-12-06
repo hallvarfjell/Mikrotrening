@@ -1,0 +1,80 @@
+
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Desk Microflows</title>
+  ./manifest.webmanifest
+  ./assets/icon-192.png
+  ./assets/icon-512.png
+  ./css/styles.css
+  <meta name="theme-color" content="#0b6efd">
+</head>
+<body>
+  <header class="app-header">
+    <h1>Desk Microflows</h1>
+    <nav>
+      <button id="nav-home" class="link">Start</button>
+      <button id="nav-log" class="link">Dagens logg</button>
+      <button id="nav-export" class="primary">Eksporter TCX (dag)</button>
+    </nav>
+  </header>
+
+  <main id="view-container">
+    <!-- START VIEW -->
+    <section id="view-start" class="view">
+      <div class="card">
+        <h2>Start ny økt</h2>
+        <label for="workout-select">Velg treningsøkt</label>
+        <select id="workout-select"></select>
+
+        <div class="actions">
+          <button id="btn-start" class="primary">Start</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Dagens logg</h3>
+        <ul id="today-log-list" class="log-list"></ul>
+      </div>
+    </section>
+
+    <!-- SESSION VIEW -->
+    <section id="view-session" class="view hidden">
+      <div class="card">
+        <div class="session-header">
+          <h2 id="session-workout-name">Økt</h2>
+          <div class="session-status">
+            <span id="session-phase" class="badge">Klar</span>
+            <span id="session-progress" class="badge">0/0</span>
+          </div>
+        </div>
+
+        <div class="timer-display">
+          <div id="timer-label">Tid igjen</div>
+          <div id="timer-value" class="timer-value">00:00</div>
+        </div>
+
+        <div class="controls">
+          <button id="btn-pause" class="secondary">Pause (Space)</button>
+          <button id="btn-stop" class="danger">Stopp (S)</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Øvelser</h3>
+        <ol id="exercise-list" class="exercise-list"></ol>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <small>
+      Snarveier: Enter = Start, Space = Pause/Resumé, S = Stopp, N = Neste (valgfritt).
+      Ingen lydvarsler. PWA med offline-støtte.
+    </small>
+  </footer>
+
+  ./js/app.js</script>
+</body>

@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'desk-microflows-v1';
+const CACHE_NAME = 'desk-microflows-v2'; // <— bump versjon
 const ASSETS = [
   './',
   './index.html',

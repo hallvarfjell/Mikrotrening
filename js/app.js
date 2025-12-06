@@ -38,14 +38,71 @@ function getTodayStr() {
   return `${y}-${m}-${day}`;
 }
 
+// Fallback-økter i tilfelle fetch feiler (minner om filene i /data/workouts)
+const FALLBACK_WORKOUTS = [
+  {
+    id: "nakke_5min_v1",
+    name: "Nakke og skuldre (5 min)",
+    default_rest_seconds: 10,
+    exercises: [
+      { name: "Nakkestrekk frem/tilbake", duration_seconds: 45 },
+      { name: "Skulderrulling", duration_seconds: 45 },
+      { name: "Nakkeside til side", duration_seconds: 45 },
+      { name: "Håndleddssirkler", duration_seconds: 45 },
+      { name: "Sitt-til-stå", duration_seconds: 30 }
+    ]
+  },
+  {
+    id: "skuldre_4min_v1",
+    name: "Skuldre mobilitet (4 min)",
+    default_rest_seconds: 10,
+    exercises: [
+      { name: "Skuldertrekk", duration_seconds: 40 },
+      { name: "Armsirkler", duration_seconds: 40 },
+      { name: "Scapula retraksjon", duration_seconds: 40 },
+      { name: "Nakkerulling", duration_seconds: 40 }
+    ]
+  },
+  {
+    id: "handledd_3min_v1",
+    name: "Håndledd (3 min)",
+    default_rest_seconds: 10,
+    exercises: [
+      { name: "Fleksjon/ekstensjon", duration_seconds: 30 },
+      { name: "Pronasjons-/supinasjon", duration_seconds: 30 },
+      { name: "Fingerstrekk", duration_seconds: 30 }
+    ]
+  },
+  {
+    id: "core_4min_v1",
+    name: "Core ved pult (4 min)",
+    default_rest_seconds: 10,
+    exercises: [
+      { name: "Sittende kneløft", duration_seconds: 40 },
+      { name: "Isometrisk magepress", duration_seconds: 40 },
+      { name: "Sittende rotasjoner", duration_seconds: 40 },
+      { name: "Sittende tåhev", duration_seconds: 40 }
+    ]
+  }
+];
+
 async function init() {
-  // PWA service worker
+  // Registrer service worker (best practices: vent til 'load')
   if ('serviceWorker' in navigator) {
-    try { await navigator.serviceWorker.register('./service-worker.js'); } catch {}
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+    });
   }
 
   DB = await openDb();
-  await loadWorkouts();
+
+  // Last workouts med robust feil­håndtering
+  try {
+    await loadWorkouts();
+  } catch (err) {
+    console.warn('Kunne ikke laste workouts fra /data/workouts – faller tilbake til innebygde:', err);
+    WORKOUTS = FALLBACK_WORKOUTS;
+  }
   populateWorkoutSelect();
   await refreshTodayLog();
 
@@ -62,9 +119,9 @@ async function init() {
   // Keyboard shortcuts
   document.addEventListener('keydown', (e) => {
     if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); togglePause(); }
-    else if (e.key.toLowerCase() === 's') { e.preventDefault(); stopSession(); }
+    else if (e.key?.toLowerCase() === 's') { e.preventDefault(); stopSession(); }
     else if (e.key === 'Enter') { e.preventDefault(); if (isShowing('start')) startSession(); }
-    else if (e.key.toLowerCase() === 'n') { e.preventDefault(); if (CURRENT_SESSION) skipToNext(); }
+    else if (e.key?.toLowerCase() === 'n') { e.preventDefault(); if (CURRENT_SESSION) skipToNext(); }
   });
 }
 
@@ -89,16 +146,26 @@ function scrollToLog() {
 
 async function loadWorkouts() {
   const names = ['nakke_5min','skuldre_4min','handledd_3min','core_4min'];
-  WORKOUTS = [];
+  const results = [];
   for (const n of names) {
-    const res = await fetch(`./data/workouts/${n}.json`);
+    const url = `./data/workouts/${n}.json`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Feil ved henting av ${url}: ${res.status}`);
     const j = await res.json();
-    WORKOUTS.push(j);
+    results.push(j);
   }
+  WORKOUTS = results;
 }
 
 function populateWorkoutSelect() {
   els.workoutSelect.innerHTML = '';
+  if (!WORKOUTS.length) {
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = 'Fant ingen økter';
+    els.workoutSelect.appendChild(opt);
+    return;
+  }
   for (const w of WORKOUTS) {
     const opt = document.createElement('option');
     opt.value = w.id;
@@ -148,7 +215,7 @@ function renderExercisesList(workout, activeIndex) {
 
 function updateSessionHeader(workout, session) {
   els.sessionWorkoutName.textContent = workout.name;
-  els.sessionProgress.textContent = `${session.exerciseIndex+1}/${workout.exercises.length}`;
+  els.sessionProgress.textContent = `${Math.min(session.exerciseIndex+1, workout.exercises.length)}/${workout.exercises.length}`;
   const phaseLabel = session.phase === SessionPhase.ACTIVE ? 'Øvelse'
                      : session.phase === SessionPhase.REST ? 'Hvile (10s)'
                      : session.phase === SessionPhase.PAUSED ? 'Pause'
@@ -162,7 +229,10 @@ function updateSessionHeader(workout, session) {
 function startSession() {
   const workoutId = els.workoutSelect.value;
   const workout = findWorkoutById(workoutId);
-  if (!workout) return;
+  if (!workout) {
+    alert('Velg en treningsøkt først.');
+    return;
+  }
 
   CURRENT_SESSION = new SessionState(workout);
   CURRENT_SESSION.start();
@@ -182,7 +252,6 @@ function onTick(ms) {
 }
 
 function onFinished() {
-  // Avslutt gjeldende fase og gå videre
   const w = CURRENT_SESSION.workout;
   CURRENT_SESSION.nextPhase();
 
@@ -219,23 +288,24 @@ function stopSession() {
 }
 
 function skipToNext() {
-  // Valgfritt: hopp til neste fase
+  if (!CURRENT_SESSION) return;
+  // Hopp til neste fase
   TIMER?.stop();
   onFinished();
 }
 
 async function finalizeAndSaveSession(status) {
-  // Kalkuler actual_seconds for hver øvelse basert på tidsstempler
+  // Kalkuler actual_seconds basert på loggede tidsstempler
   for (const item of CURRENT_SESSION.exercisesLog) {
     const secs = Math.max(1, Math.round((new Date(item.ended_at) - new Date(item.started_at)) / 1000));
     item.actual_seconds = secs;
   }
 
   const sessionObj = {
-    session_id: crypto.randomUUID(),
+    session_id: (crypto?.randomUUID && crypto.randomUUID()) || String(Date.now()),
     date: getTodayStr(),
-    started_at: CURRENT_SESSION.startedAt,
-    ended_at: CURRENT_SESSION.endedAt || new Date().toISOString(),
+    started_at: CURRENT_SESSION.startedAt,           // ISO (UTC)
+    ended_at: CURRENT_SESSION.endedAt || new Date().toISOString(), // ISO (UTC)
     status,
     workout_id: CURRENT_SESSION.workout.id,
     workout_name: CURRENT_SESSION.workout.name,
@@ -255,8 +325,10 @@ async function onExportDay() {
     alert('Ingen økter i dag.');
     return;
   }
+  // Generer TCX og last ned
   const xml = generateTCXForDay(dateStr, sessions);
   downloadTCX(dateStr, xml);
 }
 
-init();
+// Vent til DOM er klar
+document.addEventListener('DOMContentLoaded', init);

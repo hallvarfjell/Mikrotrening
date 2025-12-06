@@ -1,15 +1,11 @@
 
-const CACHE_NAME = 'desk-microflows-v2'; // <— bump versjon
+const CACHE_NAME = 'desk-microflows-v3'; // bump versjon
 const ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
   './css/styles.css',
-  './js/app.js',
-  './js/timer.js',
-  './js/state.js',
-  './js/storage.js',
-  './js/tcx.js',
+  './js/app.bundle.js',           // <— kun bundle
   './data/workouts/nakke_5min.json',
   './data/workouts/skuldre_4min.json',
   './data/workouts/handledd_3min.json',
@@ -19,9 +15,7 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
-  );
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
   self.skipWaiting();
 });
 

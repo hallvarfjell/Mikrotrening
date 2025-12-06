@@ -1,0 +1,12 @@
+
+{
+  "id": "skuldre_4min_v1",
+  "name": "Skuldre mobilitet (4 min)",
+  "default_rest_seconds": 10,
+  "exercises": [
+    { "name": "Skuldertrekk", "duration_seconds": 40 },
+    { "name": "Armsirkler", "duration_seconds": 40 },
+    { "name": "Scapula retraksjon", "duration_seconds": 40 },
+    { "name": "Nakkerulling", "duration_seconds": 40 }
+  ]
+}

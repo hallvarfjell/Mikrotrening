@@ -1,15 +1,11 @@
 
-const CACHE_NAME = 'desk-microflows-v3'; // bump versjon
+const CACHE_NAME = 'desk-microflows-v4'; // bump versjon
 const ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
   './css/styles.css',
-  './js/app.bundle.js',           // <— kun bundle
-  './data/workouts/nakke_5min.json',
-  './data/workouts/skuldre_4min.json',
-  './data/workouts/handledd_3min.json',
-  './data/workouts/core_4min.json',
+  './js/app.bundle.js',
   './assets/icon-192.png',
   './assets/icon-512.png',
 ];

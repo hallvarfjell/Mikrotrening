@@ -1,0 +1,15 @@
+{
+  "name": "Styrke lang (10 min)",
+  "description": "Lengre styrkeøkt som fortsatt egner seg på kontoret.",
+  "exercises": [
+    { "name": "Knebøy", "duration": 60 },
+    { "name": "Pushups mot pult", "duration": 50 },
+    { "name": "Rygghev", "duration": 50 },
+    { "name": "Utfall høyre", "duration": 40 },
+    { "name": "Utfall venstre", "duration": 40 },
+    { "name": "Planke", "duration": 60 },
+    { "name": "Glute bridge", "duration": 50 },
+    { "name": "Skuldertap (stående pushups-variant)", "duration": 40 },
+    { "name": "Hollow hold", "duration": 50 }
+  ]
+}

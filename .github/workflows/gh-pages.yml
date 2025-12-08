@@ -8,10 +8,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
 
@@ -22,7 +23,7 @@ jobs:
         run: npm run build
 
       - name: Upload GitHub Pages artifact
-        # This action produces the artifact format that the deploy-pages action expects
+        # produces the artifact format that the deploy-pages action expects
         uses: actions/upload-pages-artifact@v4
         with:
           path: ./dist

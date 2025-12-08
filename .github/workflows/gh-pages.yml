@@ -21,11 +21,11 @@ jobs:
       - name: Build
         run: npm run build
 
-- name: Upload GitHub Pages artifact
-  uses: actions/upload-artifact@v4
-  with:
-    name: github-pages
-    path: ./dist
+      - name: Upload GitHub pages artifact
+        uses: actions/upload-artifact@v4
+        with: 
+          name:github-pages
+          path: ./dist
 
   deploy:
     needs: build

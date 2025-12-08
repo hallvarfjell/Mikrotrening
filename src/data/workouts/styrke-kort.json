@@ -1,0 +1,11 @@
+{
+  "name": "Rask styrke (3 min)",
+  "description": "Kort anaerob styrkeøkt som passer mellom møter.",
+  "exercises": [
+    { "name": "Knebøy", "duration": 30 },
+    { "name": "Pushups mot pult", "duration": 30 },
+    { "name": "Planke", "duration": 40 },
+    { "name": "Utfall (annet ben)", "duration": 40 },
+    { "name": "Supermann", "duration": 40 }
+  ]
+}

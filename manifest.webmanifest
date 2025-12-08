@@ -1,7 +1,7 @@
 
 {
   "name": "Mikrotrening",
-  "short_name": "Microflows",
+  "short_name": "Mikrotrening",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f6f8fa",

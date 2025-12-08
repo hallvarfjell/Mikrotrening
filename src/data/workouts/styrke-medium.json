@@ -1,0 +1,14 @@
+{
+  "name": "Styrke medium (6 min)",
+  "description": "Kontorvennlig helkroppsøkt med enkel, funksjonell styrke.",
+  "exercises": [
+    { "name": "Knebøy", "duration": 40 },
+    { "name": "Glute bridge", "duration": 40 },
+    { "name": "Pushups mot vegg eller pult", "duration": 40 },
+    { "name": "Utfall høyre", "duration": 30 },
+    { "name": "Utfall venstre", "duration": 30 },
+    { "name": "Planke", "duration": 40 },
+    { "name": "Sittende roing med strikk", "duration": 40 },
+    { "name": "Rygghev", "duration": 40 }
+  ]
+}

@@ -13,7 +13,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
-          node-version: 20
+          node-version: '20'
 
       - name: Install dependencies
         run: npm ci
@@ -21,10 +21,10 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Upload GitHub pages artifact
-        uses: actions/upload-artifact@v4
-        with: 
-          name:github-pages
+      - name: Upload GitHub Pages artifact
+        # This action produces the artifact format that the deploy-pages action expects
+        uses: actions/upload-pages-artifact@v1
+        with:
           path: ./dist
 
   deploy:
@@ -36,4 +36,4 @@ jobs:
 
     steps:
       - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v2
+        uses: actions/deploy-pages@v1

@@ -1,0 +1,14 @@
+{
+  "name": "Rask mobilitet (5 min)",
+  "description": "Lett kontorvennlig mobilitetsøkt for å løsne på nakke, skuldre og hofter.",
+  "exercises": [
+    { "name": "Nakke rotasjoner", "duration": 30 },
+    { "name": "Skulderrullinger", "duration": 30 },
+    { "name": "Arm-sirkler fremover", "duration": 30 },
+    { "name": "Arm-sirkler bakover", "duration": 30 },
+    { "name": "Katte-ku ryggmobilitet", "duration": 40 },
+    { "name": "Stå og tøy hoftebøyere", "duration": 40 },
+    { "name": "Ankelsirkler", "duration": 40 },
+    { "name": "Dype pust + tøye siden av kroppen", "duration": 40 }
+  ]
+}

@@ -131,7 +131,7 @@ class SessionState {
 }
 
 /* ===== storage (IndexedDB + fallback localStorage) ===== */
-const DB_NAME = 'desk_microflows';
+const DB_NAME = 'Mikrotrening';
 const DB_VERSION = 1;
 const STORE = 'sessions';
 async function openDb() {

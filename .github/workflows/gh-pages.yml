@@ -24,7 +24,7 @@ jobs:
 
       - name: Upload GitHub Pages artifact
         # produces the artifact format that the deploy-pages action expects
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v1
         with:
           path: ./dist
 

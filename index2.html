@@ -1,1 +1,42 @@
-placeholder
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tabata Timer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <h1>Tabata Timer</h1>
+
+    <!-- Oppsett / lag ny timer -->
+    <div id="setup">
+      <h2>Lag ny timer</h2>
+      <input id="name" placeholder="Navn på økt (f.eks 6x6 min)">
+      <input id="rounds" type="number" placeholder="Antall runder">
+      <input id="work" type="number" placeholder="Arbeid (sekunder)">
+      <input id="rest" type="number" placeholder="Pause (sekunder)">
+      <br>
+      <button onclick="saveTimer()">Lagre timer</button>
+    </div>
+
+    <!-- Liste over lagrede timere -->
+    <div id="timers"></div>
+
+    <!-- Kjørende økt -->
+    <div id="run" class="hidden">
+      <h2 id="title"></h2>
+      <div class="big" id="current">00:00</div>
+      <div id="info"></div>
+
+      <div style="margin-top:20px;">
+        <button onclick="pause()">Pause</button>
+        <button onclick="stop()">Stopp</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

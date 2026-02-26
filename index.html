@@ -1,49 +1,112 @@
-
 <!DOCTYPE html>
-<html lang='no'>
+<html lang="no">
 <head>
-<meta charset='UTF-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1.0'>
-<link rel='stylesheet' href='style.css'>
-<script defer src='main.js'></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0b0f14" />
+  <title>Intervall PWA</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<header class='topbar'><h1>Intervalltrening</h1>
-<button id='connect-hr'>Koble til pulsbelte</button>
-<button id='connect-treadmill'>Koble til tredemølle</button>
-</header>
-<main class='layout'>
-<section class='leftcol'>
-<div class='card metrics'>
-<div class='metric'><label>Puls</label><span id='pulse' class='big'>--</span></div>
-<div class='metric'><label>Estimert watt</label><span id='watt'>--</span></div>
-<div class='metric'><label>Slope</label><span id='slope'>--</span></div>
-</div>
-<div class='card controls'>
-<h3>Fart og stigning</h3>
-<button class='speed-btn' data-speed='10'>10 km/t</button>
-<button class='speed-btn' data-speed='15'>15 km/t</button>
-<input id='manual-speed' type='number' placeholder='Fart'>
-<input id='manual-grade' type='number' placeholder='Stigning'>
-</div>
-<div class='card workout'>
-<h3>Intervalløkt</h3>
-<button class='preset' data-set='6x5'>6x5</button>
-<button class='preset' data-set='10x4'>10x4</button>
-<button class='preset' data-set='6x6'>6x6</button>
-<button class='preset' data-set='8x6'>8x6</button>
-<div id='current-interval'>--</div>
-<div id='phase'>--</div>
-<div id='timer' class='big'>00:00</div>
-<button id='skip-warmup'>Hopp over oppvarming</button>
-<button id='skip-cooldown'>Hopp over nedkjøling</button>
-</div>
-</section>
-<section class='rightcol'>
-<div class='card graphcard'>
-<canvas id='chart'></canvas>
-</div>
-</section>
-</main>
+  <header class="topbar">
+    <h1>Intervalltrening</h1>
+    <div class="devicectl">
+      <button id="connect-hr" class="primary">Koble til pulsbelte</button>
+      <button id="connect-treadmill" class="secondary">Koble til tredemølle</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="leftcol">
+      <div class="card metrics" id="dashboard">
+        <div class="metric metric-big"><label>Puls</label><span id="pulse" class="big-num">--</span><small>bpm</small></div>
+        <div class="metric"><label>Estimert watt</label><span id="watt">--</span><small>W</small></div>
+        <div class="metric"><label>Slope</label><span id="slope">--</span><small>bpm (2 min)</small></div>
+      </div>
+
+      <div class="card controls">
+        <div class="row space-between">
+          <h3>Fart og stigning</h3>
+          <span id="ftms-status" class="badge">FTMS: Frakoblet</span>
+        </div>
+        <div class="row">
+          <button class="speed-btn" data-speed="10">10 km/t</button>
+          <button class="speed-btn" data-speed="15">15 km/t</button>
+        </div>
+        <div class="row">
+          <label>Fart (km/t)
+            <input id="manual-speed" type="number" min="0" step="0.1" placeholder="0.0" />
+          </label>
+          <label>Stigning (%)
+            <input id="manual-grade" type="number" step="0.5" placeholder="0" />
+          </label>
+        </div>
+      </div>
+
+      <div class="card workout">
+        <h3>Intervalløkter</h3>
+        <div class="row presets">
+          <button class="preset" data-set="6x5">6×5 min</button>
+          <button class="preset" data-set="10x4">10×4 min</button>
+          <button class="preset" data-set="6x6">6×6 min</button>
+          <button class="preset" data-set="8x6">8×6 min</button>
+        </div>
+        <div class="row">
+          <button id="start-workout" class="primary">Start</button>
+          <button id="pause-workout" class="secondary">Pause</button>
+          <button id="reset-workout" class="secondary">Nullstill</button>
+        </div>
+        <div class="nowplaying">
+          <div id="current-interval">Ingen økt valgt</div>
+          <div id="phase">–</div>
+          <div id="timer" class="big-timer">00:00</div>
+          <div class="row">
+            <button id="skip-warmup" class="ghost">Hopp over oppvarming</button>
+            <button id="skip-cooldown" class="ghost">Hopp over nedkjøling</button>
+          </div>
+          <div id="progressbar"><div id="progress"></div></div>
+        </div>
+      </div>
+
+      <div class="card small settings">
+        <h3>Innstillinger</h3>
+        <div class="row">
+          <label>Kroppsvekt (kg)
+            <input id="mass-kg" type="number" min="30" max="200" step="0.5" value="75" />
+          </label>
+          <label>LT1 (bpm)
+            <input id="lt1" type="number" min="80" max="220" step="1" value="135" />
+          </label>
+          <label>LT2 (bpm)
+            <input id="lt2" type="number" min="80" max="220" step="1" value="160" />
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <section class="rightcol">
+      <div class="card graphcard">
+        <div class="graphhdr">
+          <div>
+            <strong>Graf</strong>
+            <label><input type="checkbox" id="show-hr" checked> Puls</label>
+            <label><input type="checkbox" id="show-watt" checked> Watt</label>
+            <label><input type="checkbox" id="show-speed" checked> Fart</label>
+          </div>
+          <div class="axisrange">
+            <label>HR-min <input id="hr-min" type="number" value="80" step="1"></label>
+            <label>HR-max <input id="hr-max" type="number" value="200" step="1"></label>
+          </div>
+        </div>
+        <div class="graphwrap">
+          <canvas id="chart" aria-label="trening data graf" role="img"></canvas>
+        </div>
+      </div>
+      <p class="hint">FTMS aktiv: Leser fart/stigning når tredemølle er tilkoblet. Du kan fortsatt overstyre manuelt.</p>
+    </section>
+  </main>
+
+  <script src="main.js" defer></script>
 </body>
 </html>

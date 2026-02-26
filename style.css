@@ -16,6 +16,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font:16px system-ui,Segoe UI,
 .metric label{font-size:13px;color:var(--muted);width:140px}
 .metric small{font-size:12px;color:var(--muted)}
 .controls .row,.workout .row,.settings .row{display:flex;gap:8px;flex-wrap:wrap}
+.controls .space-between{justify-content:space-between;align-items:center}
 button{background:#1f2937;color:var(--fg);border:1px solid #2c3542;border-radius:10px;padding:10px 14px;font-size:14px;cursor:pointer}
 button.primary{background:var(--accent);border-color:#0891b2;color:#00121a}
 button.secondary{background:#1e293b}
@@ -30,5 +31,7 @@ input{background:#0f172a;color:var(--fg);border:1px solid #1f2937;border-radius:
 .graphhdr{display:flex;align-items:center;justify-content:space-between;padding:6px 8px;color:var(--muted)}
 .axisrange label{margin-left:8px;font-size:12px}
 .hint{color:var(--muted);font-size:12px;margin:0 8px 24px 8px}
+.badge{background:#0b3b27;border:1px solid #0d5f3d;color:#9ae6b4;padding:4px 8px;border-radius:999px;font-size:12px}
+.badge.connected{background:#0b2b3b;border-color:#0d5a6f;color:#9bd1e6}
 
 /* Zone background legend used in canvas drawing (colors declared in :root) */

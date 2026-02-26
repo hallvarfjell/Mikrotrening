@@ -7,9 +7,6 @@
   <title>Intervall PWA</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="style.css" />
-  <script>
-    // iOS install hint is intentionally omitted (Android tablet target)
-  </script>
 </head>
 <body>
   <header class="topbar">
@@ -29,7 +26,10 @@
       </div>
 
       <div class="card controls">
-        <h3>Fart og stigning</h3>
+        <div class="row space-between">
+          <h3>Fart og stigning</h3>
+          <span id="ftms-status" class="badge">FTMS: Frakoblet</span>
+        </div>
         <div class="row">
           <button class="speed-btn" data-speed="10">10 km/t</button>
           <button class="speed-btn" data-speed="15">15 km/t</button>
@@ -97,7 +97,7 @@
         </div>
         <canvas id="chart" width="1400" height="520" aria-label="trening data graf" role="img"></canvas>
       </div>
-      <p class="hint">Merk: Tredemølle‑BLE (FTMS) implementeres i neste steg. Denne versjonen leser puls via BLE og bruker manuell fart/stigning for watt‑estimat.</p>
+      <p class="hint">FTMS aktiv: Leser fart/stigning når tredemølle er tilkoblet. Du kan fortsatt overstyre manuelt.</p>
     </section>
   </main>
 

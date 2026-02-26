@@ -1,0 +1,5 @@
+
+body { font-family: sans-serif; background: #111; color: white; }
+header, section { margin: 20px; }
+button { margin: 5px; padding: 10px; }
+#pulse-panel { background: red; padding: 20px; }

@@ -1,0 +1,46 @@
+
+<!DOCTYPE html>
+<html lang='no'>
+<head>
+<meta charset='UTF-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0'>
+<link rel='manifest' href='manifest.json'>
+<title>Intervall PWA</title>
+<link rel='stylesheet' href='style.css'>
+<script defer src='main.js'></script>
+</head>
+<body>
+<header>
+<h1>Intervalltrening</h1>
+<button id='connect-hr'>Koble til pulsbelte</button>
+<button id='connect-treadmill'>Koble til tredemølle</button>
+</header>
+<section id='controls'>
+<button class='speed-btn' data-speed='10'>10 km/t</button>
+<button class='speed-btn' data-speed='15'>15 km/t</button>
+<input id='manual-speed' type='number' placeholder='Fart (km/t)'>
+<input id='manual-grade' type='number' placeholder='Stigning (%)'>
+</section>
+<section id='dashboard'>
+<div id='pulse-panel'>Puls: <span id='pulse'>--</span></div>
+<div id='watt-panel'>Estimert watt: <span id='watt'>--</span></div>
+<div id='slope-panel'>Slope: <span id='slope'>--</span></div>
+</section>
+<section id='graph-section'>
+<h2>Graf</h2>
+<label><input type='checkbox' id='show-hr' checked>Puls</label>
+<label><input type='checkbox' id='show-watt' checked>Watt</label>
+<label><input type='checkbox' id='show-speed' checked>Fart</label>
+<canvas id='chart' width='1200' height='400'></canvas>
+</section>
+<section id='workout'>
+<h2>Intervalløkter</h2>
+<button class='preset' data-set='6x5'>6×5 min</button>
+<button class='preset' data-set='10x4'>10×4 min</button>
+<button class='preset' data-set='6x6'>6×6 min</button>
+<button class='preset' data-set='8x6'>8×6 min</button>
+<div id='current-interval'>--</div>
+<div id='timer'>00:00</div>
+</section>
+</body>
+</html>

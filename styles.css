@@ -1,0 +1,295 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #111;
+    color: #f5f5f5;
+}
+
+.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.8rem 1.5rem;
+    background: #222;
+    border-bottom: 1px solid #333;
+}
+
+.app-header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.connection-buttons button {
+    margin-left: 0.5rem;
+}
+
+.layout {
+    display: flex;
+    flex-direction: row;
+    padding: 0.8rem;
+    gap: 0.8rem;
+    height: calc(100vh - 80px);
+    box-sizing: border-box;
+}
+
+.left-panel, .right-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.left-panel {
+    flex: 1;
+}
+
+.right-panel {
+    flex: 1;
+}
+
+.card {
+    background: #1a1a1a;
+    border-radius: 0.6rem;
+    padding: 0.8rem 1rem;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+}
+
+.hr-card {
+    min-height: 150px;
+}
+
+.hr-row {
+    display: flex;
+    justify-content: space-around;
+    gap: 0.5rem;
+}
+
+.hr-value {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.hr-value .label {
+    font-size: 0.85rem;
+    color: #ccc;
+}
+
+.hr-value .value {
+    font-size: 2.4rem;
+    font-weight: bold;
+}
+
+.hr-value .unit {
+    font-size: 0.9rem;
+    color: #aaa;
+}
+
+.hr-settings {
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.hr-settings input {
+    width: 80px;
+}
+
+.zone-info {
+    font-size: 0.75rem;
+    margin-top: 0.4rem;
+    color: #ddd;
+}
+
+.speed-card h2,
+.status-card h2,
+.workout-status-card h2,
+.quick-workouts-card h2,
+.workout-editor-card h2,
+.chart-section h2 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.speed-controls,
+.incline-controls {
+    margin-bottom: 0.6rem;
+}
+
+.speed-controls label,
+.incline-controls label {
+    display: block;
+    margin-bottom: 0.2rem;
+}
+
+.speed-controls input,
+.incline-controls input {
+    width: 100%;
+    padding: 0.3rem 0.4rem;
+    font-size: 1rem;
+}
+
+.quick-speed-buttons {
+    margin-top: 0.4rem;
+    display: flex;
+    gap: 0.4rem;
+}
+
+button {
+    padding: 0.4rem 0.8rem;
+    border-radius: 0.4rem;
+    border: none;
+    background: #333;
+    color: #fff;
+    font-size: 0.95rem;
+    cursor: pointer;
+}
+
+button.primary {
+    background: #007bff;
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.status-card p {
+    margin: 0.2rem 0;
+    font-size: 0.9rem;
+}
+
+.workout-status-card {
+    min-height: 200px;
+}
+
+#current-workout-name {
+    font-weight: bold;
+    margin-bottom: 0.3rem;
+}
+
+#current-interval-info {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.big-timer {
+    font-size: 3rem;
+    text-align: center;
+    margin: 0.4rem 0 0.6rem 0;
+    font-weight: bold;
+}
+
+.workout-controls {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.quick-workouts-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.quick-workouts-buttons button {
+    flex: 1 1 45%;
+}
+
+.workout-editor-card form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+.form-row {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 45%;
+}
+
+.form-row label {
+    margin-bottom: 0.2rem;
+    font-size: 0.9rem;
+}
+
+.form-row input {
+    padding: 0.3rem;
+    font-size: 0.95rem;
+}
+
+.form-row.buttons {
+    flex: 1 1 100%;
+    align-items: flex-start;
+    margin-top: 0.4rem;
+}
+
+.saved-workouts {
+    margin-top: 0.6rem;
+    max-height: 150px;
+    overflow-y: auto;
+    border-top: 1px solid #333;
+    padding-top: 0.4rem;
+}
+
+.saved-workouts ul {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+}
+
+.saved-workouts li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.3rem;
+    font-size: 0.9rem;
+}
+
+.saved-workouts button {
+    font-size: 0.8rem;
+    padding: 0.2rem 0.4rem;
+}
+
+/* Chart section nederst på siden */
+.chart-section {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: 0.6rem;
+    padding-bottom: 0.6rem;
+}
+
+.chart-controls {
+    display: flex;
+    gap: 0.8rem;
+    margin-bottom: 0.4rem;
+}
+
+.chart-controls label {
+    font-size: 0.9rem;
+}
+
+/* Responsiv til litt mindre bredder */
+@media (max-width: 900px) {
+    .layout {
+        flex-direction: column;
+        height: auto;
+    }
+
+    .chart-section {
+        position: static;
+        margin-top: 0.5rem;
+    }
+}

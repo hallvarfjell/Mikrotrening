@@ -1,212 +1,188 @@
 <!DOCTYPE html>
 <html lang="nb">
 <head>
-    <meta charset="UTF-8" />
-    <title>Intervalltrener PWA</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#000000" />
+    <meta charset="UTF-8">
+    <title>Intervalltrening PWA</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 
-    <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="styles.css" />
+    <!-- PWA manifest -->
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#000000">
 
-    <!-- Chart.js fra CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <!-- iOS / Android install hints -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Chart.js til grafene -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <header class="top-bar">
-        <div class="connection-group">
-            <button id="btnConnectHR">🔗 Koble til pulsbelte</button>
-            <button id="btnConnectTreadmill">🔗 Koble til tredemølle</button>
-            <span id="connectionStatus" class="status-text">Ikke tilkoblet</span>
-        </div>
-
-        <div class="settings-group">
-            <label>
-                Makspuls:
-                <input type="number" id="maxHrInput" value="190" min="100" max="230" />
-            </label>
-            <label>
-                Vekt (kg) for watt-estimat:
-                <input type="number" id="weightInput" value="75" min="30" max="200" />
-            </label>
-        </div>
-
-        <div class="manual-control-group">
-            <div>
-                <label>
-                    Fart (km/t):
-                    <input type="number" id="speedInput" value="10" min="0" step="0.1" />
-                </label>
-                <button class="quick-btn" data-speed="10">10 km/t</button>
-                <button class="quick-btn" data-speed="15">15 km/t</button>
-            </div>
-            <div>
-                <label>
-                    Stigning (%):
-                    <input type="number" id="inclineInput" value="0" min="0" max="30" step="0.5" />
-                </label>
-            </div>
+    <header class="app-header">
+        <h1>Intervalltrening</h1>
+        <div class="connection-buttons">
+            <button id="connect-hr-btn">Koble til pulsbelte</button>
+            <button id="connect-treadmill-btn">Koble til tredemølle</button>
         </div>
     </header>
 
     <main class="layout">
-        <!-- VENSTRE: Puls-panel og øktstatus -->
+        <!-- Venstre side: Puls, hastighet, stigning -->
         <section class="left-panel">
-            <section class="card pulse-panel">
-                <h2>Puls & belastning</h2>
-                <div class="pulse-row">
-                    <div class="metric">
+            <!-- Puls / watt / slope panel -->
+            <div id="hr-panel" class="card hr-card">
+                <div class="hr-row">
+                    <div class="hr-value">
                         <span class="label">Puls</span>
-                        <span class="value" id="hrValue">--</span>
+                        <span id="heart-rate" class="value">--</span>
                         <span class="unit">bpm</span>
                     </div>
-                    <div class="metric">
-                        <span class="label">Estimert watt</span>
-                        <span class="value" id="wattValue">--</span>
+                    <div class="hr-value">
+                        <span class="label">Watt (estimert)</span>
+                        <span id="watt" class="value">--</span>
                         <span class="unit">W</span>
                     </div>
-                    <div class="metric">
-                        <span class="label">Slope (siste 2 min)</span>
-                        <span class="value" id="slopeValue">--</span>
+                    <div class="hr-value">
+                        <span class="label">Slope (2 min)</span>
+                        <span id="hr-slope" class="value">--</span>
                         <span class="unit">bpm</span>
                     </div>
                 </div>
-                <div class="zone-info">
-                    <span>Intensitetssone: <strong id="zoneLabel">-</strong></span>
+                <div class="hr-settings">
+                    <label for="hr-max">Maks puls (HRmax):</label>
+                    <input type="number" id="hr-max" min="100" max="230" value="190">
                 </div>
-            </section>
+                <p class="zone-info">
+                    Bakgrunnsfarge = intensitetssone (Olympiatoppen-inspirert).
+                </p>
+            </div>
 
-            <section class="card workout-panel">
-                <h2>Intervalløkt</h2>
-                <div class="current-workout-info">
+            <!-- Fart og stigning -->
+            <div class="card speed-card">
+                <h2>Fart &amp; stigning</h2>
+                <div class="speed-controls">
                     <div>
-                        <span class="label">Aktiv økt:</span>
-                        <span id="currentWorkoutName">Ingen</span>
+                        <label for="speed-input">Fart (km/t)</label>
+                        <input type="number" id="speed-input" step="0.1" min="0" value="10">
                     </div>
-                    <div>
-                        <span class="label">Fase:</span>
-                        <span id="currentPhaseLabel">-</span>
-                    </div>
-                    <div>
-                        <span class="label">Repetisjon:</span>
-                        <span id="currentRepLabel">-</span>
+                    <div class="quick-speed-buttons">
+                        <button type="button" data-speed="10">10 km/t</button>
+                        <button type="button" data-speed="15">15 km/t</button>
                     </div>
                 </div>
+                <div class="incline-controls">
+                    <label for="incline-input">Stigning (%)</label>
+                    <input type="number" id="incline-input" step="0.5" min="0" value="1">
+                </div>
+                <button id="apply-speed-incline-btn" class="primary">
+                    Bruk fart/stigning (manuelt)
+                </button>
+            </div>
 
-                <div class="timer-display">
-                    <span id="mainTimer">00:00</span>
-                </div>
+            <!-- Info om tilkobling -->
+            <div class="card status-card">
+                <h2>Status</h2>
+                <p id="hr-status">Pulsbelte: Ikke tilkoblet</p>
+                <p id="treadmill-status">Tredemølle: Ikke tilkoblet</p>
+            </div>
+        </section>
+
+        <!-- Høyre side: Økt, intervaller, timer -->
+        <section class="right-panel">
+            <div class="card workout-status-card">
+                <h2>Aktiv økt</h2>
+                <p id="current-workout-name">Ingen økt valgt</p>
+                <p id="current-interval-info">–</p>
+
+                <div class="big-timer" id="big-timer">00:00</div>
 
                 <div class="workout-controls">
-                    <button id="btnStartWorkout" class="primary">▶ Start økt</button>
-                    <button id="btnStopWorkout" class="secondary">⏹ Stopp</button>
+                    <button id="start-workout-btn" class="primary">Start</button>
+                    <button id="pause-workout-btn">Pause</button>
+                    <button id="reset-workout-btn">Nullstill</button>
                 </div>
+            </div>
 
-                <div class="quick-workouts">
-                    <h3>Hurtigvalg (pause = 1 min)</h3>
-                    <button class="quick-workout-btn" data-warmup="10" data-work="5" data-reps="6" data-rest="1" data-cooldown="10">
-                        6 × 5 min
-                    </button>
-                    <button class="quick-workout-btn" data-warmup="10" data-work="4" data-reps="10" data-rest="1" data-cooldown="10">
-                        10 × 4 min
-                    </button>
-                    <button class="quick-workout-btn" data-warmup="10" data-work="6" data-reps="6" data-rest="1" data-cooldown="10">
-                        6 × 6 min
-                    </button>
-                    <button class="quick-workout-btn" data-warmup="10" data-work="6" data-reps="8" data-rest="1" data-cooldown="10">
-                        8 × 6 min
-                    </button>
+            <div class="card quick-workouts-card">
+                <h2>Hurtigøkter</h2>
+                <p>Pause = 1 minutt. Du kan tilpasse senere i redigeringspanelet.</p>
+                <div class="quick-workouts-buttons">
+                    <button class="quick-workout-btn" data-name="6x5" data-reps="6" data-work="300" data-pause="60">6 x 5 min</button>
+                    <button class="quick-workout-btn" data-name="10x4" data-reps="10" data-work="240" data-pause="60">10 x 4 min</button>
+                    <button class="quick-workout-btn" data-name="6x6" data-reps="6" data-work="360" data-pause="60">6 x 6 min</button>
+                    <button class="quick-workout-btn" data-name="8x6" data-reps="8" data-work="360" data-pause="60">8 x 6 min</button>
                 </div>
-            </section>
+            </div>
 
-            <section class="card workout-editor">
-                <h2>Egendefinert økt</h2>
-                <form id="workoutForm">
+            <div class="card workout-editor-card">
+                <h2>Rediger / lagre økt</h2>
+                <form id="workout-form">
                     <div class="form-row">
-                        <label>
-                            Navn:
-                            <input type="text" id="workoutName" placeholder="F.eks. 5x5 terskel" required />
-                        </label>
+                        <label for="workout-name">Navn på økt</label>
+                        <input type="text" id="workout-name" required placeholder="Egen intervalløkt">
                     </div>
                     <div class="form-row">
-                        <label>
-                            Oppvarming (min):
-                            <input type="number" id="warmupMinutes" value="10" min="0" />
-                        </label>
-                        <label>
-                            Dragtid (min):
-                            <input type="number" id="workMinutes" value="5" min="1" />
-                        </label>
+                        <label for="warmup">Oppvarming (min)</label>
+                        <input type="number" id="warmup" min="0" value="10">
                     </div>
                     <div class="form-row">
-                        <label>
-                            Antall drag:
-                            <input type="number" id="reps" value="6" min="1" />
-                        </label>
-                        <label>
-                            Pause (min):
-                            <input type="number" id="restMinutes" value="1" min="0" />
-                        </label>
+                        <label for="work-duration">Dragtid (min)</label>
+                        <input type="number" id="work-duration" min="1" value="5">
                     </div>
                     <div class="form-row">
-                        <label>
-                            Nedjogg (min):
-                            <input type="number" id="cooldownMinutes" value="10" min="0" />
-                        </label>
+                        <label for="repetitions">Antall repetisjoner</label>
+                        <input type="number" id="repetitions" min="1" value="6">
                     </div>
                     <div class="form-row">
-                        <button type="submit" class="primary">💾 Lagre økt</button>
+                        <label for="pause-duration">Pause (min)</label>
+                        <input type="number" id="pause-duration" min="0" value="1">
+                    </div>
+                    <div class="form-row">
+                        <label for="cooldown">Nedjogg (min)</label>
+                        <input type="number" id="cooldown" min="0" value="10">
+                    </div>
+                    <div class="form-row buttons">
+                        <button type="submit" class="primary">Lagre økt</button>
                     </div>
                 </form>
 
                 <div class="saved-workouts">
-                    <label>
-                        Lagrede økter:
-                        <select id="savedWorkouts">
-                            <option value="">Velg økt…</option>
-                        </select>
-                    </label>
-                    <button id="btnUseWorkout" class="secondary">Bruk valgt økt</button>
+                    <h3>Lagrede økter</h3>
+                    <ul id="saved-workouts-list"></ul>
                 </div>
-            </section>
-        </section>
-
-        <!-- HØYRE: Graf -->
-        <section class="right-panel">
-            <section class="card chart-card">
-                <div class="chart-header">
-                    <h2>Graf</h2>
-                    <div class="chart-toggle">
-                        <label>
-                            <input type="checkbox" id="chkHeartRate" checked />
-                            Puls
-                        </label>
-                        <label>
-                            <input type="checkbox" id="chkWatt" checked />
-                            Watt
-                        </label>
-                        <label>
-                            <input type="checkbox" id="chkSpeed" checked />
-                            Fart
-                        </label>
-                    </div>
-                </div>
-                <canvas id="metricsChart"></canvas>
-            </section>
+            </div>
         </section>
     </main>
 
-    <footer class="bottom-bar">
-        <span>Intervalltrener PWA – fungerer best i Chrome/Edge på Galaxy Tab S9 (landskap) over HTTPS.</span>
-    </footer>
+    <!-- Grafområdet nederst -->
+    <section class="chart-section card">
+        <h2>Grafer</h2>
+        <div class="chart-controls">
+            <label>
+                <input type="checkbox" id="show-heart-rate" checked>
+                Puls
+            </label>
+            <label>
+                <input type="checkbox" id="show-watt" checked>
+                Watt
+            </label>
+            <label>
+                <input type="checkbox" id="show-speed" checked>
+                Fart
+            </label>
+        </div>
+        <canvas id="metrics-chart"></canvas>
+    </section>
 
     <script src="app.js"></script>
     <script>
         // Registrer service worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('service-worker.js')
-                    .catch(err => console.error('Service worker failed:', err));
+                navigator.serviceWorker.register('service-worker.js').catch(err => {
+                    console.warn('Service worker feilet:', err);
+                });
             });
         }
     </script>

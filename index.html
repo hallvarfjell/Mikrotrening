@@ -74,6 +74,7 @@
           <div id="timer" class="big-timer">00:00</div>
           <div class="row">
             <button id="skip-warmup" class="ghost">Hopp over oppvarming</button>
+            <button id="skip-interval" class="ghost"><i class="ph-fast-forward ph-fw"></i> Hopp over drag/pause</button>
             <button id="skip-cooldown" class="ghost">Hopp over nedkjøling</button>
           </div>
           <div class="rpe-row">
@@ -108,11 +109,17 @@
     <section class="rightcol">
       <div class="card graphcard">
         <div class="graphhdr">
-          <div>
+          <div class="ghostctl">
             <strong>Graf</strong>
             <label><input type="checkbox" id="show-hr" checked> Puls</label>
             <label><input type="checkbox" id="show-watt" checked> Watt</label>
             <label><input type="checkbox" id="show-speed" checked> Fart</label>
+          </div>
+          <div class="ghostsel">
+            <label style="font-size:12px;color:#5f6b7a">Ghost: 
+              <select id="ghost-select"></select>
+              <input type="checkbox" id="ghost-enable"> Vis
+            </label>
           </div>
           <div class="axisrange">
             <label>HR-min <input id="hr-min" type="number" value="80" step="1"></label>
@@ -123,7 +130,7 @@
           <canvas id="chart" aria-label="trening data graf" role="img"></canvas>
         </div>
       </div>
-      <p class="hint">Skjerm holdes våken under økta. FTMS leser fart/stigning når mølle er tilkoblet; manual override støttes.</p>
+      <p class="hint">Ghost viser HR/Watt fra valgt tidligere økt, synkronisert fra start.</p>
     </section>
   </main>
 

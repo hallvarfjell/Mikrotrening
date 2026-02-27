@@ -13,8 +13,9 @@
   <header class="topbar">
     <h1>Intervalltrening</h1>
     <div class="devicectl">
-      <button id="connect-hr" class="primary"><i class="ph-heart ph-fw"></i> Koble til pulsbelte</button>
-      <button id="connect-treadmill" class="secondary"><i class="ph-treadmill ph-fw"></i> Koble til tredemølle</button>
+      <a class="secondary" href="builder.html"><i class="ph-list-plus ph-fw"></i> Øktbygger</a>
+      <button id="connect-hr" class="primary"><i class="ph-heart ph-fw"></i> Puls</button>
+      <button id="connect-treadmill" class="secondary"><i class="ph-treadmill ph-fw"></i> Mølle</button>
     </div>
   </header>
 
@@ -57,16 +58,18 @@
 
       <div class="card workout">
         <h3>Intervalløkter</h3>
-        <div class="row presets">
+        <div class="row presets" id="preset-row">
           <button class="preset" data-set="6x5">6×5 min</button>
           <button class="preset" data-set="10x4">10×4 min</button>
           <button class="preset" data-set="6x6">6×6 min</button>
           <button class="preset" data-set="8x6">8×6 min</button>
+          <!-- dynamiske maler fylles inn her -->
         </div>
-        <div class="row">
+        <div class="row" style="gap:6px;flex-wrap:wrap">
           <button id="start-workout" class="primary">Start</button>
           <button id="pause-workout" class="secondary">Pause</button>
           <button id="reset-workout" class="secondary">Nullstill</button>
+          <a class="ghost" href="results.html"><i class="ph-chart-line"></i> Åpne resultatside</a>
         </div>
         <div class="nowplaying">
           <div id="current-interval">Ingen økt valgt</div>
@@ -144,9 +147,21 @@
         </div>
       </div>
       <p class="hint">Ghost viser <b>gjennomsnitt</b> av valgte økter (HR/Watt), tidsynket fra start.</p>
+
+      <div class="card warning hidden" id="debug">
+        <h3>Diagnostikk</h3>
+        <pre id="dbg"></pre>
+        <div class="row"><button id="gen-test" class="secondary">Generer testøkt nå</button></div>
+      </div>
     </section>
   </main>
 
   <script src="main.js" defer></script>
+  <script>
+    // Slå på diagnosepanel med ?debug=1
+    if (new URLSearchParams(location.search).get('debug') === '1') {
+      document.getElementById('debug').classList.remove('hidden');
+    }
+  </script>
 </body>
 </html>

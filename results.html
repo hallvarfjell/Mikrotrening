@@ -22,6 +22,7 @@
       <div id="summary"></div>
       <div class="row" style="margin-top:8px; gap:8px; flex-wrap:wrap">
         <button id="btn-download-tcx" class="primary"><i class="ph-download-simple ph-fw"></i> Last ned TCX</button>
+        <button id="btn-dump-json" class="secondary"><i class="ph-code ph-fw"></i> Eksporter JSON</button>
       </div>
     </div>
 
@@ -49,6 +50,11 @@
       <p>Fant ingen lagret økt. Gå tilbake og fullfør en økt, eller sjekk at nettleserens lagring ikke er blokkert.</p>
       <a class="secondary" href="index.html"><i class="ph-arrow-left ph-fw"></i> Til hovedskjerm</a>
     </div>
+
+    <div class="card warning hidden" id="err-card">
+      <h3>Kjøretidsfeil</h3>
+      <pre id="err-log"></pre>
+    </div>
   </section>
 
   <section class="rightcol">
@@ -68,5 +74,20 @@
   </section>
 </main>
 <script src="results.js" defer></script>
+<script>
+  // Fanger runtime-feil og viser dem
+  window.addEventListener('error', e => {
+    const card = document.getElementById('err-card');
+    const pre = document.getElementById('err-log');
+    card.classList.remove('hidden');
+    pre.textContent += (e.error && e.error.stack) ? e.error.stack : (e.message||'Ukjent feil');
+  });
+  window.addEventListener('unhandledrejection', e => {
+    const card = document.getElementById('err-card');
+    const pre = document.getElementById('err-log');
+    card.classList.remove('hidden');
+    pre.textContent += (e.reason && e.reason.stack) ? e.reason.stack : (e.reason||'Ukjent promise-feil');
+  });
+</script>
 </body>
 </html>

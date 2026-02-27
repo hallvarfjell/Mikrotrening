@@ -1,5 +1,5 @@
 
-const CACHE = 'intervall-cache-v5';
+const CACHE = 'intervall-cache-v6';
 const ASSETS = ['./','./index.html','./results.html','./style.css','./main.js','./results.js','./manifest.json'];
 self.addEventListener('install', e=>{ e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))); });
 self.addEventListener('activate', e=>{ e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))); });

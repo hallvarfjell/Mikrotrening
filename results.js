@@ -1,12 +1,15 @@
-
 (function(){
   const dpr = window.devicePixelRatio || 1;
   const id = location.hash ? location.hash.slice(1) : null;
   const sessions = JSON.parse(localStorage.getItem('sessions')||'[]');
-  const s = sessions.find(x=>x.id===id) || sessions[sessions.length-1];
-  if(!s){ alert('Finner ingen økt.'); location.href='index.html'; return; }
+  let s = id ? sessions.find(x=>x.id===id) : sessions[sessions.length-1];
+  if(!s){
+    // Show friendly message instead of blank/redirect
+    document.getElementById('no-session').classList.remove('hidden');
+    document.getElementById('result-summary-card').classList.add('hidden');
+    return;
+  }
 
-  // Summary
   const pts = s.points || [];
   const durSec = pts.length>1 ? Math.round((pts[pts.length-1].ts - pts[0].ts)/1000) : 0;
   const distM = pts.length? Math.round(pts[pts.length-1].dist_m) : 0;
@@ -20,13 +23,13 @@
 
   const summary = document.getElementById('summary');
   summary.innerHTML = `
-    <div class=\"metric\"><label>Økt</label><span>${s.name}</span></div>
-    <div class=\"metric\"><label>Varighet</label><span>${Math.floor(durSec/60)}:${String(durSec%60).padStart(2,'0')}</span></div>
-    <div class=\"metric\"><label>Distanse</label><span>${(distM/1000).toFixed(2)} km</span></div>
-    <div class=\"metric\"><label>Snittpuls (drag)</label><span>${avgHrWork||'--'} bpm</span></div>
-    <div class=\"metric\"><label>Snittfart (drag)</label><span>${avgSpdWork?avgSpdWork.toFixed(1):'--'} km/t</span></div>
-    <div class=\"metric\"><label>Snittwatt (drag)</label><span>${avgWattWork||'--'} W</span></div>
-    <div class=\"metric\"><label>Maks puls</label><span>${hrMax||'--'} bpm</span></div>
+    <div class="metric"><label>Økt</label><span>${s.name}</span></div>
+    <div class="metric"><label>Varighet</label><span>${Math.floor(durSec/60)}:${String(durSec%60).padStart(2,'0')}</span></div>
+    <div class="metric"><label>Distanse</label><span>${(distM/1000).toFixed(2)} km</span></div>
+    <div class="metric"><label>Snittpuls (drag)</label><span>${avgHrWork||'--'} bpm</span></div>
+    <div class="metric"><label>Snittfart (drag)</label><span>${avgSpdWork?avgSpdWork.toFixed(1):'--'} km/t</span></div>
+    <div class="metric"><label>Snittwatt (drag)</label><span>${avgWattWork||'--'} W</span></div>
+    <div class="metric"><label>Maks puls</label><span>${hrMax||'--'} bpm</span></div>
   `;
 
   // Notes
@@ -56,16 +59,13 @@
     const tmin=pts[0].ts, tmax=pts[pts.length-1].ts;
     const hrVals=pts.map(p=>p.hr).filter(Boolean); const hrMin=hrVals.length?Math.min(...hrVals):80; const hrMax=hrVals.length?Math.max(...hrVals):200;
     const yHR=v=> padT + (1 - (v-hrMin)/(hrMax-hrMin||1))*plotH;
-    // zones background
     function band(y0,y1,color){ ctx.fillStyle=color; ctx.fillRect(padL,y1,plotW,y0-y1); }
     band(yHR(hrMin), yHR(s.lt1), '#edf7ed'); band(yHR(s.lt1), yHR(s.lt2), '#e9f0fb'); band(yHR(s.lt2), yHR(hrMax), '#fdeaea');
-    // grid
     ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=1; ctx.beginPath(); for(let sec=0; sec<=Math.max(60, (tmax-tmin)/1000); sec+=60){ const tt=tmin+sec*1000; const x=padL+(tt-tmin)/(tmax-tmin||1)*plotW; ctx.moveTo(x,padT); ctx.lineTo(x,padT+plotH);} ctx.stroke();
     ctx.strokeStyle='#e2e8f0'; ctx.beginPath(); for(let v=hrMin; v<=hrMax; v+=10){ const y=yHR(v); ctx.moveTo(padL,y); ctx.lineTo(padL+plotW,y);} ctx.stroke();
     const xTime=t=> padL+(t-tmin)/(tmax-tmin||1)*plotW;
     function drawLine(arr, get, color, ymap){ if(arr.length<2) return; ctx.strokeStyle=color; ctx.lineWidth=2*dpr; ctx.beginPath(); let moved=false; for(const p of arr){ const val=get(p); if(val==null) continue; const x=xTime(p.ts), y=ymap(val); if(!moved){ ctx.moveTo(x,y); moved=true;} else ctx.lineTo(x,y);} ctx.stroke(); }
     if(toggles.hr) drawLine(pts, p=>p.hr, '#16a34a', yHR);
-    // Map secondary to HR axis for overlay
     const spVals = pts.map(p=>p.speed_ms*3.6);
     const wtVals = pts.map(p=>p.watt);
     const smin=Math.min(...(spVals.length?spVals:[0])), smax=Math.max(...(spVals.length?spVals:[1]));
@@ -103,31 +103,12 @@
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = (s.name||'workout')+'.tcx'; a.click(); URL.revokeObjectURL(a.href);
   });
 
-  // helpers
   function avg(a){ return a.length? a.reduce((x,y)=>x+y,0)/a.length : 0; }
-  function persistSession(sess){
-    const arr = JSON.parse(localStorage.getItem('sessions')||'[]');
-    const i = arr.findIndex(x=>x.id===sess.id); if(i>=0) arr[i]=sess; else arr.push(sess);
-    localStorage.setItem('sessions', JSON.stringify(arr));
-  }
+  function persistSession(sess){ const arr = JSON.parse(localStorage.getItem('sessions')||'[]'); const i = arr.findIndex(x=>x.id===sess.id); if(i>=0) arr[i]=sess; else arr.push(sess); localStorage.setItem('sessions', JSON.stringify(arr)); }
   function resizeCanvas(c){ const rect=c.getBoundingClientRect(); c.width=Math.floor(rect.width*dpr); c.height=Math.floor(rect.height*dpr); }
+  function drawZones(canvas, z){ const ctx=canvas.getContext('2d'); const W=canvas.width, H=canvas.height; ctx.clearRect(0,0,W,H); const labels=[['Under LT1', z.under, '#ccebd0'], ['LT1–LT2', z.between, '#cfe1fb'], ['Over LT2', z.over, '#f7cfcf']]; const total=(z.under+z.between+z.over)||1; const barH=36; const gap=12; const pad=16; ctx.font=`${14*dpr}px system-ui`; ctx.fillStyle='#334155'; labels.forEach((row,i)=>{ const y = pad + i*(barH+gap); const frac = row[1]/total; const w = Math.max(1, Math.round((W-160*dpr)*frac)); ctx.fillStyle=row[2]; ctx.fillRect(140*dpr, y, w, barH); ctx.fillStyle='#334155'; ctx.fillText(`${row[0]}`, 8*dpr, y+barH*0.7); ctx.fillText(`${Math.round(row[1])} s`, (140*dpr)+w+8*dpr, y+barH*0.7); }); }
 
-  function drawZones(canvas, z){
-    const ctx=canvas.getContext('2d'); const W=canvas.width, H=canvas.height; ctx.clearRect(0,0,W,H);
-    const labels=[['Under LT1', z.under, '#ccebd0'], ['LT1–LT2', z.between, '#cfe1fb'], ['Over LT2', z.over, '#f7cfcf']];
-    const total=(z.under+z.between+z.over)||1;
-    const barH=36; const gap=12; const pad=16;
-    ctx.font=`${14*dpr}px system-ui`; ctx.fillStyle='#334155';
-    labels.forEach((row,i)=>{
-      const y = pad + i*(barH+gap);
-      const frac = row[1]/total; const w = Math.max(1, Math.round((W-160*dpr)*frac));
-      ctx.fillStyle=row[2]; ctx.fillRect(140*dpr, y, w, barH);
-      ctx.fillStyle='#334155'; ctx.fillText(`${row[0]}`, 8*dpr, y+barH*0.7);
-      ctx.fillText(`${Math.round(row[1])} s`, (140*dpr)+w+8*dpr, y+barH*0.7);
-    });
-  }
-
-  // TCX builder: speed in m/s under TPX Speed, distance meters, HR bpm; grade + RPE as Extensions
+  // TCX builder per TCX/TPX (speed m/s) + custom extensions (Grade/RPE)
   function buildTCX(sess){
     const nsTCX = 'http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2';
     const nsAE  = 'http://www.garmin.com/xmlschemas/ActivityExtension/v2';
@@ -135,34 +116,56 @@
     const nsINTZ= 'https://intz.app/xmlschemas/Extensions/v1';
     const startISO = sess.startedAt; const endISO = sess.endedAt || (sess.points.length? sess.points[sess.points.length-1].iso : startISO);
     function esc(s){ return String(s).replace(/[<&>]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
-
-    let xml = '';
-    xml += `<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n`;
-    xml += `<TrainingCenterDatabase xmlns=\"${nsTCX}\" xmlns:xsi=\"${nsXsi}\" xmlns:ns3=\"${nsAE}\" xmlns:intz=\"${nsINTZ}\">\n`;
-    xml += `  <Activities>\n`;
-    xml += `    <Activity Sport=\"Running\">\n`;
-    xml += `      <Id>${esc(startISO)}</Id>\n`;
-    xml += `      <Lap StartTime=\"${esc(startISO)}\">\n`;
-    xml += `        <TotalTimeSeconds>${Math.max(1, Math.round((new Date(endISO)-new Date(startISO))/1000))}</TotalTimeSeconds>\n`;
+    let xml='';
+    xml += `<?xml version="1.0" encoding="UTF-8"?>
+`;
+    xml += `<TrainingCenterDatabase xmlns="${nsTCX}" xmlns:xsi="${nsXsi}" xmlns:ns3="${nsAE}" xmlns:intz="${nsINTZ}">
+`;
+    xml += `  <Activities>
+`;
+    xml += `    <Activity Sport="Running">
+`;
+    xml += `      <Id>${esc(startISO)}</Id>
+`;
+    xml += `      <Lap StartTime="${esc(startISO)}">
+`;
+    xml += `        <TotalTimeSeconds>${Math.max(1, Math.round((new Date(endISO)-new Date(startISO))/1000))}</TotalTimeSeconds>
+`;
     const distLast = sess.points.length? sess.points[sess.points.length-1].dist_m : 0;
-    xml += `        <DistanceMeters>${Math.round(distLast)}</DistanceMeters>\n`;
-    xml += `        <Intensity>Active</Intensity>\n`;
-    xml += `        <Track>\n`;
+    xml += `        <DistanceMeters>${Math.round(distLast)}</DistanceMeters>
+`;
+    xml += `        <Intensity>Active</Intensity>
+`;
+    xml += `        <Track>
+`;
     for(const p of sess.points){
-      xml += `          <Trackpoint>\n`;
-      xml += `            <Time>${esc(p.iso)}</Time>\n`;
-      if(p.hr){ xml += `            <HeartRateBpm><Value>${Math.round(p.hr)}</Value></HeartRateBpm>\n`; }
-      xml += `            <DistanceMeters>${Math.round(p.dist_m||0)}</DistanceMeters>\n`;
-      xml += `            <Extensions>\n`;
-      xml += `              <ns3:TPX><ns3:Speed>${(p.speed_ms||0).toFixed(3)}</ns3:Speed></ns3:TPX>\n`;
-      xml += `              <intz:INTZ><intz:Grade>${(p.grade||0).toFixed(1)}</intz:Grade><intz:RPE>${p.rpe!=null?Number(p.rpe).toFixed(1):''}</intz:RPE></intz:INTZ>\n`;
-      xml += `            </Extensions>\n`;
-      xml += `          </Trackpoint>\n`;
+      xml += `          <Trackpoint>
+`;
+      xml += `            <Time>${esc(p.iso)}</Time>
+`;
+      if(p.hr){ xml += `            <HeartRateBpm><Value>${Math.round(p.hr)}</Value></HeartRateBpm>
+`; }
+      xml += `            <DistanceMeters>${Math.round(p.dist_m||0)}</DistanceMeters>
+`;
+      xml += `            <Extensions>
+`;
+      xml += `              <ns3:TPX><ns3:Speed>${(p.speed_ms||0).toFixed(3)}</ns3:Speed></ns3:TPX>
+`;
+      xml += `              <intz:INTZ><intz:Grade>${(p.grade||0).toFixed(1)}</intz:Grade><intz:RPE>${p.rpe!=null?Number(p.rpe).toFixed(1):''}</intz:RPE></intz:INTZ>
+`;
+      xml += `            </Extensions>
+`;
+      xml += `          </Trackpoint>
+`;
     }
-    xml += `        </Track>\n`;
-    xml += `      </Lap>\n`;
-    xml += `    </Activity>\n`;
-    xml += `  </Activities>\n`;
+    xml += `        </Track>
+`;
+    xml += `      </Lap>
+`;
+    xml += `    </Activity>
+`;
+    xml += `  </Activities>
+`;
     xml += `</TrainingCenterDatabase>`;
     return xml;
   }

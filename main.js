@@ -1,4 +1,3 @@
-
 // ---- App State ----
 const STATE = {
   hr: null,
@@ -16,7 +15,7 @@ const STATE = {
   rpe: 0,
   rpeByRep: {},
   logger: { active:false, points:[], startTs:null, dist:0 },
-  ghost: { enabled:false, ids:[], avg:null, startTsMap:{} }
+  ghost: { enabled:false, ids:new Set(), avg:null }
 };
 const el=id=>document.getElementById(id);
 
@@ -68,41 +67,25 @@ function calcSlope(){ const s=STATE.series.hr; if(!s.length) return null; const 
 function startLogger(){ STATE.logger.active=true; STATE.logger.startTs=Date.now(); STATE.logger.points=[]; STATE.logger.dist=0; if(STATE.ghost.enabled) recomputeGhostAverage(); }
 function stopLogger(){ STATE.logger.active=false; }
 
-// ---- Ghost average selection ----
-function populateGhostOptions(){ const sel=el('ghost-select'); sel.innerHTML=''; const sessions=JSON.parse(localStorage.getItem('sessions')||'[]'); for(const s of sessions){ const opt=document.createElement('option'); opt.value=s.id; const dt=new Date(s.startedAt||Date.now()); opt.textContent=`${s.name||'Økt'} – ${dt.toLocaleString()}`; sel.appendChild(opt);} }
-function getSelectedGhostIds(){ const sel=el('ghost-select'); return Array.from(sel.selectedOptions).map(o=>o.value).filter(Boolean); }
+// ---- Ghost dropdown (checkboxes) & average ----
+function buildGhostMenu(){ const list=el('ghost-list'); list.innerHTML=''; const sessions = JSON.parse(localStorage.getItem('sessions')||'[]'); if(!sessions.length){ list.innerHTML='<div class="muted">Ingen lagrede økter</div>'; return; } sessions.slice().reverse().forEach(s=>{ const dt=new Date(s.startedAt||Date.now()); const id=s.id; const row=document.createElement('label'); row.className='menu-item'; const cb=document.createElement('input'); cb.type='checkbox'; cb.value=id; cb.checked=STATE.ghost.ids.has(id); const span=document.createElement('span'); span.textContent=`${s.name||'Økt'} – ${dt.toLocaleString()}`; row.appendChild(cb); row.appendChild(span); list.appendChild(row); }); }
+function openGhostMenu(){ el('ghost-menu').classList.remove('hidden'); buildGhostMenu(); }
+function closeGhostMenu(){ el('ghost-menu').classList.add('hidden'); }
+el('ghost-picker').addEventListener('click', (e)=>{ e.stopPropagation(); openGhostMenu(); });
+document.addEventListener('click', (e)=>{ const menu=el('ghost-menu'); if(!menu.classList.contains('hidden') && !menu.contains(e.target) && e.target!==el('ghost-picker')) closeGhostMenu(); });
+el('ghost-select-all').addEventListener('click', (e)=>{ e.preventDefault(); const checks=el('ghost-list').querySelectorAll('input[type=checkbox]'); checks.forEach(c=>c.checked=true); });
+el('ghost-clear-all').addEventListener('click', (e)=>{ e.preventDefault(); const checks=el('ghost-list').querySelectorAll('input[type=checkbox]'); checks.forEach(c=>c.checked=false); });
+el('ghost-apply').addEventListener('click', ()=>{ const checks=el('ghost-list').querySelectorAll('input[type=checkbox]'); STATE.ghost.ids=new Set(Array.from(checks).filter(c=>c.checked).map(c=>c.value)); closeGhostMenu(); if(STATE.ghost.enabled && STATE.logger.startTs) recomputeGhostAverage(); });
 el('ghost-enable').addEventListener('change', e=>{ STATE.ghost.enabled=e.target.checked; if(STATE.logger.startTs) recomputeGhostAverage(); });
-el('ghost-select').addEventListener('change', ()=>{ STATE.ghost.ids=getSelectedGhostIds(); if(STATE.logger.startTs && STATE.ghost.enabled) recomputeGhostAverage(); });
 
-function recomputeGhostAverage(){
-  const ids = getSelectedGhostIds(); STATE.ghost.ids=ids; STATE.ghost.avg=null;
-  if(!ids.length || !STATE.ghost.enabled || !STATE.logger.startTs) return;
-  const sessions = JSON.parse(localStorage.getItem('sessions')||'[]');
-  const chosen = sessions.filter(s=>ids.includes(s.id) && s.points && s.points.length);
-  if(!chosen.length) return;
-  const bins = new Map(); // key: dtSec -> {hrSum, hrCnt, wSum, wCnt}
-  for(const s of chosen){
-    const s0 = s.points[0].ts; const offset = STATE.logger.startTs - s0; // align
-    for(const p of s.points){
-      const at = p.ts + offset; // absolute time on current timeline
-      const dtSec = Math.round((at - STATE.logger.startTs)/1000);
-      if(dtSec < 0) continue; // before start
-      let b = bins.get(dtSec); if(!b){ b={hrSum:0,hrCnt:0,wSum:0,wCnt:0}; bins.set(dtSec,b);} 
-      if(p.hr){ b.hrSum += p.hr; b.hrCnt++; }
-      if(typeof p.watt==='number'){ b.wSum += p.watt; b.wCnt++; }
-    }
-  }
-  // convert to arrays of {t,y}
-  const hrArr=[], wArr=[]; 
-  const keys = Array.from(bins.keys()).sort((a,b)=>a-b);
-  for(const k of keys){ const b=bins.get(k); const t = STATE.logger.startTs + k*1000; if(b.hrCnt) hrArr.push({t,y:b.hrSum/b.hrCnt}); if(b.wCnt) wArr.push({t,y:b.wSum/b.wCnt}); }
-  STATE.ghost.avg = { hr: hrArr, watt: wArr };
-}
+function recomputeGhostAverage(){ STATE.ghost.avg=null; if(!STATE.ghost.enabled || !STATE.ghost.ids.size || !STATE.logger.startTs) return; const ids=[...STATE.ghost.ids]; const sessions=JSON.parse(localStorage.getItem('sessions')||'[]'); const chosen=sessions.filter(s=>ids.includes(s.id) && s.points && s.points.length); if(!chosen.length) return; const bins=new Map(); for(const s of chosen){ const s0=s.points[0].ts; const offset=STATE.logger.startTs - s0; for(const p of s.points){ const at=p.ts + offset; const dtSec=Math.round((at-STATE.logger.startTs)/1000); if(dtSec<0) continue; let b=bins.get(dtSec); if(!b){ b={hrSum:0,hrCnt:0,wSum:0,wCnt:0}; bins.set(dtSec,b);} if(p.hr){ b.hrSum+=p.hr; b.hrCnt++; } if(typeof p.watt==='number'){ b.wSum+=p.watt; b.wCnt++; } } }
+  const hrArr=[], wArr=[]; const keys=[...bins.keys()].sort((a,b)=>a-b); for(const k of keys){ const b=bins.get(k); const t=STATE.logger.startTs + k*1000; if(b.hrCnt) hrArr.push({t,y:b.hrSum/b.hrCnt}); if(b.wCnt) wArr.push({t,y:b.wSum/b.wCnt}); }
+  STATE.ghost.avg={hr:hrArr, watt:wArr}; }
 
 // ---- Workout Engine ----
 const PRESETS={ '6x5':{name:'6×5 min',reps:6,workSec:300,restSec:60}, '10x4':{name:'10×4 min',reps:10,workSec:240,restSec:60}, '6x6':{name:'6×6 min',reps:6,workSec:360,restSec:60}, '8x6':{name:'8×6 min',reps:8,workSec:360,restSec:60}, };
 const DEFAULTS={ warmupSec:600, cooldownSec:600 };
-for(const btn of document.querySelectorAll('.preset')){ btn.addEventListener('click', ()=>{ const key=btn.dataset.set; const p=PRESETS[key]; STATE.workout={ name:p.name,reps:p.reps,workSec:p.workSec,restSec:p.restSec,warmupSec:DEFAULTS.warmupSec,cooldownSec:DEFAULTS.cooldownSec,phase:'warmup',rep:0,tLeft:DEFAULTS.warmupSec,startedAt:null,endedAt:null}; updateWorkoutUI(); localStorage.setItem('lastPreset', key); populateGhostOptions(); }); }
+for(const btn of document.querySelectorAll('.preset')){ btn.addEventListener('click', ()=>{ const key=btn.dataset.set; const p=PRESETS[key]; STATE.workout={ name:p.name,reps:p.reps,workSec:p.workSec,restSec:p.restSec,warmupSec:DEFAULTS.warmupSec,cooldownSec:DEFAULTS.cooldownSec,phase:'warmup',rep:0,tLeft:DEFAULTS.warmupSec,startedAt:null,endedAt:null}; updateWorkoutUI(); localStorage.setItem('lastPreset', key); }); }
 function startTicker(){ if(STATE.ticker) return; if(STATE.workout && !STATE.workout.startedAt){ STATE.workout.startedAt=new Date().toISOString(); startLogger(); } STATE.ticker=setInterval(tickWorkout,1000); }
 function stopTicker(){ if(STATE.ticker){ clearInterval(STATE.ticker); STATE.ticker=null; } }
 function tickWorkout(){ if(!STATE.workout) return; const w=STATE.workout; if(w.phase==='done'){ stopTicker(); return;} w.tLeft-=1; if(w.tLeft<=0){ advancePhase(); } updateWorkoutUI(); }
@@ -120,7 +103,7 @@ el('pause-workout').addEventListener('click', ()=>{ if(STATE.ticker){ stopTicker
 el('reset-workout').addEventListener('click', ()=>{ stopTicker(); STATE.workout=null; updateWorkoutUI(); });
 
 function fmtMMSS(s){ s=Math.max(0,Math.floor(s)); const m=Math.floor(s/60), ss=String(s%60).padStart(2,'0'); return `${m}:${ss}`; }
-function updateWorkoutUI(){ const ci=el('current-interval'), ph=el('phase'), tmr=el('timer'), bar=el('progress'); if(!STATE.workout){ ci.textContent='Ingen økt valgt'; ph.textContent='–'; tmr.textContent='00:00'; bar.style.width='0%'; populateGhostOptions(); return;} const w=STATE.workout; ci.textContent=`${w.name} (pause ${fmtMMSS(w.restSec)})`; let label='', total=0, repText=''; if(w.phase==='warmup'){ label='Oppvarming'; total=w.warmupSec; } else if(w.phase==='work'){ label='Drag'; total=w.workSec; repText=` – rep ${w.rep}/${w.reps}`; } else if(w.phase==='rest'){ label='Pause'; total=w.restSec; repText=` – rep ${w.rep}/${w.reps}`; } else if(w.phase==='cooldown'){ label='Nedkjøling'; total=w.cooldownSec; } else { label='Ferdig!'; total=1; } ph.textContent=`${label}${repText}`; tmr.textContent=fmtMMSS(w.tLeft); const pct=Math.min(100, Math.max(0, 100*(1 - (w.tLeft/Math.max(1,total))))); bar.style.width=`${pct}%`; }
+function updateWorkoutUI(){ const ci=el('current-interval'), ph=el('phase'), tmr=el('timer'), bar=el('progress'); if(!STATE.workout){ ci.textContent='Ingen økt valgt'; ph.textContent='–'; tmr.textContent='00:00'; bar.style.width='0%'; return;} const w=STATE.workout; ci.textContent=`${w.name} (pause ${fmtMMSS(w.restSec)})`; let label='', total=0, repText=''; if(w.phase==='warmup'){ label='Oppvarming'; total=w.warmupSec; } else if(w.phase==='work'){ label='Drag'; total=w.workSec; repText=` – rep ${w.rep}/${w.reps}`; } else if(w.phase==='rest'){ label='Pause'; total=w.restSec; repText=` – rep ${w.rep}/${w.reps}`; } else if(w.phase==='cooldown'){ label='Nedkjøling'; total=w.cooldownSec; } else { label='Ferdig!'; total=1; } ph.textContent=`${label}${repText}`; tmr.textContent=fmtMMSS(w.tLeft); const pct=Math.min(100, Math.max(0, 100*(1 - (w.tLeft/Math.max(1,total))))); bar.style.width=`${pct}%`; }
 
 // ---- Series + UI periodic updates ----
 function tick(){ const t=Date.now(); if(STATE.hr!=null) STATE.series.hr.push({t,y:STATE.hr}); const dispSpeed=displaySpeedKmh(); STATE.series.speed.push({t,y:dispSpeed}); const w=estimateWatt(dispSpeed, STATE.gradePct, STATE.massKg); STATE.series.watt.push({t,y:w}); const cutoff=t-STATE.windowSec*1000; for(const k of ['hr','speed','watt']){ const arr=STATE.series[k]; while(arr.length && arr[0].t<cutoff) arr.shift(); } el('pulse').textContent=STATE.hr!=null?STATE.hr:'--'; el('watt').textContent=w||'--'; const s=calcSlope(); el('slope').textContent=(s!=null)?(s>0?`+${s}`:`${s}`):'--'; draw(); if(STATE.logger.active){ const prevTs=STATE.logger.points.length? STATE.logger.points[STATE.logger.points.length-1].ts : STATE.logger.startTs; const dt=(t-prevTs)/1000; const speed_ms=dispSpeed/3.6; STATE.logger.dist += speed_ms*dt; STATE.logger.points.push({ ts:t, iso:new Date(t).toISOString(), hr:STATE.hr||0, speed_ms, grade:STATE.gradePct||0, dist_m:STATE.logger.dist, rpe:STATE.rpe, phase:STATE.workout?STATE.workout.phase:'', rep:STATE.workout?STATE.workout.rep:0, watt:w }); } }
@@ -129,14 +112,11 @@ setInterval(tick,1000);
 // ---- Canvas drawing with ghost avg overlay ----
 const canvas=el('chart'); const ctx=canvas.getContext('2d'); const dpr=window.devicePixelRatio||1; function resizeCanvas(){ const rect=canvas.getBoundingClientRect(); canvas.width=Math.floor(rect.width*dpr); canvas.height=Math.floor(rect.height*dpr);} window.addEventListener('resize', resizeCanvas); setTimeout(resizeCanvas,0);
 
-function draw(){ const W=canvas.width,H=canvas.height; ctx.clearRect(0,0,W,H); const padL=60*dpr,padR=20*dpr,padT=20*dpr,padB=30*dpr; const plotW=W-padL-padR, plotH=H-padT-padB; const now=Date.now(); const xmin=now-STATE.windowSec*1000, xmax=now; const showHR=el('show-hr').checked, showWatt=el('show-watt').checked, showSpeed=el('show-speed').checked; const hrMin=Number(el('hr-min').value)||80, hrMax=Number(el('hr-max').value)||200; const yHR=v=> padT + (1 - (v-hrMin)/(hrMax-hrMin))*plotH; function band(y0,y1,color){ ctx.fillStyle=color; ctx.fillRect(padL,y1,plotW,y0-y1);} band(yHR(hrMin), yHR(STATE.LT1), '#edf7ed'); band(yHR(STATE.LT1), yHR(STATE.LT2), '#e9f0fb'); band(yHR(STATE.LT2), yHR(hrMax), '#fdeaea'); ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=1; ctx.beginPath(); for(let sec=0; sec<=STATE.windowSec; sec+=60){ const t=xmin+sec*1000; const x=padL+(t-xmin)/(xmax-xmin)*plotW; ctx.moveTo(x,padT); ctx.lineTo(x,padT+plotH);} ctx.stroke(); ctx.strokeStyle='#e2e8f0'; ctx.beginPath(); for(let v=hrMin; v<=hrMax; v+=10){ const y=yHR(v); ctx.moveTo(padL,y); ctx.lineTo(padL+plotH,y);} // note minor typo corrected below
-  ctx.strokeStyle='#e2e8f0'; ctx.beginPath(); for(let v=hrMin; v<=hrMax; v+=10){ const y=yHR(v); ctx.moveTo(padL,y); ctx.lineTo(padL+plotW,y);} ctx.stroke();
-  function xTime(t){ return padL + (t-xmin)/(xmax-xmin)*plotW; }
+function draw(){ const W=canvas.width,H=canvas.height; ctx.clearRect(0,0,W,H); const padL=60*dpr,padR=20*dpr,padT=20*dpr,padB=30*dpr; const plotW=W-padL-padR, plotH=H-padT-padB; const now=Date.now(); const xmin=now-STATE.windowSec*1000, xmax=now; const showHR=el('show-hr').checked, showWatt=el('show-watt').checked, showSpeed=el('show-speed').checked; const hrMin=Number(el('hr-min').value)||80, hrMax=Number(el('hr-max').value)||200; const yHR=v=> padT + (1 - (v-hrMin)/(hrMax-hrMin))*plotH; function band(y0,y1,color){ ctx.fillStyle=color; ctx.fillRect(padL,y1,plotW,y0-y1);} band(yHR(hrMin), yHR(STATE.LT1), '#edf7ed'); band(yHR(STATE.LT1), yHR(STATE.LT2), '#e9f0fb'); band(yHR(STATE.LT2), yHR(hrMax), '#fdeaea'); ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=1; ctx.beginPath(); for(let sec=0; sec<=STATE.windowSec; sec+=60){ const t=xmin+sec*1000; const x=padL+(t-xmin)/(xmax-xmin)*plotW; ctx.moveTo(x,padT); ctx.lineTo(x,padT+plotH);} ctx.stroke(); ctx.strokeStyle='#e2e8f0'; ctx.beginPath(); for(let v=hrMin; v<=hrMax; v+=10){ const y=yHR(v); ctx.moveTo(padL,y); ctx.lineTo(padL+plotW,y);} ctx.stroke(); function xTime(t){ return padL + (t-xmin)/(xmax-xmin)*plotW; }
   function drawLine(arr,color,ymap,alpha=1){ if(!arr || arr.length<2) return; ctx.strokeStyle=color; ctx.globalAlpha=alpha; ctx.lineWidth=2*dpr; ctx.beginPath(); let moved=false; for(const p of arr){ if(p.t<xmin) continue; const x=xTime(p.t), y=ymap(p.y); if(!moved){ ctx.moveTo(x,y); moved=true;} else ctx.lineTo(x,y);} ctx.stroke(); ctx.globalAlpha=1; }
   // main series
   if(showHR) drawLine(STATE.series.hr, '#16a34a', yHR, 1);
   const sp=STATE.series.speed, wt=STATE.series.watt; const spVals=sp.map(p=>p.y), wtVals=wt.map(p=>p.y);
-  // include ghost avg for watt scale range
   let gWtVals=[]; if(STATE.ghost.enabled && STATE.ghost.avg && STATE.ghost.avg.watt){ for(const gp of STATE.ghost.avg.watt){ if(gp.t<xmin || gp.t>now) continue; gWtVals.push(gp.y); } }
   const wmin=Math.min(...(wtVals.length?wtVals:[0]), ...(gWtVals.length?gWtVals:[0]));
   const wmax=Math.max(...(wtVals.length?wtVals:[1]), ...(gWtVals.length?gWtVals:[1]));
@@ -150,12 +130,10 @@ function draw(){ const W=canvas.width,H=canvas.height; ctx.clearRect(0,0,W,H); c
   if(STATE.ghost.enabled && STATE.ghost.avg){ if(showHR) drawLine(STATE.ghost.avg.hr, '#22c55e', yHR, 0.55); if(showWatt) drawLine(STATE.ghost.avg.watt, '#f59e0b', mapWatt, 0.55); }
   // legend
   ctx.fillStyle='#64748b'; ctx.font=`${12*dpr}px system-ui`; ctx.fillText('bpm', 8*dpr, 14*dpr); for(let v=hrMin; v<=hrMax; v+=20){ ctx.fillText(String(v), 20*dpr, yHR(v)+4*dpr); }
-  let lx=padL+10*dpr, ly=padT+10*dpr; const legend=[["Puls",'#16a34a',showHR],["Watt",'#d97706',showWatt],["Fart",'#2563eb',showSpeed]]; for(const [name,color,vis] of legend){ ctx.globalAlpha=vis?1:0.25; ctx.fillStyle=color; ctx.fillRect(lx, ly-8*dpr, 14*dpr, 4*dpr); ctx.globalAlpha=1; ctx.fillStyle='#334155'; ctx.fillText(name, lx+20*dpr, ly); lx+=90*dpr; }
 }
 
-// ---- Finish session (persist + go to results) ----
+// ---- Finish session: persist + redirect to results ----
 function finishSession(){ try{ const w=STATE.workout; if(!w) return; const session={ id:'s'+Date.now(), name:w.name, reps:w.reps, startedAt:w.startedAt||new Date().toISOString(), endedAt:w.endedAt||new Date().toISOString(), lt1:STATE.LT1, lt2:STATE.LT2, massKg:STATE.massKg, rpeByRep:STATE.rpeByRep, points:STATE.logger.points }; const key='sessions'; const arr=JSON.parse(localStorage.getItem(key)||'[]'); arr.push(session); localStorage.setItem(key, JSON.stringify(arr)); location.href='results.html#'+session.id; }catch(e){ console.error('finishSession failed', e); } }
 
 // init
-populateGhostOptions();
 if('serviceWorker' in navigator){ window.addEventListener('load', ()=>{ navigator.serviceWorker.register('./service-worker.js').catch(console.error); }); }

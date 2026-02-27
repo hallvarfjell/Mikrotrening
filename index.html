@@ -7,13 +7,15 @@
   <title>Intervall PWA</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="style.css" />
+  <!-- Phosphor icons (webfont) -->
+  <script src="https://unpkg.com/phosphor-icons@1.4.2"></script>
 </head>
 <body>
   <header class="topbar">
     <h1>Intervalltrening</h1>
     <div class="devicectl">
-      <button id="connect-hr" class="primary">Koble til pulsbelte</button>
-      <button id="connect-treadmill" class="secondary">Koble til tredemølle</button>
+      <button id="connect-hr" class="primary"><i class="ph-heart ph-fw"></i> Koble til pulsbelte</button>
+      <button id="connect-treadmill" class="secondary"><i class="ph-treadmill ph-fw"></i> Koble til tredemølle</button>
     </div>
   </header>
 
@@ -22,7 +24,7 @@
       <div class="card metrics" id="dashboard">
         <div class="metric metric-big"><label>Puls</label><span id="pulse" class="big-num">--</span><small>bpm</small></div>
         <div class="metric"><label>Estimert watt</label><span id="watt">--</span><small>W</small></div>
-        <div class="metric"><label>Slope</label><span id="slope">--</span><small>bpm (2 min)</small></div>
+        <div class="metric"><label>Slope (20s-20s)</label><span id="slope">--</span><small>bpm</small></div>
       </div>
 
       <div class="card controls">
@@ -30,17 +32,27 @@
           <h3>Fart og stigning</h3>
           <span id="ftms-status" class="badge">FTMS: Frakoblet</span>
         </div>
-        <div class="row">
-          <button class="speed-btn" data-speed="10">10 km/t</button>
-          <button class="speed-btn" data-speed="15">15 km/t</button>
-        </div>
-        <div class="row">
-          <label>Fart (km/t)
-            <input id="manual-speed" type="number" min="0" step="0.1" placeholder="0.0" />
-          </label>
-          <label>Stigning (%)
-            <input id="manual-grade" type="number" step="0.5" placeholder="0" />
-          </label>
+        <div class="row speed-grade">
+          <div class="field">
+            <label>Fart (km/t)</label>
+            <div class="stepper">
+              <button id="speed-dec" class="iconbtn" title="-0,1"><i class="ph-minus ph-2x"></i></button>
+              <input id="manual-speed" type="number" min="0" step="0.1" value="0.0" />
+              <button id="speed-inc" class="iconbtn" title="+0,1"><i class="ph-plus ph-2x"></i></button>
+            </div>
+            <div class="row quick">
+              <button class="speed-btn" data-speed="10">10 km/t</button>
+              <button class="speed-btn" data-speed="15">15 km/t</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Stigning (%)</label>
+            <div class="stepper">
+              <button id="grade-dec" class="iconbtn" title="-0,5%"><i class="ph-minus ph-2x"></i></button>
+              <input id="manual-grade" type="number" step="0.5" value="0.0" />
+              <button id="grade-inc" class="iconbtn" title="+0,5%"><i class="ph-plus ph-2x"></i></button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -64,6 +76,15 @@
           <div class="row">
             <button id="skip-warmup" class="ghost">Hopp over oppvarming</button>
             <button id="skip-cooldown" class="ghost">Hopp over nedkjøling</button>
+          </div>
+          <div class="rpe-row">
+            <label for="rpe-now">RPE nå</label>
+            <div class="stepper">
+              <button id="rpe-dec" class="iconbtn" title="-0,5"><i class="ph-minus ph-2x"></i></button>
+              <input id="rpe-now" type="number" step="0.5" min="0" max="10" value="0" />
+              <button id="rpe-inc" class="iconbtn" title="+0,5"><i class="ph-plus ph-2x"></i></button>
+            </div>
+            <small class="muted">RPE justert i pause vil gjelde for forrige drag</small>
           </div>
           <div id="progressbar"><div id="progress"></div></div>
         </div>

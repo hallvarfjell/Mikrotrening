@@ -13,6 +13,8 @@ const STATE = {
   workout:null,
   ticker:null,
   wakeLock:null,
+  rpe: 0,
+  rpeByRep: {},
 };
 const el=id=>document.getElementById(id);
 
@@ -37,7 +39,7 @@ async function connectHR(){
     char.addEventListener('characteristicvaluechanged', ev=>{ const dv=ev.target.value; const flags=dv.getUint8(0); const hr16=flags & 0x01; let i=1; const bpm = hr16? dv.getUint16(i,true): dv.getUint8(i); STATE.hr=bpm; });
   }catch(e){ console.error(e); alert('Kunne ikke koble til pulsbelte: '+e); }
 }
-document.getElementById('connect-hr').addEventListener('click', connectHR);
+el('connect-hr').addEventListener('click', connectHR);
 
 // ---- BLE: FTMS (read-only) ----
 async function connectTreadmill(){
@@ -59,24 +61,61 @@ async function connectTreadmill(){
     device.addEventListener('gattserverdisconnected', ()=>{ status.textContent='FTMS: Frakoblet'; status.classList.remove('connected'); });
   }catch(e){ console.error(e); alert('Kunne ikke koble til tredemølle: '+e); }
 }
-document.getElementById('connect-treadmill').addEventListener('click', connectTreadmill);
+el('connect-treadmill').addEventListener('click', connectTreadmill);
 
-// ---- Manual overrides ----
-for(const btn of document.querySelectorAll('.speed-btn')){ btn.addEventListener('click', ()=>{ const v=Number(btn.dataset.speed); STATE.speedKmh=v; el('manual-speed').value=String(v); }); }
-el('manual-speed').addEventListener('change',()=>{ STATE.speedKmh = Number(el('manual-speed').value)||0; });
-el('manual-grade').addEventListener('change',()=>{ STATE.gradePct = Number(el('manual-grade').value)||0; });
+// ---- Manual overrides & steppers ----
+function clamp(n, min, max){ return Math.min(max, Math.max(min, n)); }
+function setSpeed(v){ STATE.speedKmh = Math.max(0, Number(v)||0); el('manual-speed').value = STATE.speedKmh.toFixed(1); }
+function setGrade(v){ STATE.gradePct = Number(v)||0; el('manual-grade').value = STATE.gradePct.toFixed(1); }
+
+for(const btn of document.querySelectorAll('.speed-btn')){ btn.addEventListener('click', ()=>{ const v=Number(btn.dataset.speed); setSpeed(v); }); }
+
+el('manual-speed').addEventListener('change',()=> setSpeed(el('manual-speed').value));
+el('manual-grade').addEventListener('change',()=> setGrade(el('manual-grade').value));
+
+document.getElementById('speed-dec').addEventListener('click', ()=> setSpeed(STATE.speedKmh - 0.1));
+document.getElementById('speed-inc').addEventListener('click', ()=> setSpeed(STATE.speedKmh + 0.1));
+document.getElementById('grade-dec').addEventListener('click', ()=> setGrade(STATE.gradePct - 0.5));
+document.getElementById('grade-inc').addEventListener('click', ()=> setGrade(STATE.gradePct + 0.5));
+
+// ---- RPE nå (±0.5) ----
+function applyRPEChange(delta){
+  STATE.rpe = clamp((Number(el('rpe-now').value)||0) + delta, 0, 10);
+  el('rpe-now').value = STATE.rpe.toFixed(1);
+  // Logikk: i pause => gjeld for forrige drag, ellers for aktivt drag
+  if(STATE.workout){
+    const w = STATE.workout;
+    if(w.phase === 'rest' && w.rep >= 1){ STATE.rpeByRep[w.rep] = STATE.rpe; /* gjelde for forrige drag index w.rep */ }
+    else if(w.phase === 'work' && w.rep >= 1){ STATE.rpeByRep[w.rep] = STATE.rpe; }
+  }
+}
+
+document.getElementById('rpe-dec').addEventListener('click', ()=> applyRPEChange(-0.5));
+document.getElementById('rpe-inc').addEventListener('click', ()=> applyRPEChange(+0.5));
+document.getElementById('rpe-now').addEventListener('change', ()=> applyRPEChange(0));
 
 // ---- Display speed override during REST ----
-function displaySpeedKmh(){
-  if(STATE.workout && STATE.workout.phase==='rest') return 0; // show 0 in pause
-  return STATE.speedKmh;
-}
+function displaySpeedKmh(){ if(STATE.workout && STATE.workout.phase==='rest') return 0; return STATE.speedKmh; }
 
 // ---- Power estimate (metabolic) ----
 function estimateWatt(speedKmh, gradePct, massKg){ const g=9.81, v=speedKmh/3.6, grade=(gradePct||0)/100, C=4.186; return Math.max(0, Math.round(massKg * v * (g*grade + C))); }
 
-// ---- Slope (2 min delta) ----
-function calcSlope(){ const s=STATE.series.hr; if(!s.length) return null; const now=Date.now(); const cutoff=now-120000; const latest=s[s.length-1].y; for(let i=s.length-1;i>=0;i--){ if(s[i].t<=cutoff) return Math.round(latest - s[i].y);} return null; }
+// ---- Slope (20s avg – forrige 20s avg) ----
+function movingAvg(series, fromMs, toMs){
+  // average over [now-toMs, now-fromMs)
+  const now = Date.now();
+  const lo = now - toMs, hi = now - fromMs;
+  let sum=0, cnt=0;
+  for(let i=series.length-1; i>=0; i--){ const p=series[i]; if(p.t<lo) break; if(p.t>=lo && p.t<hi){ sum+=p.y; cnt++; } }
+  return cnt? sum/cnt : null;
+}
+function calcSlope(){
+  const s=STATE.series.hr; if(!s.length) return null;
+  const a1 = movingAvg(s, 0, 20_000);      // siste 20s
+  const a2 = movingAvg(s, 20_000, 40_000); // 20-40s
+  if(a1==null || a2==null) return null;
+  return Math.round(a1 - a2);
+}
 
 // ---- Workout Engine (Warmup + Intervals + Cooldown) ----
 const PRESETS = { '6x5': { name:'6×5 min', reps:6, workSec:300, restSec:60 }, '10x4':{ name:'10×4 min', reps:10, workSec:240, restSec:60 }, '6x6': { name:'6×6 min', reps:6, workSec:360, restSec:60 }, '8x6': { name:'8×6 min', reps:8, workSec:360, restSec:60 }, };
@@ -89,12 +128,12 @@ function advancePhase(){ const w=STATE.workout; if(!w) return; switch(w.phase){ 
 function skipWarmup(){ const w=STATE.workout; if(w && w.phase==='warmup'){ w.phase='work'; w.rep=1; w.tLeft=w.workSec; updateWorkoutUI(); }}
 function skipCooldown(){ const w=STATE.workout; if(w && w.phase==='cooldown'){ w.phase='done'; w.tLeft=0; updateWorkoutUI(); stopTicker(); }}
 
-document.getElementById('skip-warmup').addEventListener('click', skipWarmup);
-document.getElementById('skip-cooldown').addEventListener('click', skipCooldown);
+el('skip-warmup').addEventListener('click', skipWarmup);
+el('skip-cooldown').addEventListener('click', skipCooldown);
 
-document.getElementById('start-workout').addEventListener('click', ()=>{ if(!STATE.workout){ const lp=localStorage.getItem('lastPreset'); const k=(lp && PRESETS[lp])?lp:'6x5'; document.querySelector(`.preset[data-set="${k}"]`).click(); } startTicker(); });
-document.getElementById('pause-workout').addEventListener('click', ()=>{ if(STATE.ticker){ stopTicker(); } else { startTicker(); }});
-document.getElementById('reset-workout').addEventListener('click', ()=>{ stopTicker(); STATE.workout=null; updateWorkoutUI(); });
+el('start-workout').addEventListener('click', ()=>{ if(!STATE.workout){ const lp=localStorage.getItem('lastPreset'); const k=(lp && PRESETS[lp])?lp:'6x5'; document.querySelector(`.preset[data-set="${k}"]`).click(); } startTicker(); });
+el('pause-workout').addEventListener('click', ()=>{ if(STATE.ticker){ stopTicker(); } else { startTicker(); }});
+el('reset-workout').addEventListener('click', ()=>{ stopTicker(); STATE.workout=null; updateWorkoutUI(); });
 
 function fmtMMSS(s){ s=Math.max(0,Math.floor(s)); const m=Math.floor(s/60), ss=String(s%60).padStart(2,'0'); return `${m}:${ss}`; }
 function updateWorkoutUI(){ const ci=el('current-interval'), ph=el('phase'), tmr=el('timer'), bar=el('progress'); if(!STATE.workout){ ci.textContent='Ingen økt valgt'; ph.textContent='–'; tmr.textContent='00:00'; bar.style.width='0%'; return;} const w=STATE.workout; ci.textContent=`${w.name} (pause ${fmtMMSS(w.restSec)})`; let label='', total=0, repText=''; if(w.phase==='warmup'){ label='Oppvarming'; total=w.warmupSec; } else if(w.phase==='work'){ label='Drag'; total=w.workSec; repText=` – rep ${w.rep}/${w.reps}`; } else if(w.phase==='rest'){ label='Pause'; total=w.restSec; repText=` – rep ${w.rep}/${w.reps}`; } else if(w.phase==='cooldown'){ label='Nedkjøling'; total=w.cooldownSec; } else { label='Ferdig!'; total=1; } ph.textContent=`${label}${repText}`; tmr.textContent=fmtMMSS(w.tLeft); const pct=Math.min(100, Math.max(0, 100*(1 - (w.tLeft/Math.max(1,total))))); bar.style.width=`${pct}%`; }
@@ -105,7 +144,7 @@ function tick(){
   if(STATE.hr!=null) STATE.series.hr.push({t,y:STATE.hr});
   const dispSpeed = displaySpeedKmh();
   STATE.series.speed.push({t,y:dispSpeed});
-  const w=estimateWatt(dispSpeed, STATE.gradePct, STATE.massKg); // watt følger visningsfart i pause => ~0
+  const w=estimateWatt(dispSpeed, STATE.gradePct, STATE.massKg); // watt ≈ 0 i pause
   STATE.series.watt.push({t,y:w});
   const cutoff=t-STATE.windowSec*1000; for(const k of ['hr','speed','watt']){ const arr=STATE.series[k]; while(arr.length && arr[0].t<cutoff) arr.shift(); }
   el('pulse').textContent = STATE.hr!=null?STATE.hr:'--';
@@ -115,7 +154,7 @@ function tick(){
 }
 setInterval(tick, 1000);
 
-// ---- Canvas drawing (same as previous light theme colors) ----
+// ---- Canvas drawing (light theme) ----
 const canvas=document.getElementById('chart'); const ctx=canvas.getContext('2d'); const dpr=window.devicePixelRatio||1; function resizeCanvas(){ const rect=canvas.getBoundingClientRect(); canvas.width=Math.floor(rect.width*dpr); canvas.height=Math.floor(rect.height*dpr);} window.addEventListener('resize', resizeCanvas); setTimeout(resizeCanvas,0);
 function draw(){ const W=canvas.width,H=canvas.height; ctx.clearRect(0,0,W,H); const padL=60*dpr,padR=20*dpr,padT=20*dpr,padB=30*dpr; const plotW=W-padL-padR, plotH=H-padT-padB; const now=Date.now(); const xmin=now-STATE.windowSec*1000, xmax=now; const showHR=el('show-hr').checked, showWatt=el('show-watt').checked, showSpeed=el('show-speed').checked; const hrMin=Number(el('hr-min').value)||80, hrMax=Number(el('hr-max').value)||200; const yHR=v=> padT + (1 - (v-hrMin)/(hrMax-hrMin))*plotH; function band(y0,y1,color){ ctx.fillStyle=color; ctx.fillRect(padL,y1,plotW,y0-y1);} band(yHR(hrMin), yHR(STATE.LT1), '#edf7ed'); band(yHR(STATE.LT1), yHR(STATE.LT2), '#e9f0fb'); band(yHR(STATE.LT2), yHR(hrMax), '#fdeaea'); ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=1; ctx.beginPath(); for(let sec=0; sec<=STATE.windowSec; sec+=60){ const t=xmin+sec*1000; const x=padL+(t-xmin)/(xmax-xmin)*plotW; ctx.moveTo(x,padT); ctx.lineTo(x,padT+plotH);} ctx.stroke(); ctx.strokeStyle='#e2e8f0'; ctx.beginPath(); for(let v=hrMin; v<=hrMax; v+=10){ const y=yHR(v); ctx.moveTo(padL,y); ctx.lineTo(padL+plotW,y);} ctx.stroke(); function xTime(t){ return padL + (t-xmin)/(xmax-xmin)*plotW; } function drawLine(arr,color,ymap){ if(arr.length<2) return; ctx.strokeStyle=color; ctx.lineWidth=2*dpr; ctx.beginPath(); let moved=false; for(const p of arr){ if(p.t<xmin) continue; const x=xTime(p.t), y=ymap(p.y); if(!moved){ ctx.moveTo(x,y); moved=true;} else ctx.lineTo(x,y);} ctx.stroke(); } if(showHR) drawLine(STATE.series.hr, '#16a34a', yHR); const sp=STATE.series.speed, wt=STATE.series.watt; const spVals=sp.map(p=>p.y), wtVals=wt.map(p=>p.y); const smin=Math.min(...(spVals.length?spVals:[0])), smax=Math.max(...(spVals.length?spVals:[1])); const wmin=Math.min(...(wtVals.length?wtVals:[0])), wmax=Math.max(...(wtVals.length?wtVals:[1])); const mapSpeed=v=> yHR(hrMin + (hrMax-hrMin) * ((v - smin) / Math.max(1e-6,(smax-smin)))); const mapWatt=v => yHR(hrMin + (hrMax-hrMin) * ((v - wmin) / Math.max(1e-6,(wmax-wmin)))); if(showSpeed) drawLine(sp, '#2563eb', mapSpeed); if(showWatt) drawLine(wt, '#d97706', mapWatt); ctx.fillStyle='#64748b'; ctx.font=`${12*dpr}px system-ui`; ctx.fillText('bpm', 8*dpr, 14*dpr); for(let v=hrMin; v<=hrMax; v+=20){ ctx.fillText(String(v), 20*dpr, yHR(v)+4*dpr); } const legend=[['Puls','#16a34a',showHR],['Watt','#d97706',showWatt],['Fart','#2563eb',showSpeed]]; let lx=padL+10*dpr, ly=padT+10*dpr; for(const [name,color,vis] of legend){ ctx.globalAlpha=vis?1:0.25; ctx.fillStyle=color; ctx.fillRect(lx, ly-8*dpr, 14*dpr, 4*dpr); ctx.globalAlpha=1; ctx.fillStyle='#334155'; ctx.fillText(name, lx+20*dpr, ly); lx+=90*dpr; }
 }

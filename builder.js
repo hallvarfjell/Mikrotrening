@@ -38,7 +38,7 @@
     const use=document.createElement('a'); use.className='secondary'; use.href='index.html'; use.textContent='Bruk';
     btns.appendChild(use); btns.appendChild(del); div.appendChild(btns); savedEl.appendChild(div); }); }
 
-  el('w-save').onclick=()=>{ const cfg=collect(); if(!cfg.series.length){ alert('Legg til minst én serie.'); return; } const arr=load(); arr.push(cfg); saveAll(arr); alert('Lagret. Gå til hovedskjerm – knappen dukker opp.'); };
+  el('w-save').onclick=()=>{ const cfg=collect(); if(!cfg.series.length){ alert('Legg til minst én serie.'); return; } const arr=load(); arr.push(cfg); saveAll(arr); alert('Lagret. Gå til hovedskjerm – dukker opp i dropdown.'); };
   el('w-clear').onclick=()=>{ nameEl.value=''; warmEl.value=10; coolEl.value=10; listEl.innerHTML=''; tSpd.value=''; tGrd.value=''; preview(); };
 
   // init

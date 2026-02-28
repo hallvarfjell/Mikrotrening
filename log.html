@@ -1,1 +1,51 @@
-<!DOCTYPE html><html lang='no'><head><meta charset='UTF-8' /><meta name='viewport' content='width=device-width, initial-scale=1.0' /><title>Øktlogg – Intervall PWA</title><link rel='stylesheet' href='style.css' /></head><body><header class='topbar'><div class='nav'><a href='index.html'>Til hovedskjerm</a><a href='builder.html'>Øktbygger</a><a href='settings.html'>Innstillinger</a></div></header><main class='layout'><section class='leftcol'><div class='card'><h3>Økter</h3><div id='log-list'></div></div></section></main><script>(function(){const list=document.getElementById('log-list');const sessions=JSON.parse(localStorage.getItem('sessions')||'[]');if(!sessions.length){list.innerHTML='<p class="muted">Ingen økter enda.</p>';return;}const ul=document.createElement('div');ul.style.display='grid';ul.style.gap='8px';sessions.slice().reverse().forEach(s=>{const a=document.createElement('a');a.href='results.html#'+s.id;a.style.display='flex';a.style.justifyContent='space-between';a.style.alignItems='center';a.className='menu-item';const when=new Date(s.startedAt||Date.now()).toLocaleString();const dist=s.points&&s.points.length?(s.points[s.points.length-1].dist_m/1000).toFixed(2)+' km':'';a.innerHTML=`<span><strong>${s.name||'Økt'}</strong> — ${when}</span><span>${dist}</span>`;ul.appendChild(a);});list.appendChild(ul);})();</script></body></html>
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Øktlogg – Intervall PWA</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://unpkg.com/phosphor-icons@1.4.2"></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="nav">
+    <a href="index.html">Til hovedskjerm</a>
+    <a href="builder.html">Øktbygger</a>
+    <a href="settings.html">Innstillinger</a>
+  </div>
+</header>
+<main class="layout">
+  <section class="leftcol">
+    <div class="card">
+      <h3>Økter</h3>
+      <div id="log-list"></div>
+    </div>
+  </section>
+</main>
+<script>
+(function(){
+  function render(){
+    const list=document.getElementById('log-list'); list.innerHTML='';
+    const sessions=JSON.parse(localStorage.getItem('sessions')||'[]');
+    if(!sessions.length){ list.innerHTML='<p class="muted">Ingen økter enda.</p>'; return; }
+    const ul=document.createElement('div'); ul.style.display='grid'; ul.style.gap='8px';
+    sessions.slice().reverse().forEach(s=>{
+      const row=document.createElement('div'); row.className='menu-item'; row.style.justifyContent='space-between'; row.style.alignItems='center'; row.style.display='flex';
+      const when=new Date(s.startedAt||Date.now()).toLocaleString();
+      const dist=s.points&&s.points.length? (s.points[s.points.length-1].dist_m/1000).toFixed(2)+' km' : '';
+      const left=document.createElement('a'); left.href='results.html#'+s.id; left.textContent=`${s.name||'Økt'} — ${when}`; left.style.flex='1'; left.style.textDecoration='none';
+      const right=document.createElement('div'); right.style.display='flex'; right.style.gap='8px'; right.style.alignItems='center';
+      const distSpan=document.createElement('span'); distSpan.textContent=dist; right.appendChild(distSpan);
+      const del=document.createElement('button'); del.className='ghost'; del.title='Slett'; del.innerHTML='<i class="ph-trash"></i>';
+      del.onclick=()=>{ if(confirm('Slette denne økta?')){ const arr=JSON.parse(localStorage.getItem('sessions')||'[]'); const idx=arr.findIndex(x=>x.id===s.id); if(idx>=0){ arr.splice(idx,1); localStorage.setItem('sessions', JSON.stringify(arr)); render(); } } };
+      right.appendChild(del);
+      row.appendChild(left); row.appendChild(right); ul.appendChild(row);
+    });
+    list.appendChild(ul);
+  }
+  render();
+})();
+</script>
+</body>
+</html>

@@ -31,13 +31,55 @@ document.addEventListener('DOMContentLoaded', function(){
 
     const z={under:0, between:0, over:0}; for(const p of pts){ if(!p.hr) continue; if(p.hr < s.lt1) z.under++; else if(p.hr < s.lt2) z.between++; else z.over++; } drawZones(document.getElementById('zones'), z);
 
-    const chart=document.getElementById('r-chart'); resizeCanvas(chart); const toggles={hr:true,watt:true,speed:false,rpe:true}; document.getElementById('r-show-hr').addEventListener('change', e=>{ toggles.hr=e.target.checked; drawGraph(); }); document.getElementById('r-show-watt').addEventListener('change', e=>{ toggles.watt=e.target.checked; drawGraph(); }); document.getElementById('r-show-speed').addEventListener('change', e=>{ toggles.speed=e.target.checked; drawGraph(); }); document.getElementById('r-show-rpe').addEventListener('change', e=>{ toggles.rpe=e.target.checked; drawGraph(); });
+    const chart=document.getElementById('r-chart'); resizeCanvas(chart);
+    const toggles={ hr:true, watt:true, speed:false, rpe:true };
+    document.getElementById('r-show-hr').addEventListener('change', e=>{ toggles.hr=e.target.checked; drawGraph(); });
+    document.getElementById('r-show-watt').addEventListener('change', e=>{ toggles.watt=e.target.checked; drawGraph(); });
+    document.getElementById('r-show-speed').addEventListener('change', e=>{ toggles.speed=e.target.checked; drawGraph(); });
+    document.getElementById('r-show-rpe').addEventListener('change', e=>{ toggles.rpe=e.target.checked; drawGraph(); });
 
-    function drawGraph(){ const ctx=chart.getContext('2d'); const W=chart.width,H=chart.height; ctx.clearRect(0,0,W,H); const padL=60*dpr,padR=60*dpr,padT=30*dpr,padB=30*dpr; const plotW=W-padL-padR, plotH=H-padT-padB; if(!pts.length) return; const tmin=pts[0].ts, tmax=pts[pts.length-1].ts; const hrVals=pts.map(p=>p.hr).filter(Boolean); const hrMin=hrVals.length?Math.min(...hrVals):80; const hrMax=hrVals.length?Math.max(...hrVals):200; const yHR=v=> padT+(1-(v-hrMin)/(hrMax-hrMin||1))*plotH; function band(y0,y1,color){ ctx.fillStyle=color; ctx.fillRect(padL,y1,plotW,y0-y1);} band(yHR(hrMin),yHR(s.lt1),'rgba(16,163,74,0.06)'); band(yHR(s.lt1),yHR(s.lt2),'rgba(37,99,235,0.06)'); band(yHR(s.lt2),yHR(hrMax),'rgba(239,68,68,0.06)'); ctx.strokeStyle='#e2e8f0'; ctx.lineWidth=1; ctx.beginPath(); for(let sec=0;sec<=Math.max(60,(tmax-tmin)/1000);sec+=60){ const tt=tmin+sec*1000; const x=padL+(tt-tmin)/(tmax-tmin||1)*plotW; ctx.moveTo(x,padT); ctx.lineTo(x,padT+plotH);} ctx.stroke(); ctx.strokeStyle='#e5e7eb'; ctx.beginPath(); for(let v=hrMin; v<=hrMax; v+=10){ const y=yHR(v); ctx.moveTo(padL,y); ctx.lineTo(padL+plotW,y);} ctx.stroke(); const xTime=t=> padL+(t-tmin)/(tmax-tmin||1)*plotW; function drawLine(arr,get,color,ymap){ if(arr.length<2) return; ctx.strokeStyle=color; ctx.lineWidth=2*dpr; ctx.beginPath(); let moved=false; for(const p of arr){ const val=get(p); if(val==null) continue; const x=xTime(p.ts), y=ymap(val); if(!moved){ ctx.moveTo(x,y); moved=true;} else ctx.lineTo(x,y);} ctx.stroke(); } if(toggles.hr) drawLine(pts, p=>p.hr, '#ef4444', yHR); const spVals=pts.map(p=>p.speed_ms*3.6), wtVals=pts.map(p=>p.watt); const smin=Math.min(...(spVals.length?spVals:[0])), smax=Math.max(...(spVals.length?spVals:[1])); const wmin=Math.min(...(wtVals.length?wtVals:[0])), wmax=Math.max(...(wtVals.length?wtVals:[1])); const mapSpeed=v=> yHR(hrMin + (hrMax-hrMin) * ((v - smin) / Math.max(1e-6,(smax-smin)))); const mapWatt=v => yHR(hrMin + (hrMax-hrMin) * ((v - wmin) / Math.max(1e-6,(wmax-wmin)))); if(toggles.speed) drawLine(pts, p=>p.speed_ms*3.6, '#2563eb', mapSpeed); if(toggles.watt) drawLine(pts, p=>p.watt, '#16a34a', mapWatt); if(toggles.rpe) { const mapRpe=v=> yHR(hrMin + (hrMax-hrMin) * (v/10)); drawLine(pts, p=>p.rpe, '#d97706', mapRpe); }
+    function drawGraph(){
+      const ctx=chart.getContext('2d'); const W=chart.width,H=chart.height; ctx.clearRect(0,0,W,H);
+      const padL=60*dpr,padR=60*dpr,padT=30*dpr,padB=24*dpr; const plotW=W-padL-padR, plotH=H-padT-padB;
+      if(!pts.length) return;
+      const tmin=pts[0].ts, tmax=pts[pts.length-1].ts;
+      const hrVals=pts.map(p=>p.hr).filter(Boolean); const hrMin=hrVals.length?Math.min(...hrVals):80; const hrMaxAxis=hrVals.length?Math.max(...hrVals):200;
+      const yHR=v=> padT + (1 - (v-hrMin)/(hrMaxAxis-hrMin||1))*plotH;
+      // series arrays
+      const sp=pts.map(p=>({t:p.ts,y:p.speed_ms*3.6}));
+      const wt=pts.map(p=>({t:p.ts,y:p.watt}));
+      const rp=pts.map(p=>({t:p.ts,y:p.rpe||0}));
+      const spVals=sp.map(p=>p.y).filter(v=>!isNaN(v));
+      const wtVals=wt.map(p=>p.y).filter(v=>!isNaN(v));
+      const smin=Math.min(...(spVals.length?spVals:[0])), smax=Math.max(...(spVals.length?spVals:[1]));
+      const wmin=Math.min(...(wtVals.length?wtVals:[0])), wmax=Math.max(...(wtVals.length?wtVals:[1]));
+      const yWatt=v=> padT + (1 - (v-wmin)/Math.max(1,(wmax-wmin))) * plotH;
+      const yRPE=v => padT + (1 - v/10) * plotH;
+      const xTime=t=> padL + (t-tmin)/(tmax-tmin||1)*plotW;
+      // HR zone bands
+      ctx.fillStyle='rgba(239,68,68,0.06)'; ctx.fillRect(padL, yHR(s.lt2), plotW, yHR(hrMaxAxis)-yHR(s.lt2));
+      ctx.fillStyle='rgba(37,99,235,0.06)'; ctx.fillRect(padL, yHR(s.lt1), plotW, yHR(s.lt2)-yHR(s.lt1));
+      ctx.fillStyle='rgba(16,163,74,0.06)'; ctx.fillRect(padL, yHR(hrMin), plotW, yHR(s.lt1)-yHR(hrMin));
+      // time grid
+      ctx.strokeStyle='#e2e8f0'; ctx.lineWidth=1; ctx.beginPath(); for(let sec=0; sec<=Math.max(60,(tmax-tmin)/1000); sec+=60){ const tt=tmin+sec*1000; const x=padL+(tt-tmin)/(tmax-tmin||1)*plotW; ctx.moveTo(x,padT); ctx.lineTo(x,padT+plotH);} ctx.stroke();
+      // HR ticks
+      ctx.strokeStyle='#e5e7eb'; ctx.beginPath(); for(let v=hrMin; v<=hrMaxAxis; v+=10){ const y=yHR(v); ctx.moveTo(padL,y); ctx.lineTo(padL+plotW,y);} ctx.stroke();
+      ctx.fillStyle='#ef4444'; ctx.font=`${12*dpr}px system-ui`; for(let v=hrMin; v<=hrMaxAxis; v+=20){ ctx.fillText(String(v), 8*dpr, yHR(v)+4*dpr); }
+      // Right axis Watt
+      if(toggles.watt){ ctx.fillStyle='#16a34a'; ctx.textAlign='right'; const ticks=5; for(let i=0;i<=ticks;i++){ const v=wmin + (wmax-wmin)*i/ticks; const y=yWatt(v); ctx.fillText(String(Math.round(v)), W-8*dpr, y+4*dpr); } ctx.textAlign='left'; }
+      // Top axis Speed
+      if(toggles.speed){ ctx.fillStyle='#2563eb'; ctx.textAlign='center'; const ticks=5; for(let i=0;i<=ticks;i++){ const v=smin + (smax-smin)*i/ticks; const x=padL + plotW*i/ticks; ctx.fillText(String(v.toFixed(1)), x, (padT-8*dpr)); } ctx.textAlign='left'; }
+      // Right-inner axis RPE
+      if(toggles.rpe){ ctx.fillStyle='#d97706'; ctx.textAlign='right'; for(let v=0; v<=10; v+=2){ const y=yRPE(v); ctx.fillText(String(v), W-40*dpr, y+4*dpr); } ctx.textAlign='left'; }
+      function drawLine(arr,color,ymap){ if(arr.length<2) return; ctx.strokeStyle=color; ctx.lineWidth=2*dpr; ctx.beginPath(); let moved=false; for(const p of arr){ const x=xTime(p.t), y=ymap(p.y); if(!moved){ ctx.moveTo(x,y); moved=true;} else ctx.lineTo(x,y);} ctx.stroke(); }
+      if(toggles.hr) drawLine(pts.map(p=>({t:p.ts,y:p.hr})), '#ef4444', yHR);
+      if(toggles.watt) drawLine(wt, '#16a34a', yWatt);
+      if(toggles.speed){ const ySpeed=v=> padT + (1 - (v - smin)/Math.max(1,(smax-smin))) * plotH; drawLine(sp, '#2563eb', ySpeed); }
+      if(toggles.rpe) drawLine(rp, '#d97706', yRPE);
     }
     drawGraph();
 
-    // Laps table — include RPE per drag (siste registrerte i draget hvis mangler i rpeByRep)
+    // Laps table — include RPE per drag
     const table=document.getElementById('laps'); const rows=[];
     for(let r=1; r<= (s.reps||0); r++){
       const arr=pts.filter(p=>p.phase==='work' && p.rep===r);
@@ -49,8 +91,12 @@ document.addEventListener('DOMContentLoaded', function(){
     table.innerHTML = `<thead><tr><th>Rep</th><th>Snittpuls</th><th>Snittfart</th><th>Snittwatt</th><th>Stigning</th><th>RPE</th></tr></thead>` +
       `<tbody>`+ rows.map(r=>`<tr><td>${r.rep}</td><td>${r.hr} bpm</td><td>${r.spd?r.spd.toFixed(1):'--'} km/t</td><td>${r.wat} W</td><td>${r.grd?r.grd.toFixed(1):'--'} %</td><td>${r.rpe}</td></tr>`).join('') +`</tbody>`;
 
-    document.getElementById('btn-download-tcx').addEventListener('click', ()=>{ const tcx=buildTCX(s); const blob=new Blob([tcx],{type:'application/vnd.garmin.tcx+xml'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=(s.name||'workout')+'.tcx'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); });
-    document.getElementById('btn-dump-json').addEventListener('click', ()=>{ const blob=new Blob([JSON.stringify(s,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=(s.name||'workout')+'.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); });
+    // timestamped filenames
+    function tsString(iso){ const d=new Date(iso); const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`; }
+    const baseName = `${(s.name||'workout').replace(/\s+/g,'_')}_${tsString(s.startedAt||new Date())}`;
+
+    document.getElementById('btn-download-tcx').addEventListener('click', ()=>{ const tcx=buildTCX(s); const blob=new Blob([tcx],{type:'application/vnd.garmin.tcx+xml'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download= baseName + '.tcx'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); });
+    document.getElementById('btn-dump-json').addEventListener('click', ()=>{ const blob=new Blob([JSON.stringify(s,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download= baseName + '.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); });
 
     function persistSession(sess){ const arr=JSON.parse(localStorage.getItem('sessions')||'[]'); const i=arr.findIndex(x=>x.id===sess.id); if(i>=0) arr[i]=sess; else arr.push(sess); localStorage.setItem('sessions', JSON.stringify(arr)); }
     function resizeCanvas(c){ const rect=c.getBoundingClientRect(); c.width=Math.floor(rect.width*dpr); c.height=Math.floor(rect.height*dpr); }

@@ -18,8 +18,8 @@
       <a href="settings.html">Innstillinger</a>
     </div>
     <div class="devicectl">
-      <button id="connect-hr" class="primary"><i class="ph-heart ph-fw"></i> Puls</button>
-      <button id="connect-treadmill" class="secondary"><i class="ph-treadmill ph-fw"></i> Mølle</button>
+      <button id="connect-hr" class="primary" title="Koble til puls"><i class="ph-heart ph-fw"></i> Puls</button>
+      <button id="connect-treadmill" class="secondary" title="Koble til mølle"><i class="ph-treadmill ph-fw"></i> Mølle</button>
     </div>
   </header>
 
@@ -31,12 +31,35 @@
         <div class="metric"><label>Slope (20s−120s)</label><span id="slope">--</span><small>bpm</small></div>
       </div>
 
+      <div class="card workout workout-panel">
+        <div class="workout-header">
+          <i class="ph-notepad"></i>
+          <select id="workout-select" title="Velg treningsøkt"></select>
+        </div>
+        <div class="nowplaying">
+          <div id="current-step-name" class="step-label">Ingen økt valgt</div>
+          <div id="timer" class="big-timer">00:00</div>
+          <div class="next-steps">
+            <div id="next1">Neste: –</div>
+            <div id="next2">Deretter: –</div>
+          </div>
+          <div id="progressbar"><div id="progress"></div></div>
+        </div>
+        <div class="workout-controls">
+          <button id="btn-start-pause" class="primary" title="Start/Pause"><i class="ph-play-pause"></i></button>
+          <button id="btn-skip-back" class="secondary" title="Tilbake"><i class="ph-skip-back"></i></button>
+          <button id="btn-skip-fwd" class="secondary" title="Frem"><i class="ph-skip-forward"></i></button>
+          <button id="btn-stop-save" class="ghost" title="Stopp & lagre"><i class="ph-stop"></i></button>
+          <button id="btn-discard" class="ghost" title="Forkast (ikke lagre)"><i class="ph-trash"></i></button>
+        </div>
+      </div>
+
       <div class="card controls">
         <div class="row space-between">
           <h3>Fart og stigning</h3>
           <span id="ftms-status" class="badge">FTMS: Frakoblet</span>
         </div>
-        <div class="row speed-grade">
+        <div class="row">
           <div class="field">
             <label>Fart (km/t)</label>
             <div class="stepper">
@@ -44,7 +67,7 @@
               <input id="manual-speed" type="number" min="0" step="0.1" value="0.0" />
               <button id="speed-inc" class="iconbtn" title="+0,1"><i class="ph-plus ph-2x"></i></button>
             </div>
-            <div class="row quick">
+            <div class="row small">
               <button class="speed-btn" data-speed="10">10 km/t</button>
               <button class="speed-btn" data-speed="15">15 km/t</button>
             </div>
@@ -60,70 +83,9 @@
         </div>
       </div>
 
-      <div class="card workout">
-        <h3>Intervalløkter</h3>
-        <div class="row presets" id="preset-row">
-          <button class="preset" data-set="6x5">6×5 min</button>
-          <button class="preset" data-set="10x4">10×4 min</button>
-          <button class="preset" data-set="6x6">6×6 min</button>
-          <button class="preset" data-set="8x6">8×6 min</button>
-        </div>
-        <div class="row" style="gap:6px;flex-wrap:wrap">
-          <button id="start-workout" class="primary">Start</button>
-          <button id="pause-workout" class="secondary">Pause</button>
-          <button id="finish-now" class="secondary">Ferdig nå</button>
-          <button id="reset-workout" class="ghost">Nullstill</button>
-          <a class="ghost" href="results.html"><i class="ph-chart-line"></i> Åpne resultatside</a>
-        </div>
-        <div class="nowplaying">
-          <div id="current-interval">Ingen økt valgt</div>
-          <div id="phase">–</div>
-          <div id="timer" class="big-timer">00:00</div>
-          <div class="row">
-            <button id="skip-warmup" class="ghost">Hopp over oppvarming</button>
-            <button id="skip-interval" class="ghost"><i class="ph-fast-forward ph-fw"></i> Hopp over drag/pause</button>
-            <button id="skip-cooldown" class="ghost">Hopp over nedjoggen</button>
-          </div>
-          <div class="rpe-row">
-            <label for="rpe-now">RPE nå</label>
-            <div class="stepper">
-              <button id="rpe-dec" class="iconbtn" title="-0,5"><i class="ph-minus ph-2x"></i></button>
-              <input id="rpe-now" type="number" step="0.5" min="0" max="10" value="0" />
-              <button id="rpe-inc" class="iconbtn" title="+0,5"><i class="ph-plus ph-2x"></i></button>
-            </div>
-            <small class="muted">RPE skrives til loggen hvert sekund i drag</small>
-          </div>
-          <div id="progressbar"><div id="progress"></div></div>
-        </div>
-      </div>
-
       <div class="card warning hidden" id="err-card">
         <h3>Kjøretidsfeil</h3>
         <pre id="err-log"></pre>
-      </div>
-
-      <div class="card small settings">
-        <h3>Innstillinger (hurtig)</h3>
-        <div class="row">
-          <label>Kroppsvekt (kg)
-            <input id="mass-kg" type="number" min="30" max="200" step="0.5" value="75" />
-          </label>
-          <label>LT1 (bpm)
-            <input id="lt1" type="number" min="80" max="220" step="1" value="135" />
-          </label>
-          <label>LT2 (bpm)
-            <input id="lt2" type="number" min="80" max="220" step="1" value="160" />
-          </label>
-        </div>
-        <div class="row">
-          <label>Kalibrering K
-            <input id="cal-k" type="number" step="0.01" value="1.00" />
-          </label>
-          <label>C_run (J/kg/m)
-            <input id="c-run" type="number" step="0.05" value="1.00" />
-          </label>
-        </div>
-        <p class="small">Power = m·g·v·grade + C_run·m·v, deretter *K (ytre arbeid). </p>
       </div>
     </section>
 
@@ -136,27 +98,37 @@
             <label><input type="checkbox" id="show-watt" checked> Watt</label>
             <label><input type="checkbox" id="show-speed"> Fart</label>
             <label><input type="checkbox" id="show-rpe" checked> RPE</label>
+            <label><input type="checkbox" id="ghost-enable"> Ghost</label>
+            <button id="ghost-picker" class="secondary"><i class="ph-faders"></i> Velg ghost‑økter</button>
           </div>
+          <div class="axislegend small">HR (venstre) · Watt (høyre) · Fart (topp) · RPE (høyre‑innvendig)</div>
         </div>
         <div class="graphwrap">
           <canvas id="chart" aria-label="trening data graf" role="img"></canvas>
         </div>
       </div>
-      <p class="hint">HR = rød, Watt = grønn, Fart = blå, RPE = gul.</p>
+      <p class="hint">Ghost = tidsjustert snitt av valgte økter (HR/Watt) som legges oppå live-kurven.</p>
     </section>
   </main>
 
+  <!-- Ghost dropdown -->
+  <div id="ghost-menu" class="menu hidden">
+    <div class="menu-item"><strong>Velg økter til ghost</strong></div>
+    <div id="ghost-list"></div>
+    <div class="menu-item" style="justify-content:space-between">
+      <div>
+        <button id="ghost-select-all" class="ghost">Velg alle</button>
+        <button id="ghost-clear-all" class="ghost">Fjern alle</button>
+      </div>
+      <button id="ghost-apply" class="primary">Bruk</button>
+    </div>
+  </div>
+
   <script src="main.js" defer></script>
   <script>
-    // simple runtime error overlay on index
-    window.addEventListener('error', e=>{
-      const c=document.getElementById('err-card'); const pre=document.getElementById('err-log');
-      if(c&&pre){ c.classList.remove('hidden'); pre.textContent += (e.error && e.error.stack)? e.error.stack : (e.message||'Ukjent feil'); }
-    });
-    window.addEventListener('unhandledrejection', e=>{
-      const c=document.getElementById('err-card'); const pre=document.getElementById('err-log');
-      if(c&&pre){ c.classList.remove('hidden'); pre.textContent += (e.reason && e.reason.stack)? e.reason.stack : (e.reason||'Ukjent promise-feil'); }
-    });
+    // runtime error overlay
+    window.addEventListener('error', e=>{const c=document.getElementById('err-card');const pre=document.getElementById('err-log');if(c&&pre){c.classList.remove('hidden');pre.textContent += (e.error&&e.error.stack)? e.error.stack : (e.message||'Ukjent feil');}});
+    window.addEventListener('unhandledrejection', e=>{const c=document.getElementById('err-card');const pre=document.getElementById('err-log');if(c&&pre){c.classList.remove('hidden');pre.textContent += (e.reason&&e.reason.stack)? e.reason.stack : (e.reason||'Ukjent promise-feil');}});
   </script>
 </body>
 </html>

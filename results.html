@@ -61,7 +61,7 @@
 
   <section class="rightcol">
     <div class="card graphcard">
-      <div class="graphhdr"><strong>Hele økta</strong> <span class="small">(HR=rød, Watt=grønn, Fart=blå, RPE=gul)</span></div>
+      <div class="graphhdr"><strong>Hele økta</strong> <span class="small">(HR=rød, Watt=høyre grønn, Fart=topp blå, RPE=høyre‑innvendig gul)</span></div>
       <div class="graphwrap">
         <canvas id="r-chart" aria-label="Graf" role="img"></canvas>
       </div>
@@ -77,18 +77,8 @@
 </main>
 <script src="results.js" defer></script>
 <script>
-  window.addEventListener('error', e => {
-    const card = document.getElementById('err-card');
-    const pre = document.getElementById('err-log');
-    card.classList.remove('hidden');
-    pre.textContent += (e.error && e.error.stack) ? e.error.stack : (e.message||'Ukjent feil');
-  });
-  window.addEventListener('unhandledrejection', e => {
-    const card = document.getElementById('err-card');
-    const pre = document.getElementById('err-log');
-    card.classList.remove('hidden');
-    pre.textContent += (e.reason && e.reason.stack) ? e.reason.stack : (e.reason||'Ukjent promise-feil');
-  });
+  window.addEventListener('error', e => { const card = document.getElementById('err-card'); const pre = document.getElementById('err-log'); card.classList.remove('hidden'); pre.textContent += (e.error && e.error.stack) ? e.error.stack : (e.message||'Ukjent feil');});
+  window.addEventListener('unhandledrejection', e => { const card = document.getElementById('err-card'); const pre = document.getElementById('err-log'); card.classList.remove('hidden'); pre.textContent += (e.reason && e.reason.stack) ? e.reason.stack : (e.reason||'Ukjent promise-feil');});
 </script>
 </body>
 </html>

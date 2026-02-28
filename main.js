@@ -83,13 +83,13 @@ function recomputeGhostAverage(){ STATE.ghost.avg=null; if(!STATE.ghost.enabled 
   const hrArr=[], wArr=[]; const keys=[...bins.keys()].sort((a,b)=>a-b); for(const k of keys){ const b=bins.get(k); const t=STATE.logger.startTs + k*1000; if(b.hrCnt) hrArr.push({t,y:b.hrSum/b.hrCnt}); if(b.wCnt) wArr.push({t,y:b.wSum/b.wCnt}); }
   STATE.ghost.avg={hr:hrArr, watt:wArr}; }
 
-// ---- Workout Engine with multi-series support (Builder v2)
+// ---- Workout Engine with multi-series support
 const BUILDER_KEY='custom_workouts_v2';
 function loadCustomWorkouts(){ try{ return JSON.parse(localStorage.getItem(BUILDER_KEY)||'[]'); }catch(e){ return []; } }
 function renderCustomPresetButtons(){ const row=document.getElementById('preset-row'); if(!row) return; const customs=loadCustomWorkouts(); row.querySelectorAll('button.preset[data-custom="1"]').forEach(b=>b.remove()); customs.forEach((cw,idx)=>{ const b=document.createElement('button'); b.className='preset'; b.dataset.custom='1'; b.dataset.set='c'+idx; b.textContent=cw.name||('Mal '+(idx+1)); b.addEventListener('click', ()=>{ STATE.workout=createWorkoutFromCustom(cw); updateWorkoutUI(); localStorage.setItem('lastPreset','custom:'+idx); }); row.appendChild(b); }); }
 renderCustomPresetButtons();
 
-function createWorkoutFromCustom(cw){ return { name:cw.name||'Custom', phase:'warmup', startedAt:null, endedAt:null, lt1:STATE.LT1, lt2:STATE.LT2, warmupSec:Number(cw.warmupSec)||0, cooldownSec:Number(cw.cooldownSec)||0, target:{speed:cw.targetSpeed, grade:cw.targetGrade}, series:cw.series||[], sIdx:-1 /* before first */, rep:0, tLeft:Number(cw.warmupSec)||0 } }
+function createWorkoutFromCustom(cw){ return { name:cw.name||'Custom', phase:'warmup', startedAt:null, endedAt:null, lt1:STATE.LT1, lt2:STATE.LT2, warmupSec:Number(cw.warmupSec)||0, cooldownSec:Number(cw.cooldownSec)||0, target:{speed:cw.targetSpeed, grade:cw.targetGrade}, series:cw.series||[], sIdx:-1, rep:0, tLeft:Number(cw.warmupSec)||0 } }
 
 const PRESETS={ '6x5':{name:'6×5 min',series:[{reps:6,workSec:300,restSec:60,seriesRestSec:0}], warmupSec:600, cooldownSec:600 }, '10x4':{name:'10×4 min',series:[{reps:10,workSec:240,restSec:60,seriesRestSec:0}], warmupSec:600, cooldownSec:600 }, '6x6':{name:'6×6 min',series:[{reps:6,workSec:360,restSec:60,seriesRestSec:0}], warmupSec:600, cooldownSec:600 }, '8x6':{name:'8×6 min',series:[{reps:8,workSec:360,restSec:60,seriesRestSec:0}], warmupSec:600, cooldownSec:600 } };
 for(const btn of document.querySelectorAll('.preset')){ btn.addEventListener('click', ()=>{ const key=btn.dataset.set; const p=PRESETS[key]; if(p){ const cw={ name:p.name, warmupSec:p.warmupSec, cooldownSec:p.cooldownSec, series:p.series }; STATE.workout=createWorkoutFromCustom(cw); updateWorkoutUI(); localStorage.setItem('lastPreset', key); } }); }
@@ -97,47 +97,28 @@ for(const btn of document.querySelectorAll('.preset')){ btn.addEventListener('cl
 function startTicker(){ if(STATE.ticker) return; if(STATE.workout && !STATE.workout.startedAt){ STATE.workout.startedAt=new Date().toISOString(); startLogger(); } STATE.ticker=setInterval(tickWorkout,1000); }
 function stopTicker(){ if(STATE.ticker){ clearInterval(STATE.ticker); STATE.ticker=null; } }
 
-function nextPhase(){ const w=STATE.workout; if(!w) return; if(w.phase==='warmup'){ // go to first series or cooldown if none
-  if(w.series && w.series.length){ w.phase='work'; w.sIdx=0; w.rep=1; w.tLeft=w.series[0].workSec; }
-  else { w.phase='cooldown'; w.tLeft=w.cooldownSec; }
-  return;
-}
-if(w.phase==='work'){
-  const s=w.series[w.sIdx]; if(w.rep < s.reps){ // more reps in this series → rest
-    w.phase='rest'; w.tLeft=s.restSec||0; return; }
-  // series finished
-  if(w.sIdx < w.series.length-1){ // go to series rest or next series work
-    const sr=s.seriesRestSec||0; if(sr>0){ w.phase='seriesrest'; w.tLeft=sr; return; }
-    // direct to next series work
-    w.sIdx++; w.phase='work'; w.rep=1; w.tLeft=w.series[w.sIdx].workSec; return; }
-  // all series done → cooldown
-  w.phase='cooldown'; w.tLeft=w.cooldownSec; return;
-}
-if(w.phase==='rest'){ // rest between reps
-  const s=w.series[w.sIdx]; w.rep++; w.phase='work'; w.tLeft=s.workSec; return; }
-if(w.phase==='seriesrest'){ // rest between series
-  w.sIdx++; w.phase='work'; w.rep=1; w.tLeft=w.series[w.sIdx].workSec; return; }
-if(w.phase==='cooldown'){ w.phase='done'; w.tLeft=0; w.endedAt=new Date().toISOString(); stopLogger(); finishSession(); return; }
+function nextPhase(){ const w=STATE.workout; if(!w) return; if(w.phase==='warmup'){ if(w.series && w.series.length){ w.phase='work'; w.sIdx=0; w.rep=1; w.tLeft=w.series[0].workSec; } else { w.phase='cooldown'; w.tLeft=w.cooldownSec; } return; }
+ if(w.phase==='work'){ const s=w.series[w.sIdx]; if(w.rep < s.reps){ w.phase='rest'; w.tLeft=s.restSec||0; return; } if(w.sIdx < w.series.length-1){ const sr=s.seriesRestSec||0; if(sr>0){ w.phase='seriesrest'; w.tLeft=sr; return; } w.sIdx++; w.phase='work'; w.rep=1; w.tLeft=w.series[w.sIdx].workSec; return; } w.phase='cooldown'; w.tLeft=w.cooldownSec; return; }
+ if(w.phase==='rest'){ const s=w.series[w.sIdx]; w.rep++; w.phase='work'; w.tLeft=s.workSec; return; }
+ if(w.phase==='seriesrest'){ w.sIdx++; w.phase='work'; w.rep=1; w.tLeft=w.series[w.sIdx].workSec; return; }
+ if(w.phase==='cooldown'){ w.phase='done'; w.tLeft=0; w.endedAt=new Date().toISOString(); stopLogger(); finishSession(); return; }
 }
 
 function tickWorkout(){ if(!STATE.workout) return; const w=STATE.workout; if(w.phase==='done'){ stopTicker(); return; } w.tLeft=Math.max(0,(w.tLeft||0)-1); if(w.tLeft<=0){ nextPhase(); } updateWorkoutUI(); }
 
-function skipWarmup(){ const w=STATE.workout; if(!w) return; if(w.phase==='warmup'){ w.tLeft=0; nextPhase(); updateWorkoutUI(); }}
-function skipCooldown(){ const w=STATE.workout; if(!w) return; if(w.phase==='cooldown'){ w.phase='done'; w.tLeft=0; w.endedAt=new Date().toISOString(); stopLogger(); finishSession(); }}
-function skipInterval(){ const w=STATE.workout; if(!w) return; if(w.phase==='warmup'){ skipWarmup(); return;} if(w.phase==='cooldown'){ skipCooldown(); return;} if(w.phase==='work'){ // jump to either rest or next phase
-  const s=w.series[w.sIdx]; if(w.rep < s.reps){ w.phase='rest'; w.tLeft=s.restSec||0; } else { // last rep
-    if(w.sIdx < w.series.length-1){ const sr=w.series[w.sIdx].seriesRestSec||0; if(sr>0){ w.phase='seriesrest'; w.tLeft=sr; } else { w.sIdx++; w.phase='work'; w.rep=1; w.tLeft=w.series[w.sIdx].workSec; } } else { w.phase='cooldown'; w.tLeft=w.cooldownSec; } }
-} else if(w.phase==='rest'){ const s=w.series[w.sIdx]; if(w.rep < s.reps){ w.rep++; w.phase='work'; w.tLeft=s.workSec; } else { if(w.sIdx < w.series.length-1){ const sr=w.series[w.sIdx].seriesRestSec||0; if(sr>0){ w.phase='seriesrest'; w.tLeft=sr; } else { w.sIdx++; w.phase='work'; w.rep=1; w.tLeft=w.series[w.sIdx].workSec; } } else { w.phase='cooldown'; w.tLeft=w.cooldownSec; } }
-} else if(w.phase==='seriesrest'){ w.sIdx++; w.phase='work'; w.rep=1; w.tLeft=w.series[w.sIdx].workSec; }
+function skipWarmup(){ const w=STATE.workout; if(w && w.phase==='warmup'){ w.tLeft=0; nextPhase(); updateWorkoutUI(); }}
+function skipCooldown(){ const w=STATE.workout; if(w && w.phase==='cooldown'){ w.phase='done'; w.tLeft=0; w.endedAt=new Date().toISOString(); stopLogger(); finishSession(); }}
+function skipInterval(){ const w=STATE.workout; if(!w) return; if(w.phase==='warmup'){ skipWarmup(); return;} if(w.phase==='cooldown'){ skipCooldown(); return;} if(w.phase==='work'){ const s=w.series[w.sIdx]; if(w.rep < s.reps){ w.phase='rest'; w.tLeft=s.restSec||0; } else { if(w.sIdx < w.series.length-1){ const sr=w.series[w.sIdx].seriesRestSec||0; if(sr>0){ w.phase='seriesrest'; w.tLeft=sr; } else { w.sIdx++; w.phase='work'; w.rep=1; w.tLeft=w.series[w.sIdx].workSec; } } else { w.phase='cooldown'; w.tLeft=w.cooldownSec; } } }
+ else if(w.phase==='rest'){ const s=w.series[w.sIdx]; if(w.rep < s.reps){ w.rep++; w.phase='work'; w.tLeft=s.workSec; } else { if(w.sIdx < w.series.length-1){ const sr=w.series[w.sIdx].seriesRestSec||0; if(sr>0){ w.phase='seriesrest'; w.tLeft=sr; } else { w.sIdx++; w.phase='work'; w.rep=1; w.tLeft=w.series[w.sIdx].workSec; } } else { w.phase='cooldown'; w.tLeft=w.cooldownSec; } } }
+ else if(w.phase==='seriesrest'){ w.sIdx++; w.phase='work'; w.rep=1; w.tLeft=w.series[w.sIdx].workSec; }
 updateWorkoutUI(); }
 
 if(el('skip-warmup')) el('skip-warmup').addEventListener('click', skipWarmup);
 if(el('skip-cooldown')) el('skip-cooldown').addEventListener('click', skipCooldown);
 if(el('skip-interval')) el('skip-interval').addEventListener('click', skipInterval);
 
-if(el('start-workout')) el('start-workout').addEventListener('click', ()=>{ if(!STATE.workout){ const lp=localStorage.getItem('lastPreset'); if(lp && lp.startsWith('custom:')){ renderCustomPresetButtons(); const idx=lp.split(':')[1]; const customs=loadCustomWorkouts(); const cw=customs[Number(idx)]; if(cw){ STATE.workout=createWorkoutFromCustom(cw); updateWorkoutUI(); } }
-  else { const k=(lp && PRESETS[lp])?lp:'6x5'; const presetBtn=document.querySelector(`.preset[data-set="${k}"]`); if(presetBtn) presetBtn.click(); }
-} if(STATE.workout && !STATE.workout.startedAt){ STATE.workout.startedAt=new Date().toISOString(); startLogger(); } startTicker(); });
+if(el('start-workout')) el('start-workout').addEventListener('click', ()=>{ if(!STATE.workout){ const lp=localStorage.getItem('lastPreset'); if(lp && lp.startsWith('custom:')){ renderCustomPresetButtons(); const idx=lp.split(':')[1]; const customs=loadCustomWorkouts(); const cw=customs[Number(idx)]; if(cw){ STATE.workout=createWorkoutFromCustom(cw); updateWorkoutUI(); } } else { const k=(lp && PRESETS[lp])?lp:'6x5'; const presetBtn=document.querySelector(`.preset[data-set="${k}"]`); if(presetBtn) presetBtn.click(); } }
+  if(STATE.workout && !STATE.workout.startedAt){ STATE.workout.startedAt=new Date().toISOString(); startLogger(); } startTicker(); });
 if(el('pause-workout')) el('pause-workout').addEventListener('click', ()=>{ if(STATE.ticker){ stopTicker(); } else { startTicker(); }});
 if(el('reset-workout')) el('reset-workout').addEventListener('click', ()=>{ stopTicker(); STATE.workout=null; STATE.logger.active=false; STATE.logger.points=[]; updateWorkoutUI(); });
 if(el('finish-now')) el('finish-now').addEventListener('click', ()=>{ if(!STATE.workout) return; STATE.workout.endedAt=new Date().toISOString(); stopLogger(); finishSession(); });
@@ -158,7 +139,6 @@ function draw(){ if(!ctx||!canvas) return; const W=canvas.width,H=canvas.height;
 // ---- Finish session: persist + redirect with navigation guarantee ----
 function finishSession(){ try{ const w=STATE.workout; if(!w) return; const session={ id:'s'+Date.now(), name:w.name||'Økt', reps: calcTotalReps(w), startedAt:w.startedAt||new Date().toISOString(), endedAt:w.endedAt||new Date().toISOString(), lt1:STATE.LT1, lt2:STATE.LT2, massKg:STATE.massKg, rpeByRep:STATE.rpeByRep, points:STATE.logger.points };
   const key='sessions'; const arr=JSON.parse(localStorage.getItem(key)||'[]'); arr.push(session); localStorage.setItem(key, JSON.stringify(arr));
-  // navigate (avoid bfcache issues)
   const url='results.html#'+session.id; window.location.assign(url);
 } catch(e){ console.error('finishSession failed', e); alert('Klarte ikke å lagre økt: '+e.message); } }
 function calcTotalReps(w){ if(!w||!w.series) return 0; return w.series.reduce((a,s)=>a+(Number(s.reps)||0),0); }

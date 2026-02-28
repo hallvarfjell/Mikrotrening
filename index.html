@@ -63,12 +63,13 @@
           <button class="preset" data-set="10x4">10×4 min</button>
           <button class="preset" data-set="6x6">6×6 min</button>
           <button class="preset" data-set="8x6">8×6 min</button>
-          <!-- dynamiske maler fylles inn her -->
+          <!-- custom knapper settes inn dynamisk -->
         </div>
         <div class="row" style="gap:6px;flex-wrap:wrap">
           <button id="start-workout" class="primary">Start</button>
           <button id="pause-workout" class="secondary">Pause</button>
-          <button id="reset-workout" class="secondary">Nullstill</button>
+          <button id="finish-now" class="secondary">Ferdig nå</button>
+          <button id="reset-workout" class="ghost">Nullstill</button>
           <a class="ghost" href="results.html"><i class="ph-chart-line"></i> Åpne resultatside</a>
         </div>
         <div class="nowplaying">
@@ -158,7 +159,6 @@
 
   <script src="main.js" defer></script>
   <script>
-    // Slå på diagnosepanel med ?debug=1
     if (new URLSearchParams(location.search).get('debug') === '1') {
       document.getElementById('debug').classList.remove('hidden');
     }

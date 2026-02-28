@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Øktbygger – Intervall PWA</title>
+  <title>Øktbygger v2 – Intervall PWA</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://unpkg.com/phosphor-icons@1.4.2"></script>
 </head>
 <body>
 <header class="topbar">
-  <h1>Øktbygger</h1>
+  <h1>Øktbygger v2</h1>
   <div class="devicectl">
     <a class="secondary" href="index.html"><i class="ph-arrow-left ph-fw"></i> Til hovedskjerm</a>
   </div>
@@ -20,31 +20,25 @@
       <h3>Grunnoppsett</h3>
       <div class="row">
         <label>Navn
-          <input id="w-name" type="text" placeholder="f.eks. 5×5 min @ raskt" />
+          <input id="w-name" type="text" placeholder="f.eks. 3×(4×3/1) + 10 min nedjogg" />
         </label>
         <label>Oppvarming (min)
           <input id="w-warm" type="number" min="0" step="1" value="10" />
         </label>
-        <label>Nedkjøling (min)
+        <label>Nedjogg (min)
           <input id="w-cool" type="number" min="0" step="1" value="10" />
         </label>
       </div>
     </div>
 
     <div class="card">
-      <h3>Serier</h3>
-      <div class="row">
-        <label>Antall drag (reps)
-          <input id="w-reps" type="number" min="1" step="1" value="5" />
-        </label>
-        <label>Drag (sek)
-          <input id="w-work" type="number" min="10" step="10" value="300" />
-        </label>
-        <label>Pause (sek)
-          <input id="w-rest" type="number" min="0" step="10" value="60" />
-        </label>
+      <h3>Serier (drag + pause)</h3>
+      <div id="series-list"></div>
+      <div class="row" style="gap:6px;margin-top:8px">
+        <button id="add-series" class="secondary"><i class="ph-plus"></i> Legg til serie</button>
+        <button id="clear-series" class="ghost"><i class="ph-trash"></i> Tøm serier</button>
       </div>
-      <small class="muted">v1: enkel struktur (warmup, reps×(work+rest), cooldown). Avanserte pyramider og fartslek kommer i v2.</small>
+      <small class="muted">Hver serie: <b>reps</b> × (<b>work</b> sek + <b>rest</b> sek) + valgfri <b>seriepause</b> før neste serie.</small>
     </div>
 
     <div class="card">
@@ -62,7 +56,7 @@
     <div class="card">
       <div class="row" style="gap:8px">
         <button id="w-save" class="primary"><i class="ph-floppy-disk"></i> Lagre mal</button>
-        <button id="w-clear" class="secondary"><i class="ph-trash"></i> Tøm felter</button>
+        <button id="w-clear" class="secondary"><i class="ph-trash"></i> Nullstill alt</button>
       </div>
       <p class="muted">Malene dukker automatisk opp som ekstra knapper på hovedskjermen.</p>
     </div>

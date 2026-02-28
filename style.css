@@ -57,5 +57,18 @@ button.ghost{background:transparent;border-color:#cbd5e1}
 .next-steps{display:grid;gap:2px;color:#475569;font-size:13px}
 .step-label{font-weight:600}
 
+/* RPE compact row */
+.rpe-compact{display:flex;align-items:center;gap:8px}
+.rpe-compact .iconbtn{width:32px;height:32px}
+.rpe-compact input{width:72px;text-align:center}
+
+/* Builder grid compact */
+.series-grid{display:grid;grid-template-columns:repeat(6, minmax(0,1fr));gap:6px;align-items:end}
+.series-grid label{font-size:12px;color:#334155}
+.series-grid input[type=number]{width:100%}
+.series-grid input[type=text]{width:100%}
+.series-actions{display:flex;gap:6px}
+
 .nav{display:flex;gap:8px}
 .nav a{color:#1d4ed8;text-decoration:none}
+.hidden{display:none}

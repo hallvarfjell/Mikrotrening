@@ -16,36 +16,52 @@ const STATE = {
   rpeByRep: {},
   logger: { active:false, points:[], startTs:null, dist:0 },
   ghost: { enabled:false, ids:new Set(), avg:null },
-  cal: { K: Number(localStorage.getItem('calK')||1.0), Crun: Number(localStorage.getItem('cRun')||1.0) }
+  cal: { K: Number(localStorage.getItem('calK')||1.0), Crun: Number(localStorage.getItem('cRun')||1.0) },
+  dev:{ hrDevice:null, ftmsDevice:null }
 };
 const el=id=>document.getElementById(id);
 const get=(k,d)=>{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); };
 
-// ---- Seed default workouts into builder storage if missing ----
-(function seedDefaults(){ const KEY='custom_workouts_v2'; let arr=get(KEY,[]); const names=arr.map(x=>x.name||''); function add(name,series,warm=10*60,cool=10*60){ if(!names.includes(name)){ arr.push({name, warmupSec: warm, cooldownSec: cool, series}); } }
-  add('6×5 min',[{reps:6,workSec:300,restSec:60,seriesRestSec:0}]);
-  add('6×6 min',[{reps:6,workSec:360,restSec:60,seriesRestSec:0}]);
-  add('8×6 min',[{reps:8,workSec:360,restSec:60,seriesRestSec:0}]);
-  add('10×4 min',[{reps:10,workSec:240,restSec:60,seriesRestSec:0}]);
-  add('12×4 min',[{reps:12,workSec:240,restSec:60,seriesRestSec:0}]);
-  add('15×4 min',[{reps:15,workSec:240,restSec:60,seriesRestSec:0}]);
-  add('30×45/15',[{reps:30,workSec:45,restSec:15,seriesRestSec:0}], 10*60, 10*60);
+// ---- Seed defaults into builder (once) ----
+(function seedDefaults(){ const KEY='custom_workouts_v2'; let arr=get(KEY,[]); const names=arr.map(x=>x.name||''); function add(name,series,warm=600,cool=600){ if(!names.includes(name)){ arr.push({name, warmupSec:warm, cooldownSec:cool, series}); } }
+  add('6×5 min',[{reps:6,workSec:300,restSec:60,seriesRestSec:0,note:'–'}]);
+  add('6×6 min',[{reps:6,workSec:360,restSec:60,seriesRestSec:0,note:'–'}]);
+  add('8×6 min',[{reps:8,workSec:360,restSec:60,seriesRestSec:0,note:'–'}]);
+  add('10×4 min',[{reps:10,workSec:240,restSec:60,seriesRestSec:0,note:'–'}]);
+  add('12×4 min',[{reps:12,workSec:240,restSec:60,seriesRestSec:0,note:'–'}]);
+  add('15×4 min',[{reps:15,workSec:240,restSec:60,seriesRestSec:0,note:'–'}]);
+  add('30×45/15',[{reps:30,workSec:45,restSec:15,seriesRestSec:0,note:'–'}]);
   localStorage.setItem(KEY, JSON.stringify(arr));
 })();
 
 // ---- Wake Lock ----
 async function requestWakeLock(){ try{ if('wakeLock' in navigator){ STATE.wakeLock = await navigator.wakeLock.request('screen'); STATE.wakeLock.addEventListener('release', ()=>{ STATE.wakeLock=null; }); } }catch(e){ console.warn('WakeLock failed', e); }}
-document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible' && !STATE.wakeLock){ requestWakeLock(); }});
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible' && !STATE.wakeLock){ requestWakeLock(); autoReconnectBLE(); }});
 requestWakeLock();
 
 // ---- BLE HR ----
-async function connectHR(){ try{ if(!('bluetooth' in navigator)) return alert('Nettleseren støtter ikke Web Bluetooth'); const device=await navigator.bluetooth.requestDevice({filters:[{services:['heart_rate']}]}); const server=await device.gatt.connect(); const service=await server.getPrimaryService('heart_rate'); const ch=await service.getCharacteristic('heart_rate_measurement'); await ch.startNotifications(); ch.addEventListener('characteristicvaluechanged', ev=>{ const dv=ev.target.value; const flags=dv.getUint8(0); const hr16=flags&1; let i=1; const bpm=hr16? dv.getUint16(i,true):dv.getUint8(i); STATE.hr=bpm; }); }catch(e){ console.error(e); alert('Kunne ikke koble til pulsbelte: '+e);} }
-el('connect-hr')?.addEventListener('click', connectHR);
+async function connectHR(manual=true){ try{ if(!('bluetooth' in navigator)) return alert('Nettleseren støtter ikke Web Bluetooth'); const device= manual? await navigator.bluetooth.requestDevice({filters:[{services:['heart_rate']}]}): (await pickRememberedDevice('heart_rate'));
+  if(!device) return; STATE.dev.hrDevice=device; const server=await device.gatt.connect(); const service=await server.getPrimaryService('heart_rate'); const ch=await service.getCharacteristic('heart_rate_measurement'); await ch.startNotifications(); ch.addEventListener('characteristicvaluechanged', ev=>{ const dv=ev.target.value; const flags=dv.getUint8(0); const hr16=flags&1; let i=1; const bpm=hr16? dv.getUint16(i,true):dv.getUint8(i); STATE.hr=bpm; }); device.addEventListener('gattserverdisconnected', ()=>{ console.warn('HR frakoblet'); }); }catch(e){ console.error(e); if(manual) alert('Kunne ikke koble til pulsbelte: '+e);} }
 
 // ---- BLE FTMS ----
-async function connectTreadmill(){ try{ if(!('bluetooth' in navigator)) return alert('Nettleseren støtter ikke Web Bluetooth'); const device=await navigator.bluetooth.requestDevice({filters:[{services:[0x1826]}]}); const server=await device.gatt.connect(); const ftms=await server.getPrimaryService(0x1826); const tdc=await ftms.getCharacteristic('00002ACD-0000-1000-8000-00805F9B34FB'); await tdc.startNotifications(); const status=el('ftms-status'); if(status){ status.textContent='FTMS: Tilkoblet'; status.classList.add('connected'); }
-  tdc.addEventListener('characteristicvaluechanged', ev=>{ const dv=ev.target.value; let idx=0; const flags=dv.getUint16(idx,true); idx+=2; const INST=1<<0, AVG=1<<1, DIST=1<<2, INCL=1<<3; if(flags&INST){ const ms=dv.getUint16(idx,true)/100; idx+=2; const kmh=ms*3.6; setSpeed(kmh); } if(flags&AVG){ idx+=2;} if(flags&DIST){ idx+=3;} if(flags&INCL){ const rawIncl=dv.getInt16(idx,true); idx+=2; idx+=2; setGrade(rawIncl/10);} }); device.addEventListener('gattserverdisconnected', ()=>{ if(status){ status.textContent='FTMS: Frakoblet'; status.classList.remove('connected'); } }); }catch(e){ console.error(e); alert('Kunne ikke koble til tredemølle: '+e);} }
-el('connect-treadmill')?.addEventListener('click', connectTreadmill);
+async function connectTreadmill(manual=true){ try{ if(!('bluetooth' in navigator)) return alert('Nettleseren støtter ikke Web Bluetooth'); const device= manual? await navigator.bluetooth.requestDevice({filters:[{services:[0x1826]}]}): (await pickRememberedDevice(0x1826)); if(!device) return; STATE.dev.ftmsDevice=device; const server=await device.gatt.connect(); const ftms=await server.getPrimaryService(0x1826); const tdc=await ftms.getCharacteristic('00002ACD-0000-1000-8000-00805F9B34FB'); await tdc.startNotifications(); const status=el('ftms-status'); if(status){ status.textContent='FTMS: Tilkoblet'; status.classList.add('connected'); }
+  tdc.addEventListener('characteristicvaluechanged', ev=>{ const dv=ev.target.value; let idx=0; const flags=dv.getUint16(idx,true); idx+=2; const INST=1<<0, AVG=1<<1, DIST=1<<2, INCL=1<<3; if(flags&INST){ const ms=dv.getUint16(idx,true)/100; idx+=2; const kmh=ms*3.6; setSpeed(kmh); } if(flags&AVG){ idx+=2;} if(flags&DIST){ idx+=3;} if(flags&INCL){ const rawIncl=dv.getInt16(idx,true); idx+=2; idx+=2; setGrade(rawIncl/10);} }); device.addEventListener('gattserverdisconnected', ()=>{ if(status){ status.textContent='FTMS: Frakoblet'; status.classList.remove('connected'); } }); }catch(e){ console.error(e); if(manual) alert('Kunne ikke koble til tredemølle: '+e);} }
+
+// helper: try getDevices() auto-reconnect
+async function pickRememberedDevice(serviceUUID){ try{ if(!('bluetooth' in navigator) || !('getDevices' in navigator.bluetooth)) return null; const devs=await navigator.bluetooth.getDevices(); // previously granted
+  for(const d of devs){ try{ if(!d.gatt.connected){ await d.gatt.connect(); }
+      // verify service exists
+      const svc=await d.gatt.getPrimaryService(serviceUUID);
+      if(svc){ return d; }
+    }catch(_){ /* try next */ }
+  }
+  return null;
+}catch(e){ console.warn('getDevices failed', e); return null; } }
+
+function autoReconnectBLE(){ connectHR(false); connectTreadmill(false); }
+
+el('connect-hr')?.addEventListener('click', ()=>connectHR(true));
+el('connect-treadmill')?.addEventListener('click', ()=>connectTreadmill(true));
 
 // ---- Manual controls ----
 function clamp(n,min,max){ return Math.min(max, Math.max(min,n)); }
@@ -59,9 +75,16 @@ el('speed-inc')?.addEventListener('click', ()=> setSpeed(STATE.speedKmh+0.1));
 el('grade-dec')?.addEventListener('click', ()=> setGrade(STATE.gradePct-0.5));
 el('grade-inc')?.addEventListener('click', ()=> setGrade(STATE.gradePct+0.5));
 
+// ---- RPE nå controls ----
+function setRPE(v){ STATE.rpe = clamp(Number(v)||0,0,10); el('rpe-now') && (el('rpe-now').value = STATE.rpe.toFixed(1)); }
+function applyRPEChange(delta){ setRPE((Number(el('rpe-now')?.value)||0)+delta); }
+el('rpe-dec')?.addEventListener('click', ()=> applyRPEChange(-0.5));
+el('rpe-inc')?.addEventListener('click', ()=> applyRPEChange(+0.5));
+el('rpe-now')?.addEventListener('change', ()=> applyRPEChange(0));
+
 // ---- Power model (external work) ----
 function estimateWattExternal(speedKmh, gradePct, massKg, Crun, K){
-  const g=9.81, v=(speedKmh||0)/3.6, grade=(gradePct||0)/100; // v in m/s
+  const g=9.81, v=(speedKmh||0)/3.6, grade=(gradePct||0)/100;
   const mech = massKg * (g * v * grade + Crun * v);
   return Math.max(0, Math.round(mech * (K||1)));
 }
@@ -71,10 +94,10 @@ function startLogger(){ STATE.logger.active=true; STATE.logger.startTs=Date.now(
 function stopLogger(){ STATE.logger.active=false; }
 function writeSample(t){ const dispSpeed=displaySpeedKmh(); const speed_ms=dispSpeed/3.6; const w=estimateWattExternal(dispSpeed, STATE.gradePct, STATE.massKg, STATE.cal.Crun, STATE.cal.K); const wstate=STATE.workout; STATE.logger.dist += speed_ms * (STATE.logger.points.length? (t-STATE.logger.points[STATE.logger.points.length-1].ts)/1000 : 0); STATE.logger.points.push({ ts:t, iso:new Date(t).toISOString(), hr:STATE.hr||0, speed_ms, grade:STATE.gradePct||0, dist_m:STATE.logger.dist, rpe:STATE.rpe, phase:wstate?wstate.phase:'', rep:wstate&&wstate.phase==='work'?wstate.rep:0, watt:w }); }
 
-// ---- Workout engine (reuse previous), with redesigned controls ----
+// ---- Workout engine with durations + notes ----
 const BUILDER_KEY='custom_workouts_v2';
 function loadCustomWorkouts(){ try{ return JSON.parse(localStorage.getItem(BUILDER_KEY)||'[]'); }catch(e){ return []; } }
-function workoutFromCfg(cw){ return { name:cw.name||'Custom', phase:'warmup', startedAt:null, endedAt:null, warmupSec:Number(cw.warmupSec)||0, cooldownSec:Number(cw.cooldownSec)||0, target:{speed:cw.targetSpeed, grade:cw.targetGrade}, series:cw.series||[], sIdx:-1, rep:0, tLeft:Number(cw.warmupSec)||0 } }
+function workoutFromCfg(cw){ return { name:cw.name||'Custom', phase:'warmup', startedAt:null, endedAt:null, warmupSec:Number(cw.warmupSec)||0, cooldownSec:Number(cw.cooldownSec)||0, target:{speed:cw.targetSpeed, grade:cw.targetGrade}, series:(cw.series||[]).map(s=>({reps:s.reps,workSec:s.workSec,restSec:s.restSec,seriesRestSec:s.seriesRestSec,note:s.note||''})), sIdx:-1, rep:0, tLeft:Number(cw.warmupSec)||0 } }
 
 function populateWorkoutSelect(){ const sel=el('workout-select'); if(!sel) return; sel.innerHTML=''; const customs=loadCustomWorkouts(); customs.forEach((cw,idx)=>{ const opt=document.createElement('option'); opt.value='c:'+idx; opt.textContent=cw.name||('Mal '+(idx+1)); sel.appendChild(opt); }); sel.addEventListener('change', ()=>{ const v=sel.value; if(v && v.startsWith('c:')){ const idx=Number(v.split(':')[1]); const cw=customs[idx]; if(cw){ STATE.workout=workoutFromCfg(cw); updateWorkoutUI(); localStorage.setItem('lastPreset','custom:'+idx); } } });
 }
@@ -89,30 +112,22 @@ function nextPhase(){ const w=STATE.workout; if(!w) return; if(w.phase==='warmup
  if(w.phase==='seriesrest'){ w.sIdx++; w.phase='work'; w.rep=1; w.tLeft=w.series[w.sIdx].workSec; return; }
  if(w.phase==='cooldown'){ w.phase='done'; w.tLeft=0; w.endedAt=new Date().toISOString(); writeSample(Date.now()); stopLogger(); finishSession(); return; }
 }
-function prevPhase(){ const w=STATE.workout; if(!w) return; if(w.phase==='work'){ // gå til forrige REST eller forrige serie
-   const s=w.series[w.sIdx]; if(w.rep>1){ w.phase='rest'; w.rep--; w.tLeft=s.restSec||0; }
-   else { if(w.sIdx>0){ w.sIdx--; const ps=w.series[w.sIdx]; w.phase='work'; w.rep=ps.reps; w.tLeft=ps.workSec; } else { w.phase='warmup'; w.tLeft=w.warmupSec; }
-   }
- } else if(w.phase==='rest'){ const s=w.series[w.sIdx]; w.phase='work'; w.tLeft=s.workSec; }
- else if(w.phase==='seriesrest'){ const s=w.series[w.sIdx]; const prev=w.series[w.sIdx-1]; if(prev){ w.sIdx--; w.phase='work'; w.rep=prev.reps; w.tLeft=prev.workSec; } else { w.phase='warmup'; w.tLeft=w.warmupSec; }
- } else if(w.phase==='cooldown'){ // tilbake til siste serie
-   const last=w.series[w.series.length-1]; if(last){ w.phase='work'; w.sIdx=w.series.length-1; w.rep=last.reps; w.tLeft=last.workSec; } else { w.phase='warmup'; w.tLeft=w.warmupSec; }
- } else if(w.phase==='warmup'){ /* allerede først */ }
- updateWorkoutUI();
-}
+function prevPhase(){ const w=STATE.workout; if(!w) return; if(w.phase==='work'){ const s=w.series[w.sIdx]; if(w.rep>1){ w.phase='rest'; w.rep--; w.tLeft=s.restSec||0; } else { if(w.sIdx>0){ w.sIdx--; const ps=w.series[w.sIdx]; w.phase='work'; w.rep=ps.reps; w.tLeft=ps.workSec; } else { w.phase='warmup'; w.tLeft=w.warmupSec; } } }
+ else if(w.phase==='rest'){ const s=w.series[w.sIdx]; w.phase='work'; w.tLeft=s.workSec; }
+ else if(w.phase==='seriesrest'){ const prev=w.series[w.sIdx-1]; if(prev){ w.sIdx--; w.phase='work'; w.rep=prev.reps; w.tLeft=prev.workSec; } else { w.phase='warmup'; w.tLeft=w.warmupSec; } }
+ else if(w.phase==='cooldown'){ const last=w.series[w.series.length-1]; if(last){ w.phase='work'; w.sIdx=w.series.length-1; w.rep=last.reps; w.tLeft=last.workSec; } else { w.phase='warmup'; w.tLeft=w.warmupSec; } }
+ updateWorkoutUI(); }
 
 function tickWorkout(){ if(!STATE.workout) return; const w=STATE.workout; if(w.phase==='done'){ stopTicker(); return; } w.tLeft=Math.max(0,(w.tLeft||0)-1); if(w.tLeft<=0){ nextPhase(); } updateWorkoutUI(); }
 
-// redesigned buttons
+// controls
 el('btn-start-pause')?.addEventListener('click', ()=>{ if(!STATE.workout){ const sel=el('workout-select'); const customs=loadCustomWorkouts(); if(sel && sel.value && sel.value.startsWith('c:')){ const idx=Number(sel.value.split(':')[1]); const cw=customs[idx]; if(cw){ STATE.workout=workoutFromCfg(cw); } }
  }
  if(STATE.ticker){ stopTicker(); } else { startTicker(); }
 });
-el('btn-skip-fwd')?.addEventListener('click', ()=>{ const w=STATE.workout; if(!w) return; // skip current phase
- if(w.phase==='warmup'){ w.tLeft=0; nextPhase(); }
+el('btn-skip-fwd')?.addEventListener('click', ()=>{ const w=STATE.workout; if(!w) return; if(w.phase==='warmup'){ w.tLeft=0; nextPhase(); }
  else if(w.phase==='cooldown'){ w.phase='done'; w.endedAt=new Date().toISOString(); writeSample(Date.now()); stopLogger(); finishSession(); }
- else { nextPhase(); }
- updateWorkoutUI(); });
+ else { nextPhase(); } updateWorkoutUI(); });
 el('btn-skip-back')?.addEventListener('click', ()=> prevPhase());
 el('btn-stop-save')?.addEventListener('click', ()=>{ if(!STATE.workout) return; if(confirm('Stopp og lagre økta?')){ STATE.workout.endedAt=new Date().toISOString(); writeSample(Date.now()); stopLogger(); finishSession(); }});
 el('btn-discard')?.addEventListener('click', ()=>{ if(confirm('Forkast økta (ikke lagre)?')){ stopTicker(); STATE.workout=null; STATE.logger.active=false; STATE.logger.points=[]; updateWorkoutUI(); draw(); }});
@@ -120,16 +135,24 @@ el('btn-discard')?.addEventListener('click', ()=>{ if(confirm('Forkast økta (ik
 function fmtMMSS(s){ s=Math.max(0,Math.floor(s)); const m=Math.floor(s/60), ss=String(s%60).padStart(2,'0'); return `${m}:${ss}`; }
 function displaySpeedKmh(){ if(STATE.workout && (STATE.workout.phase==='rest' || STATE.workout.phase==='seriesrest')) return 0; return STATE.speedKmh; }
 
-function stepName(){ const w=STATE.workout; if(!w) return 'Ingen økt valgt'; if(w.phase==='warmup') return 'Oppvarming'; if(w.phase==='cooldown') return 'Nedjogg'; if(w.phase==='seriesrest') return 'Serie‑pause'; if(w.phase==='rest') return `Pause – serie ${w.sIdx+1}/${w.series.length} – rep ${w.rep}/${w.series[w.sIdx].reps}`; if(w.phase==='work') return `Drag – serie ${w.sIdx+1}/${w.series.length} – rep ${w.rep}/${w.series[w.sIdx].reps}`; return '–'; }
-function computeNextSteps(){ const w=STATE.workout; if(!w) return ['–','–']; const clones=[JSON.parse(JSON.stringify(w)), JSON.parse(JSON.stringify(w))]; function advance(obj){ // clone of nextPhase logic minimal
-  if(obj.phase==='warmup'){ if(obj.series && obj.series.length){ obj.phase='work'; obj.sIdx=0; obj.rep=1; obj.tLeft=obj.series[0].workSec; } else { obj.phase='cooldown'; obj.tLeft=obj.cooldownSec; } return;} if(obj.phase==='work'){ const s=obj.series[obj.sIdx]; if(obj.rep < s.reps){ obj.phase='rest'; obj.tLeft=s.restSec||0; return;} if(obj.sIdx < obj.series.length-1){ const sr=s.seriesRestSec||0; if(sr>0){ obj.phase='seriesrest'; obj.tLeft=sr; return;} obj.sIdx++; obj.phase='work'; obj.rep=1; obj.tLeft=obj.series[obj.sIdx].workSec; return;} obj.phase='cooldown'; obj.tLeft=obj.cooldownSec; return;} if(obj.phase==='rest'){ const s=obj.series[obj.sIdx]; obj.rep++; obj.phase='work'; obj.tLeft=s.workSec; return;} if(obj.phase==='seriesrest'){ obj.sIdx++; obj.phase='work'; obj.rep=1; obj.tLeft=obj.series[obj.sIdx].workSec; return;} if(obj.phase==='cooldown'){ obj.phase='done'; obj.tLeft=0; return; } }
-  const n1=clones[0]; advance(n1); const n2=clones[1]; advance(n2); advance(n2); function name(o){ if(!o||o.phase==='done') return '–'; if(o.phase==='warmup') return 'Oppvarming'; if(o.phase==='cooldown') return 'Nedjogg'; if(o.phase==='seriesrest') return 'Serie‑pause'; if(o.phase==='rest') return `Pause – s${o.sIdx+1} rep ${o.rep}`; if(o.phase==='work') return `Drag – s${o.sIdx+1} rep ${o.rep}`; return '–'; }
-  return [name(n1), name(n2)];
+function stepDurationLabel(w){ if(!w) return ''; if(w.phase==='warmup') return fmtMMSS(w.warmupSec);
+ if(w.phase==='cooldown') return fmtMMSS(w.cooldownSec);
+ if(w.phase==='seriesrest') return fmtMMSS(w.series[w.sIdx].seriesRestSec||0);
+ if(w.phase==='rest') return fmtMMSS(w.series[w.sIdx].restSec||0);
+ if(w.phase==='work') return fmtMMSS(w.series[w.sIdx].workSec||0);
+ return ''; }
+function currentNote(w){ if(!w) return ''; if(w.phase==='work' || w.phase==='rest' || w.phase==='seriesrest'){ const s=w.series[w.sIdx]; return (s && s.note)? ` – ${s.note}` : ''; } return ''; }
+function stepName(){ const w=STATE.workout; if(!w) return 'Ingen økt valgt'; const dur=stepDurationLabel(w); const note=currentNote(w); if(w.phase==='warmup') return `Oppvarming – ${dur}`; if(w.phase==='cooldown') return `Nedjogg – ${dur}`; if(w.phase==='seriesrest') return `Serie‑pause – ${dur}${note}`; if(w.phase==='rest') return `Pause – serie ${w.sIdx+1}/${w.series.length} – rep ${w.rep}/${w.series[w.sIdx].reps} – ${dur}${note}`; if(w.phase==='work') return `Drag – serie ${w.sIdx+1}/${w.series.length} – rep ${w.rep}/${w.series[w.sIdx].reps} – ${dur}${note}`; return '–'; }
+
+function computeNextSteps(){ const w=STATE.workout; if(!w) return ['–','–']; function clone(x){ return JSON.parse(JSON.stringify(x)); } function advance(obj){ if(obj.phase==='warmup'){ if(obj.series && obj.series.length){ obj.phase='work'; obj.sIdx=0; obj.rep=1; obj.tLeft=obj.series[0].workSec; } else { obj.phase='cooldown'; obj.tLeft=obj.cooldownSec; } return;} if(obj.phase==='work'){ const s=obj.series[obj.sIdx]; if(obj.rep < s.reps){ obj.phase='rest'; obj.tLeft=s.restSec||0; return;} if(obj.sIdx < obj.series.length-1){ const sr=s.seriesRestSec||0; if(sr>0){ obj.phase='seriesrest'; obj.tLeft=sr; return;} obj.sIdx++; obj.phase='work'; obj.rep=1; obj.tLeft=obj.series[obj.sIdx].workSec; return;} obj.phase='cooldown'; obj.tLeft=obj.cooldownSec; return;} if(obj.phase==='rest'){ const s=obj.series[obj.sIdx]; obj.rep++; obj.phase='work'; obj.tLeft=s.workSec; return;} if(obj.phase==='seriesrest'){ obj.sIdx++; obj.phase='work'; obj.rep=1; obj.tLeft=obj.series[obj.sIdx].workSec; return;} if(obj.phase==='cooldown'){ obj.phase='done'; obj.tLeft=0; return; } }
+  const n1=clone(w); advance(n1); const n2=clone(n1); advance(n2);
+  function label(o){ if(!o||o.phase==='done') return '–'; const dur=stepDurationLabel(o); const note=(o.series && o.series[o.sIdx] && o.series[o.sIdx].note)? ` – ${o.series[o.sIdx].note}`:''; if(o.phase==='warmup') return `Oppvarming – ${dur}`; if(o.phase==='cooldown') return `Nedjogg – ${dur}`; if(o.phase==='seriesrest') return `Serie‑pause – ${dur}${note}`; if(o.phase==='rest') return `Pause – s${o.sIdx+1} rep ${o.rep} – ${dur}${note}`; if(o.phase==='work') return `Drag – s${o.sIdx+1} rep ${o.rep} – ${dur}${note}`; return '–'; }
+  return [label(n1), label(n2)];
 }
 
 function updateWorkoutUI(){ const tmr=el('timer'), bar=el('progress'), cs=el('current-step-name'); if(!tmr||!bar||!cs){ return; } if(!STATE.workout){ cs.textContent='Ingen økt valgt'; tmr.textContent='00:00'; bar.style.width='0%'; el('next1').textContent='Neste: –'; el('next2').textContent='Deretter: –'; return; } const w=STATE.workout; cs.textContent=stepName(); const total = (w.phase==='warmup')?w.warmupSec : (w.phase==='cooldown')?w.cooldownSec : (w.phase==='seriesrest')? (w.series[w.sIdx].seriesRestSec||0) : (w.phase==='rest')? (w.series[w.sIdx].restSec||0) : (w.phase==='work')? (w.series[w.sIdx].workSec||0) : 1; tmr.textContent=fmtMMSS(w.tLeft); const pct=Math.min(100, Math.max(0, 100*(1 - (w.tLeft/Math.max(1,total))))); bar.style.width=`${pct}%`; const [n1,n2]=computeNextSteps(); el('next1').textContent='Neste: '+n1; el('next2').textContent='Deretter: '+n2; }
 
-// ---- Ghost support ----
+// ---- Ghost support (unchanged from 9.9) ----
 function openGhostMenu(){ el('ghost-menu').classList.remove('hidden'); buildGhostList(); }
 function closeGhostMenu(){ el('ghost-menu').classList.add('hidden'); }
 function buildGhostList(){ const list=el('ghost-list'); list.innerHTML=''; const sessions = get('sessions',[]); if(!sessions.length){ list.innerHTML='<div class="small" style="padding:6px 8px">Ingen lagrede økter</div>'; return; } sessions.slice().reverse().forEach(s=>{ const dt=new Date(s.startedAt||Date.now()).toLocaleString(); const id=s.id; const row=document.createElement('label'); row.className='menu-item'; const cb=document.createElement('input'); cb.type='checkbox'; cb.value=id; cb.checked=STATE.ghost.ids.has(id); const span=document.createElement('span'); span.textContent=`${s.name||'Økt'} – ${dt}`; row.appendChild(cb); row.appendChild(span); list.appendChild(row); }); }
@@ -142,7 +165,6 @@ el('ghost-apply')?.addEventListener('click', applyGhostSelection);
 el('ghost-enable')?.addEventListener('change', e=>{ STATE.ghost.enabled=e.target.checked; });
 
 function computeGhostAverage(){ const ids=Array.from(STATE.ghost.ids||[]); const sessions=get('sessions',[]).filter(s=> ids.includes(s.id)); if(!sessions.length){ STATE.ghost.avg=null; return; }
-  // per-second aligned arrays from start; length = max duration
   const perSess = sessions.map(s=>{ const pts=s.points||[]; if(!pts.length) return {dur:0, hr:[], w:[]}; const t0=pts[0].ts; const tN=pts[pts.length-1].ts; const dur=Math.max(0, Math.round((tN - t0)/1000)); const hr=new Array(dur+1).fill(null), w=new Array(dur+1).fill(null); let idx=0; for(let sec=0; sec<=dur; sec++){ const target=t0+sec*1000; while(idx+1<pts.length && pts[idx+1].ts<=target) idx++; const p=pts[idx]; hr[sec]=p.hr||0; w[sec]=Math.round(p.watt||0); }
     return {dur, hr, w}; });
   const maxDur = Math.max(...perSess.map(x=>x.dur)); const avgHR=new Array(maxDur+1).fill(0); const avgW=new Array(maxDur+1).fill(0); const cnt=new Array(maxDur+1).fill(0);
@@ -204,12 +226,15 @@ function draw(){ if(!ctx||!canvas) return; const W=canvas.width,H=canvas.height;
   }
 }
 
-// ---- Finish session: persist + redirect ----
+// ---- Finish session ----
 function calcTotalReps(w){ if(!w||!w.series) return 0; return w.series.reduce((a,s)=>a+(Number(s.reps)||0),0); }
 function finishSession(){ try{ const w=STATE.workout; if(!w) return; const nowIso=new Date().toISOString(); if(!w.startedAt) w.startedAt = STATE.logger.startTs? new Date(STATE.logger.startTs).toISOString(): nowIso; if(!w.endedAt) w.endedAt=nowIso; if(STATE.logger.points.length<2){ const t0=STATE.logger.startTs || Date.now(); const t1=Date.now(); if(STATE.logger.points.length===0) writeSample(t0); writeSample(t1); }
   const session={ id:'s'+Date.now(), name:w.name||'Økt', reps: calcTotalReps(w), startedAt:w.startedAt, endedAt:w.endedAt, lt1:STATE.LT1, lt2:STATE.LT2, massKg:STATE.massKg, rpeByRep:STATE.rpeByRep, points:STATE.logger.points };
   const key='sessions'; const arr=get(key,[]); arr.push(session); localStorage.setItem(key, JSON.stringify(arr)); window.location.assign('results.html#'+session.id);
 } catch(e){ console.error('finishSession failed', e); alert('Klarte ikke å lagre økt: '+e.message); } }
 
-// init checkbox defaults -> draw on change
+// init checkbox defaults
 ['show-hr','show-watt','show-speed','show-rpe'].forEach(id=>{ if(!el(id)) return; const defKey={ 'show-hr':'defHR','show-watt':'defWatt','show-speed':'defSpeed','show-rpe':'defRPE' }[id]; el(id).checked = get(defKey, id!=='show-speed'); el(id).addEventListener('change', ()=> draw()); });
+
+// try auto reconnect on load
+autoReconnectBLE();

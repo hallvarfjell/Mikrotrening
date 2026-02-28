@@ -41,7 +41,7 @@
       <div class="row" style="margin-top:8px"><button id="save-notes" class="secondary"><i class="ph-floppy-disk ph-fw"></i> Lagre</button></div>
     </div>
 
-    <div class="card">
+    <div class="card" id="zones-card">
       <h3>Tid i pulssoner (LT‑basert)</h3>
       <canvas id="zones" width="420" height="220" aria-label="Tid i soner" role="img"></canvas>
       <small class="muted">Under LT1, mellom LT1–LT2, over LT2</small>
@@ -76,9 +76,5 @@
   </section>
 </main>
 <script src="results.js" defer></script>
-<script>
-  window.addEventListener('error', e => { const card = document.getElementById('err-card'); const pre = document.getElementById('err-log'); card.classList.remove('hidden'); pre.textContent += (e.error && e.error.stack) ? e.error.stack : (e.message||'Ukjent feil');});
-  window.addEventListener('unhandledrejection', e => { const card = document.getElementById('err-card'); const pre = document.getElementById('err-log'); card.classList.remove('hidden'); pre.textContent += (e.reason && e.reason.stack) ? e.reason.stack : (e.reason||'Ukjent promise-feil');});
-</script>
 </body>
 </html>

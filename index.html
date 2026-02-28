@@ -29,6 +29,12 @@
         <div class="metric metric-big"><label>Puls</label><span id="pulse" class="big-num">--</span><small>bpm</small></div>
         <div class="metric"><label>Estimert watt</label><span id="watt">--</span><small>W</small></div>
         <div class="metric"><label>Slope (20s−120s)</label><span id="slope">--</span><small>bpm</small></div>
+        <div class="rpe-compact">
+          <label for="rpe-now" style="width:170px;color:#5f6b7a">RPE nå</label>
+          <button id="rpe-dec" class="iconbtn" title="-0,5"><i class="ph-minus"></i></button>
+          <input id="rpe-now" type="number" step="0.5" min="0" max="10" value="0" />
+          <button id="rpe-inc" class="iconbtn" title="+0,5"><i class="ph-plus"></i></button>
+        </div>
       </div>
 
       <div class="card workout workout-panel">
@@ -126,7 +132,7 @@
 
   <script src="main.js" defer></script>
   <script>
-    // runtime error overlay
+    // runtime error overlay only when explicit error occurs
     window.addEventListener('error', e=>{const c=document.getElementById('err-card');const pre=document.getElementById('err-log');if(c&&pre){c.classList.remove('hidden');pre.textContent += (e.error&&e.error.stack)? e.error.stack : (e.message||'Ukjent feil');}});
     window.addEventListener('unhandledrejection', e=>{const c=document.getElementById('err-card');const pre=document.getElementById('err-log');if(c&&pre){c.classList.remove('hidden');pre.textContent += (e.reason&&e.reason.stack)? e.reason.stack : (e.reason||'Ukjent promise-feil');}});
   </script>

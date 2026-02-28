@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Øktbygger v2.1 – Intervall PWA</title>
+  <title>Øktbygger v2.2 – Intervall PWA</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://unpkg.com/phosphor-icons@1.4.2"></script>
 </head>
@@ -11,7 +11,7 @@
 <header class="topbar">
   <div class="nav">
     <a href="index.html">Til hovedskjerm</a>
-    <a href="log.html">Logg</a>
+    <a href="log.html">Øktlogg</a>
     <a href="settings.html">Innstillinger</a>
   </div>
 </header>
@@ -26,6 +26,9 @@
         <label>Oppvarming (min)
           <input id="w-warm" type="number" min="0" step="1" value="10" />
         </label>
+        <label>Nedjogg (min)
+          <input id="w-cool" type="number" min="0" step="1" value="10" />
+        </label>
       </div>
     </div>
 
@@ -36,16 +39,7 @@
         <button id="add-series" class="secondary"><i class="ph-plus"></i> Legg til serie</button>
         <button id="clear-series" class="ghost"><i class="ph-trash"></i> Tøm serier</button>
       </div>
-      <small class="muted">Hver serie: <b>reps</b> × (<b>work</b> s + <b>rest</b> s) + valgfri <b>seriepause</b> før neste serie.</small>
-    </div>
-
-    <div class="card">
-      <h3>Nedjogg (til slutt)</h3>
-      <div class="row">
-        <label>Nedjogg (min)
-          <input id="w-cool" type="number" min="0" step="1" value="10" />
-        </label>
-      </div>
+      <small class="muted">Hver serie har: <b>Reps</b>, <b>Work</b> (s), <b>Rest</b> (s), ev. <b>Seriepause</b> (s), og en valgfri <b>Merknad</b> (f.eks. «HM‑fart», «90% HRmax»). Panelet er komprimert for å holde seg innenfor rammene.</small>
     </div>
 
     <div class="card">
@@ -61,11 +55,16 @@
     </div>
 
     <div class="card">
-      <div class="row" style="gap:8px">
+      <div class="row" style="gap:8px;flex-wrap:wrap">
         <button id="w-save" class="primary"><i class="ph-floppy-disk"></i> Lagre mal</button>
-        <button id="w-clear" class="secondary"><i class="ph-trash"></i> Nullstill alt</button>
+        <button id="w-clear" class="secondary"><i class="ph-trash"></i> Nullstill</button>
+        <button id="w-export" class="secondary"><i class="ph-download"></i> Eksporter maler</button>
+        <label class="secondary" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer"><i class="ph-upload"></i>
+          Importer maler
+          <input type="file" id="w-import" accept="application/json" style="display:none" />
+        </label>
       </div>
-      <p class="muted">Malene dukker automatisk opp på hovedskjermen og i dropdown‑lista der.</p>
+      <p class="muted">Maler dukker automatisk opp i dropdown på hovedskjermen.</p>
     </div>
   </section>
 

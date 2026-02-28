@@ -97,6 +97,11 @@
         </div>
       </div>
 
+      <div class="card warning hidden" id="err-card">
+        <h3>Kjøretidsfeil</h3>
+        <pre id="err-log"></pre>
+      </div>
+
       <div class="card small settings">
         <h3>Innstillinger (hurtig)</h3>
         <div class="row">
@@ -132,43 +137,26 @@
             <label><input type="checkbox" id="show-speed"> Fart</label>
             <label><input type="checkbox" id="show-rpe" checked> RPE</label>
           </div>
-          <div class="ghostsel">
-            <div class="dropdown" id="ghost-dropdown">
-              <button id="ghost-picker" class="secondary"><i class="ph-faders"></i> Velg økter</button>
-              <div id="ghost-menu" class="menu hidden">
-                <div class="menu-header">
-                  <strong>Velg økter til ghost</strong>
-                  <div class="menu-actions">
-                    <button id="ghost-select-all" class="ghost">Velg alle</button>
-                    <button id="ghost-clear-all" class="ghost">Fjern alle</button>
-                  </div>
-                </div>
-                <div id="ghost-list" class="menu-list"></div>
-                <div class="menu-footer">
-                  <label style="font-size:12px;color:#5f6b7a"><input type="checkbox" id="ghost-enable"> Vis ghost</label>
-                  <button id="ghost-apply" class="primary">Bruk</button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="axisrange small">
-            <span class="ax-red">HR</span> · <span class="ax-green">Watt</span> · <span class="ax-blue">km/t</span> · <span class="ax-yellow">RPE</span>
-          </div>
         </div>
         <div class="graphwrap">
           <canvas id="chart" aria-label="trening data graf" role="img"></canvas>
         </div>
       </div>
-      <p class="hint">HR = rød, Watt = grønn, Fart = blå, RPE = gul. Ghost = snitt av valgte økter (HR/Watt).</p>
-
-      <div class="card warning hidden" id="debug">
-        <h3>Diagnostikk</h3>
-        <pre id="dbg"></pre>
-        <div class="row"><button id="gen-test" class="secondary">Generer testøkt nå</button></div>
-      </div>
+      <p class="hint">HR = rød, Watt = grønn, Fart = blå, RPE = gul.</p>
     </section>
   </main>
 
   <script src="main.js" defer></script>
+  <script>
+    // simple runtime error overlay on index
+    window.addEventListener('error', e=>{
+      const c=document.getElementById('err-card'); const pre=document.getElementById('err-log');
+      if(c&&pre){ c.classList.remove('hidden'); pre.textContent += (e.error && e.error.stack)? e.error.stack : (e.message||'Ukjent feil'); }
+    });
+    window.addEventListener('unhandledrejection', e=>{
+      const c=document.getElementById('err-card'); const pre=document.getElementById('err-log');
+      if(c&&pre){ c.classList.remove('hidden'); pre.textContent += (e.reason && e.reason.stack)? e.reason.stack : (e.reason||'Ukjent promise-feil'); }
+    });
+  </script>
 </body>
 </html>

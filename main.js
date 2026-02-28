@@ -88,17 +88,6 @@ function writeSample(t){ const dispSpeed=displaySpeedKmh(); const speed_ms=dispS
   STATE.logger.points.push({ ts:t, iso:new Date(t).toISOString(), hr:STATE.hr||0, speed_ms, grade:STATE.gradePct||0, dist_m:STATE.logger.dist, rpe:STATE.rpe, phase:wstate?wstate.phase:'', rep:wstate&&wstate.phase==='work'?wstate.rep:0, watt:w });
 }
 
-// ---- Ghost dropdown (unchanged scaffolding) ----
-function buildGhostMenu(){ const list=el('ghost-list'); if(!list) return; list.innerHTML=''; const sessions = JSON.parse(localStorage.getItem('sessions')||'[]'); if(!sessions.length){ list.innerHTML='<div class="muted">Ingen lagrede økter</div>'; return; } sessions.slice().reverse().forEach(s=>{ const dt=new Date(s.startedAt||Date.now()); const id=s.id; const row=document.createElement('label'); row.className='menu-item'; const cb=document.createElement('input'); cb.type='checkbox'; cb.value=id; cb.checked=STATE.ghost.ids.has(id); const span=document.createElement('span'); span.textContent=`${s.name||'Økt'} – ${dt.toLocaleString()}`; row.appendChild(cb); row.appendChild(span); list.appendChild(row); }); }
-function openGhostMenu(){ el('ghost-menu')?.classList.remove('hidden'); buildGhostMenu(); }
-function closeGhostMenu(){ el('ghost-menu')?.classList.add('hidden'); }
-el('ghost-picker')?.addEventListener('click', (e)=>{ e.stopPropagation(); openGhostMenu(); });
-document.addEventListener('click', (e)=>{ const menu=el('ghost-menu'); if(menu && !menu.classList.contains('hidden') && !menu.contains(e.target) && e.target!==el('ghost-picker')) closeGhostMenu(); });
-el('ghost-select-all')?.addEventListener('click', (e)=>{ e.preventDefault(); const checks=el('ghost-list').querySelectorAll('input[type=checkbox]'); checks.forEach(c=>c.checked=true); });
-el('ghost-clear-all')?.addEventListener('click', (e)=>{ e.preventDefault(); const checks=el('ghost-list').querySelectorAll('input[type=checkbox]'); checks.forEach(c=>c.checked=false); });
-el('ghost-apply')?.addEventListener('click', ()=>{ const checks=el('ghost-list').querySelectorAll('input[type=checkbox]'); STATE.ghost.ids=new Set(Array.from(checks).filter(c=>c.checked).map(c=>c.value)); closeGhostMenu(); });
-el('ghost-enable')?.addEventListener('change', e=>{ STATE.ghost.enabled=e.target.checked; });
-
 // ---- Workout Engine ----
 const PRESETS={ '6x5':{name:'6×5 min',series:[{reps:6,workSec:300,restSec:60,seriesRestSec:0}], warmupSec:600, cooldownSec:600 }, '10x4':{name:'10×4 min',series:[{reps:10,workSec:240,restSec:60,seriesRestSec:0}], warmupSec:600, cooldownSec:600 }, '6x6':{name:'6×6 min',series:[{reps:6,workSec:360,restSec:60,seriesRestSec:0}], warmupSec:600, cooldownSec:600 }, '8x6':{name:'8×6 min',series:[{reps:8,workSec:360,restSec:60,seriesRestSec:0}], warmupSec:600, cooldownSec:600 } };
 
@@ -154,9 +143,17 @@ function updateWorkoutUI(){ const ci=el('current-interval'), ph=el('phase'), tmr
 function tick(){ const t=Date.now(); if(STATE.hr!=null) STATE.series.hr.push({t,y:STATE.hr}); const dispSpeed=displaySpeedKmh(); STATE.series.speed.push({t,y:dispSpeed}); const w=estimateWattExternal(dispSpeed, STATE.gradePct, STATE.massKg, STATE.cal.Crun, STATE.cal.K); STATE.series.watt.push({t,y:w}); STATE.series.rpe.push({t,y:STATE.rpe}); const cutoff=t-STATE.windowSec*1000; for(const k of ['hr','speed','watt','rpe']){ const arr=STATE.series[k]; while(arr.length && arr[0].t<cutoff) arr.shift(); }
   // write a sample every second to logger if active
   if(STATE.logger.active){ writeSample(t); }
+  // update dashboard metrics
+  if(el('pulse')) el('pulse').textContent = (STATE.hr!=null?STATE.hr:'--');
+  if(el('watt')) el('watt').textContent = w||'--';
+  const s=calcSlope(); if(el('slope')) el('slope').textContent=(s!=null)?(s>0?`+${s}`:`${s}`):'--';
   draw();
 }
 setInterval(tick,1000);
+
+// ---- Slope helper ----
+function avgWindow(series, spanMs){ const now=Date.now(); const lo=now-spanMs; let sum=0,cnt=0; for(let i=series.length-1;i>=0;i--){ const p=series[i]; if(p.t<lo) break; sum+=p.y; cnt++; } return cnt? sum/cnt : null; }
+function calcSlope(){ const s=STATE.series.hr; if(!s.length) return null; const a20=avgWindow(s,20000), a120=avgWindow(s,120000); if(a20==null||a120==null) return null; return Math.round(a20-a120); }
 
 // ---- Graph ----
 const canvas=el('chart'); const ctx=canvas?.getContext('2d'); const dpr=window.devicePixelRatio||1; function resizeCanvas(){ if(!canvas) return; const rect=canvas.getBoundingClientRect(); canvas.width=Math.floor(rect.width*dpr); canvas.height=Math.floor(rect.height*dpr);} window.addEventListener('resize', resizeCanvas); setTimeout(resizeCanvas,0);

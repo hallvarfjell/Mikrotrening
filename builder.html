@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Øktbygger v2.3 – Intervall PWA</title>
+  <title>Øktbygger v2.4 – Intervall PWA</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://unpkg.com/phosphor-icons@1.4.2"></script>
 </head>
@@ -24,7 +24,7 @@
           <input id="b-name" type="text" placeholder="f.eks. Terskel – 4×10 min" />
         </label>
         <label>Beskrivelse (fritekst)
-          <textarea id="b-desc" rows="3" placeholder="Hva er hensikten med økta?" ></textarea>
+          <textarea id="b-desc" rows="3" placeholder="Hva er hensikten med økta?"></textarea>
         </label>
       </div>
     </div>
@@ -35,11 +35,16 @@
         <button id="add-warmup" class="secondary"><i class="ph-thermometer-simple"></i> Oppvarming</button>
         <button id="add-series" class="secondary"><i class="ph-rows"></i> Serie</button>
         <button id="add-single" class="secondary"><i class="ph-timer"></i> Enkelt‑drag</button>
-        <button id="add-block" class="secondary"><i class="ph-folders"></i> Blokk</button>
+        <button id="add-pause" class="secondary"><i class="ph-coffee"></i> Pause</button>
+        <button id="add-seriepause" class="secondary"><i class="ph-arrows-in-line-horizontal"></i> Seriepause</button>
+        <button id="gen-fartlek" class="secondary"><i class="ph-wave-sine"></i> Fartlek</button>
+        <button id="gen-pyramid" class="secondary"><i class="ph-triangle"></i> Pyramide</button>
         <button id="add-cooldown" class="secondary"><i class="ph-snowflake"></i> Nedjogg</button>
+        <button id="undo" class="ghost" title="Angre (opptil 20)"><i class="ph-arrow-arc-left"></i> Angre</button>
+        <button id="redo" class="ghost" title="Gjør om"><i class="ph-arrow-arc-right"></i> Gjør om</button>
       </div>
       <div id="steps" class="steps"></div>
-      <p class="small">Tips: Dra for å endre rekkefølge. Drar du et enkelt‑drag oppå et annet enkelt‑drag, dannes en blokk.</p>
+      <p class="small">Dra for å endre rekkefølge. (Blokkering er fjernet for å gjøre rekkefølgeendringer enklere.)</p>
     </div>
 
     <div class="card">
@@ -48,7 +53,7 @@
         <button id="b-update" class="secondary hidden"><i class="ph-floppy-disk"></i> Oppdater mal</button>
         <button id="b-clear" class="ghost"><i class="ph-trash"></i> Nullstill</button>
       </div>
-      <p class="small">Lagring konverterer øktinnhold til warmup/serier/nedjogg slik hovedsida forstår.</p>
+      <p class="small">Lagring konverterer øktinnhold til warmup/serier/nedjogg slik hovedsida forstår (pauser blir "rest").</p>
     </div>
   </section>
 

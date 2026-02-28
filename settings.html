@@ -18,7 +18,12 @@
 <main class='layout'>
   <section class='leftcol'>
     <div class='card'>
-      <h3>Bruker</h3>
+      <h3>Brukerprofiler</h3>
+      <div id='users-panel'></div>
+    </div>
+
+    <div class='card'>
+      <h3>Brukerinnstillinger</h3>
       <div class='row' style="display:flex;gap:8px;flex-wrap:wrap">
         <label>Kroppsvekt (kg)
           <input id='s-mass' type='number' min='30' max='200' step='0.5' />
@@ -56,7 +61,9 @@
     </div>
 
     <div class='card'>
-      <button id='s-save' class='primary'>Lagre innstillinger</button>
+      <div class='row' style='display:flex;gap:8px;flex-wrap:wrap'>
+        <button id='s-save' class='primary'>Lagre innstillinger</button>
+      </div>
     </div>
 
     <div class='card'>
@@ -68,40 +75,74 @@
           <input type='file' id='import-all' accept='application/json' style='display:none' />
         </label>
       </div>
-      <p class='small'>Eksport inkluderer: innstillinger, lagrede maler, øktlogg, og øvrige appnøkler.</p>
+      <p class='small'>Eksport inkluderer <em>alle</em> nøkler i nettleserens lagring: innstillinger, maler, øktlogg, m.m. for alle brukere.</p>
     </div>
   </section>
 </main>
 <script>
+// ---- Namespaced storage helpers ----
+
+function activeUser(){ return localStorage.getItem('active_user') || 'default'; }
+function nsKey(k){ return 'u:'+activeUser()+':'+k; }
+function getNS(k, d){ try{ const v=localStorage.getItem(nsKey(k)); if(v!=null) return JSON.parse(v); const ov=localStorage.getItem(k); return ov!=null? JSON.parse(ov): d; }catch(e){ return d; } }
+function setNS(k, v){ localStorage.setItem(nsKey(k), JSON.stringify(v)); }
+
 (function(){
-  const g=(k,d)=>{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); };
   const s=id=>document.getElementById(id);
-  const set=(k,v)=>localStorage.setItem(k, JSON.stringify(v));
-  s('s-mass').value=g('massKg',75);
-  s('s-lt1').value=g('LT1',135);
-  s('s-lt2').value=g('LT2',160);
-  s('s-cal-k').value=g('calK',1.0);
-  s('s-c-run').value=g('cRun',1.0);
-  s('s-default-hr').checked=g('defHR',true);
-  s('s-default-watt').checked=g('defWatt',true);
-  s('s-default-speed').checked=g('defSpeed',false);
-  s('s-default-rpe').checked=g('defRPE',true);
+
+  // Users panel
+  function users(){ try{ return JSON.parse(localStorage.getItem('users_list')||'[]'); }catch(e){ return []; } }
+  function saveUsers(arr){ localStorage.setItem('users_list', JSON.stringify(arr)); }
+  function setActive(u){ localStorage.setItem('active_user', u); alert('Aktiv bruker: '+u+'\nLaster siden på nytt for å bruke riktig profil.'); location.reload(); }
+
+  function renderUsers(){ const panel=document.getElementById('users-panel'); const list=users(); const active=activeUser(); panel.innerHTML=''; const wrap=document.createElement('div'); wrap.style.display='grid'; wrap.style.gap='8px';
+    const header=document.createElement('div'); header.innerHTML = `<div class='small'>Aktiv bruker: <strong>${active}</strong></div>`; wrap.appendChild(header);
+    list.forEach(u=>{ const row=document.createElement('div'); row.className='menu-item'; row.style.display='flex'; row.style.justifyContent='space-between'; row.style.alignItems='center';
+      const left=document.createElement('div'); left.textContent=u + (u===active? ' (aktiv)':'');
+      const btns=document.createElement('div'); btns.style.display='flex'; btns.style.gap='6px';
+      const act=document.createElement('button'); act.className='secondary'; act.textContent='Bruk'; act.onclick=()=> setActive(u);
+      const ren=document.createElement('button'); ren.className='ghost'; ren.textContent='Gi nytt navn'; ren.onclick=()=>{ const nu=prompt('Nytt navn for bruker', u); if(nu && nu!==u){ const arr=users(); const i=arr.indexOf(u); if(i>=0){ arr[i]=nu; saveUsers(arr); // flytt nøkler
+            const migrate=[]; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k.startsWith('u:'+u+':')) migrate.push(k); }
+            migrate.forEach(oldK=>{ const v=localStorage.getItem(oldK); const nk = 'u:'+nu+':'+oldK.split(':').slice(2).join(':'); localStorage.setItem(nk, v); localStorage.removeItem(oldK); });
+            if(activeUser()===u) setActive(nu); else renderUsers(); } } };
+      const del=document.createElement('button'); del.className='ghost'; del.textContent='Slett'; del.onclick=()=>{ if(!confirm('Slette bruker "'+u+'"? Dette påvirker ikke andre brukere.')) return; const arr=users().filter(x=>x!==u); saveUsers(arr); const delKeys=[]; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k.startsWith('u:'+u+':')) delKeys.push(k); } delKeys.forEach(k=>localStorage.removeItem(k)); if(activeUser()===u) setActive('default'); else renderUsers(); };
+      btns.appendChild(act); btns.appendChild(ren); btns.appendChild(del);
+      row.appendChild(left); row.appendChild(btns); wrap.appendChild(row);
+    });
+    const add=document.createElement('button'); add.className='secondary'; add.innerHTML='<i class="ph-user-plus"></i> Legg til bruker'; add.onclick=()=>{ const u=prompt('Navn på ny bruker'); if(!u) return; const arr=users(); if(arr.includes(u)){ alert('Brukernavn finnes allerede.'); return; } arr.push(u); saveUsers(arr); setActive(u); };
+    wrap.appendChild(add);
+    panel.appendChild(wrap);
+  }
+  if(users().length===0){ saveUsers(['default']); if(!localStorage.getItem('active_user')) localStorage.setItem('active_user','default'); }
+  renderUsers();
+
+  // Load user settings
+  const gNS=(k,d)=>getNS(k,d), setNSf=(k,v)=>setNS(k,v);
+  s('s-mass').value=gNS('massKg',75);
+  s('s-lt1').value=gNS('LT1',135);
+  s('s-lt2').value=gNS('LT2',160);
+  s('s-cal-k').value=gNS('calK',1.0);
+  s('s-c-run').value=gNS('cRun',1.0);
+  s('s-default-hr').checked=gNS('defHR',true);
+  s('s-default-watt').checked=gNS('defWatt',true);
+  s('s-default-speed').checked=gNS('defSpeed',false);
+  s('s-default-rpe').checked=gNS('defRPE',true);
   s('s-save').onclick=()=>{
-    set('massKg', Number(s('s-mass').value||75));
-    set('LT1', Number(s('s-lt1').value||135));
-    set('LT2', Number(s('s-lt2').value||160));
-    set('calK', Number(s('s-cal-k').value||1.0));
-    set('cRun', Number(s('s-c-run').value||1.0));
-    set('defHR', !!s('s-default-hr').checked);
-    set('defWatt', !!s('s-default-watt').checked);
-    set('defSpeed', !!s('s-default-speed').checked);
-    set('defRPE', !!s('s-default-rpe').checked);
+    setNSf('massKg', Number(s('s-mass').value||75));
+    setNSf('LT1', Number(s('s-lt1').value||135));
+    setNSf('LT2', Number(s('s-lt2').value||160));
+    setNSf('calK', Number(s('s-cal-k').value||1.0));
+    setNSf('cRun', Number(s('s-c-run').value||1.0));
+    setNSf('defHR', !!s('s-default-hr').checked);
+    setNSf('defWatt', !!s('s-default-watt').checked);
+    setNSf('defSpeed', !!s('s-default-speed').checked);
+    setNSf('defRPE', !!s('s-default-rpe').checked);
     alert('Lagret');
   };
 
   // Export all localStorage
   s('export-all').onclick=()=>{
-    const dump={ __intz_export_version:1, exportedAt:new Date().toISOString(), data:{} };
+    const dump={ __intz_export_version:2, exportedAt:new Date().toISOString(), data:{} };
     for(let i=0;i<localStorage.length;i++){
       const key=localStorage.key(i);
       try{ dump.data[key]=JSON.parse(localStorage.getItem(key)); }

@@ -28,7 +28,7 @@
   function render(){
     const list=document.getElementById('log-list'); list.innerHTML='';
     const sessions=JSON.parse(localStorage.getItem('sessions')||'[]');
-    if(!sessions.length){ list.innerHTML='<p class="muted">Ingen økter enda.</p>'; return; }
+    if(!sessions.length){ list.innerHTML='<p class="small">Ingen økter enda.</p>'; return; }
     const ul=document.createElement('div'); ul.style.display='grid'; ul.style.gap='8px';
     sessions.slice().reverse().forEach(s=>{
       const row=document.createElement('div'); row.className='menu-item'; row.style.justifyContent='space-between'; row.style.alignItems='center'; row.style.display='flex';

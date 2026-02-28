@@ -1,55 +1,140 @@
 
 (function(){
-  const key='custom_workouts_v2';
+  const KEY='custom_workouts_v2';
   const el=id=>document.getElementById(id);
-  const nameEl=el('w-name'), warmEl=el('w-warm'), coolEl=el('w-cool'), tSpd=el('w-target-speed'), tGrd=el('w-target-grade');
-  const listEl=el('series-list'), previewEl=el('w-preview'), savedEl=el('w-list');
+  const stepsEl=el('steps'), listEl=el('b-list');
+  let editingIndex=null;
 
-  function seriesRow(data){
-    const wrap=document.createElement('div'); wrap.className='series-grid';
-    wrap.innerHTML=`
-      <label>Reps<input type=\"number\" class=\"sr-reps\" min=\"1\" step=\"1\" value=\"${data?.reps??4}\"></label>
-      <label>Work (s)<input type=\"number\" class=\"sr-work\" min=\"10\" step=\"5\" value=\"${data?.workSec??180}\"></label>
-      <label>Rest (s)<input type=\"number\" class=\"sr-rest\" min=\"0\" step=\"5\" value=\"${data?.restSec??60}\"></label>
-      <label>Seriepause (s)<input type=\"number\" class=\"sr-srest\" min=\"0\" step=\"10\" value=\"${data?.seriesRestSec??120}\"></label>
-      <label>Merknad<input type=\"text\" class=\"sr-note\" placeholder=\"f.eks. HM-fart\" value=\"${data?.note??''}\"></label>
-      <div class=\"series-actions\">
-        <button class=\"secondary sr-dup\" title=\"Dupliser\"><i class=\"ph-copy\"></i></button>
-        <button class=\"ghost sr-del\" title=\"Slett\"><i class=\"ph-trash\"></i></button>
-        <span class=\"small sr-sum\"></span>
-      </div>`;
-    wrap.querySelector('.sr-del').onclick=()=>{ wrap.remove(); preview(); };
-    wrap.querySelector('.sr-dup').onclick=()=>{ listEl.insertBefore(seriesRow(collectRow(wrap)), wrap.nextSibling); preview(); };
-    ['sr-reps','sr-work','sr-rest','sr-srest','sr-note'].forEach(cls=> wrap.querySelector('.'+cls).addEventListener('input', ()=>{ updateRowSummary(wrap); preview(); }));
-    updateRowSummary(wrap);
-    return wrap;
+  // Step model: {id,type:'warmup'|'cooldown'|'single'|'series'|'block', data:{...}, children:[steps]}
+  let STEPS=[];
+
+  // --- UI Helpers ---
+  function uid(){ return 's'+Math.random().toString(36).slice(2,9); }
+  function minutesToSec(m){ return Math.max(0, Math.round(Number(m||0)*60)); }
+
+  function stepCard(step){ const card=document.createElement('div'); card.className='step'; card.draggable=true; card.dataset.id=step.id; card.innerHTML = renderStepInner(step); wireStepCard(card, step); return card; }
+
+  function renderStepInner(step){ const t=step.type; const h=`<div class="step-header"><span class="handle"><i class="ph-dots-six"></i></span><span class="step-title">${labelFor(step)}</span></div>`;
+    if(t==='warmup' || t==='cooldown'){
+      return h+`<div class="step-fields">`+
+        `<label>Varighet (min)<input type="number" class="f-min" min="0" step="1" value="${(step.data.sec||0)/60}"></label>`+
+        `</div><div class="step-actions"><button class="ghost act-dup"><i class="ph-copy"></i> Dupliser</button><button class="ghost act-del"><i class="ph-trash"></i> Slett</button></div>`;
+    }
+    if(t==='single'){
+      return h+`<div class="step-fields enlarge-note">`+
+        `<label>Work (s)<input type="number" class="f-work" min="5" step="5" value="${step.data.workSec||60}"></label>`+
+        `<label style="grid-column: span 5">Merknad<textarea class="f-note" rows="2" placeholder="f.eks. HM‑fart">${step.data.note||''}</textarea></label>`+
+        `</div><div class="step-actions"><button class="ghost act-dup"><i class="ph-copy"></i> Dupliser</button><button class="ghost act-del"><i class="ph-trash"></i> Slett</button></div>`;
+    }
+    if(t==='series'){
+      return h+`<div class="step-fields enlarge-note">`+
+        `<label>Reps<input type="number" class="f-reps" min="1" step="1" value="${step.data.reps||4}"></label>`+
+        `<label>Work (s)<input type="number" class="f-work" min="10" step="5" value="${step.data.workSec||180}"></label>`+
+        `<label>Rest (s)<input type="number" class="f-rest" min="0" step="5" value="${step.data.restSec||60}"></label>`+
+        `<label>Seriepause (s)<input type="number" class="f-srest" min="0" step="10" value="${step.data.seriesRestSec||0}"></label>`+
+        `<label style="grid-column: span 2">Merknad<textarea class="f-note" rows="2" placeholder="f.eks. 90% HRmax">${step.data.note||''}</textarea></label>`+
+        `</div><div class="step-actions"><button class="ghost act-dup"><i class="ph-copy"></i> Dupliser</button><button class="ghost act-del"><i class="ph-trash"></i> Slett</button></div>`;
+    }
+    if(t==='block'){
+      const children = `<div class="block-children">${(step.children||[]).map(c=> renderStepInnerChild(c)).join('')}</div>`;
+      return h+`<div class="step-actions"><button class="ghost act-dup"><i class="ph-copy"></i> Dupliser</button><button class="ghost act-del"><i class="ph-trash"></i> Slett</button></div>`+children;
+    }
+    return h;
   }
-  function collectRow(wrap){ return { reps:val('.sr-reps'), workSec:val('.sr-work'), restSec:val('.sr-rest'), seriesRestSec:val('.sr-srest'), note:wrap.querySelector('.sr-note').value||'' }; function val(sel){ return Number(wrap.querySelector(sel).value||0); } }
-  function updateRowSummary(wrap){ const s=collectRow(wrap); const sec=s.reps*(s.workSec+s.restSec)+s.seriesRestSec; wrap.querySelector('.sr-sum').textContent = `${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}`; }
-  function addSeriesRow(data){ listEl.appendChild(seriesRow(data)); preview(); }
-  el('add-series').onclick=()=> addSeriesRow();
-  el('clear-series').onclick=()=>{ listEl.innerHTML=''; preview(); };
 
-  function collect(){ const series=[]; listEl.querySelectorAll('.series-grid').forEach(row=>{ series.push(collectRow(row)); }); return { name:nameEl.value||'Custom', warmupSec:Number(warmEl.value||0)*60, cooldownSec:Number(coolEl.value||0)*60, targetSpeed: tSpd.value?Number(tSpd.value):null, targetGrade: tGrd.value?Number(tGrd.value):null, series }; }
-  function totalSeconds(cfg){ const warm=Number(cfg.warmupSec||0); const cool=Number(cfg.cooldownSec||0); const series=cfg.series||[]; const sum=series.reduce((a,s)=> a + (Number(s.reps||0)*(Number(s.workSec||0)+Number(s.restSec||0))) + Number(s.seriesRestSec||0), 0); return warm + sum + cool; }
-  function fmtMMSS(sec){ sec=Math.max(0,Math.floor(sec)); const m=Math.floor(sec/60), s=String(sec%60).padStart(2,'0'); return `${m}:${s}`; }
-  function preview(){ const cfg=collect(); const tot=totalSeconds(cfg); let perSeries = cfg.series.map((s,i)=>{ const sec=s.reps*(s.workSec+s.restSec)+s.seriesRestSec; const note = s.note? ` – ${s.note}`:''; return `S${i+1}: ${fmtMMSS(sec)} (${s.reps}×${s.workSec}/${s.restSec}${s.seriesRestSec? "+"+s.seriesRestSec: ''})${note}`; }).join(' · '); if(!perSeries) perSeries='Ingen serier'; previewEl.textContent=`Total: ${fmtMMSS(tot)} — Oppv ${fmtMMSS(cfg.warmupSec)} — ${perSeries} — Nedjogg ${fmtMMSS(cfg.cooldownSec)}`; }
+  function renderStepInnerChild(child){ return `<div class="step" draggable="true" data-id="${child.id}">${renderStepInner(child)}</div>`; }
 
-  function load(){ try{ return JSON.parse(localStorage.getItem(key)||'[]'); }catch(e){ return []; } }
-  function saveAll(arr){ localStorage.setItem(key, JSON.stringify(arr)); renderList(); }
-  function renderList(){ const arr=load(); if(!arr.length){ savedEl.innerHTML='<p class="muted">Ingen lagrede maler enda.</p>'; return;} savedEl.innerHTML=''; arr.forEach((w,i)=>{ const div=document.createElement('div'); div.className='menu-item'; const mmWarm=Math.round((w.warmupSec||0)/60); const mmCool=Math.round((w.cooldownSec||0)/60); div.innerHTML=`<strong>${w.name||'Uten navn'}</strong> — ${w.series.length} serier (oppv ${mmWarm} min, nedj ${mmCool} min)`; const btns=document.createElement('div'); btns.style.marginLeft='auto'; btns.style.display='flex'; btns.style.gap='8px';
-    const use=document.createElement('a'); use.className='secondary'; use.href='index.html'; use.textContent='Bruk';
-    const del=document.createElement('button'); del.className='ghost'; del.textContent='Slett'; del.onclick=()=>{ const a=load(); a.splice(i,1); saveAll(a); };
-    btns.appendChild(use); btns.appendChild(del); div.appendChild(btns); savedEl.appendChild(div); }); }
+  function labelFor(step){ return ({warmup:'Oppvarming', cooldown:'Nedjogg', single:'Enkelt‑drag', series:'Serie', block:'Blokk'})[step.type]||step.type; }
 
-  el('w-save').onclick=()=>{ const cfg=collect(); if(!cfg.series.length){ alert('Legg til minst én serie.'); return; } const arr=load(); arr.push(cfg); saveAll(arr); alert('Lagret. Gå til hovedskjerm – dukker opp i dropdown.'); };
-  el('w-clear').onclick=()=>{ nameEl.value=''; warmEl.value=10; coolEl.value=10; listEl.innerHTML=''; tSpd.value=''; tGrd.value=''; preview(); };
+  function wireStepCard(card, step){
+    // Inputs
+    card.querySelectorAll('input,textarea').forEach(inp=>{
+      inp.addEventListener('input', ()=>{
+        if(step.type==='warmup'||step.type==='cooldown'){ step.data.sec = minutesToSec(card.querySelector('.f-min').value); }
+        if(step.type==='single'){ step.data.workSec = Number(card.querySelector('.f-work').value||0); step.data.note = card.querySelector('.f-note').value||''; }
+        if(step.type==='series'){ step.data.reps=Number(card.querySelector('.f-reps').value||0); step.data.workSec=Number(card.querySelector('.f-work').value||0); step.data.restSec=Number(card.querySelector('.f-rest').value||0); step.data.seriesRestSec=Number(card.querySelector('.f-srest').value||0); step.data.note = card.querySelector('.f-note').value||''; }
+      });
+    });
+    // Actions
+    const dup=card.querySelector('.act-dup'); if(dup) dup.onclick=()=>{ const clone=JSON.parse(JSON.stringify(step)); clone.id=uid(); insertAfterStep(step.id, clone); };
+    const del=card.querySelector('.act-del'); if(del) del.onclick=()=>{ removeStep(step.id); };
+    // Drag handlers
+    card.addEventListener('dragstart', ev=>{ ev.dataTransfer.setData('text/plain', step.id); card.classList.add('dragging'); });
+    card.addEventListener('dragend', ()=> card.classList.remove('dragging'));
+    card.addEventListener('dragover', ev=>{ ev.preventDefault(); showDropHint(card); });
+    card.addEventListener('dragleave', ()=> hideDropHint(card));
+    card.addEventListener('drop', ev=>{ ev.preventDefault(); const srcId=ev.dataTransfer.getData('text/plain'); if(!srcId||srcId===step.id) return; handleDrop(srcId, step.id); hideDropHint(card); });
+  }
 
-  // Export / Import maler
-  el('w-export').onclick=()=>{ const blob=new Blob([JSON.stringify(load(),null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='intz_workouts.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); };
-  el('w-import').addEventListener('change', (ev)=>{ const f=ev.target.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=()=>{ try{ const data=JSON.parse(rd.result); if(!Array.isArray(data)) throw new Error('Ugyldig format: forventet array'); const arr=load().concat(data); saveAll(arr); alert('Importert.'); }catch(e){ alert('Import feilet: '+e.message); } }; rd.readAsText(f); });
+  function showDropHint(card){ if(!card.querySelector('.drop-hint')){ const dh=document.createElement('div'); dh.className='drop-hint'; card.appendChild(dh);} }
+  function hideDropHint(card){ const dh=card.querySelector('.drop-hint'); if(dh) dh.remove(); }
+
+  function insertAfterStep(targetId, newStep){ const idx=findIndexById(STEPS, targetId); if(idx>=0){ STEPS.splice(idx+1,0,newStep); render(); }}
+  function removeStep(id){ function removeIn(arr){ const i=arr.findIndex(x=>x.id===id); if(i>=0){ arr.splice(i,1); return true; } for(const s of arr){ if(s.type==='block' && s.children){ if(removeIn(s.children)) return true; } } return false; } removeIn(STEPS); render(); }
+  function findIndexById(arr, id){ return arr.findIndex(x=>x.id===id); }
+  function findStepById(arr, id){ for(const s of arr){ if(s.id===id) return {parent:arr, step:s}; if(s.type==='block' && s.children){ const r=findStepById(s.children,id); if(r) return r; } } return null; }
+
+  function handleDrop(srcId, dstId){ const src=findStepById(STEPS, srcId); const dst=findStepById(STEPS, dstId); if(!src||!dst) return;
+    // Case 1: single on single -> make block
+    if(src.step.type==='single' && dst.step.type==='single'){
+      // remove src from original
+      const srcIdx=src.parent.indexOf(src.step); src.parent.splice(srcIdx,1);
+      // replace dst with new block containing [dst, src]
+      const dstIdx=dst.parent.indexOf(dst.step);
+      const block={ id:uid(), type:'block', data:{}, children:[ dst.step, src.step ] };
+      dst.parent.splice(dstIdx,1, block);
+      render(); return;
+    }
+    // Case 2: drop on block -> append as child
+    if(dst.step.type==='block'){
+      const srcIdx=src.parent.indexOf(src.step); src.parent.splice(srcIdx,1);
+      dst.step.children = dst.step.children || [];
+      dst.step.children.push(src.step);
+      render(); return;
+    }
+    // Case 3: reorder at same level (insert before dst)
+    const srcIdx=src.parent.indexOf(src.step); src.parent.splice(srcIdx,1);
+    const dstIdx=dst.parent.indexOf(dst.step);
+    dst.parent.splice(dstIdx,0,src.step);
+    render();
+  }
+
+  function render(){ stepsEl.innerHTML=''; for(const st of STEPS){ const c=stepCard(st); stepsEl.appendChild(c); if(st.type==='block' && st.children){ // wire nested cards
+        const container=c.querySelector('.block-children'); container.innerHTML=''; st.children.forEach(ch=>{ const chCard=stepCard(ch); container.appendChild(chCard); }); }
+    }
+    renderList();
+  }
+
+  // --- Toolbar actions ---
+  function addWarm(){ STEPS.push({id:uid(), type:'warmup', data:{sec:600}}); render(); }
+  function addSeries(){ STEPS.push({id:uid(), type:'series', data:{reps:4,workSec:180,restSec:60,seriesRestSec:0,note:''}}); render(); }
+  function addSingle(){ STEPS.push({id:uid(), type:'single', data:{workSec:60,note:''}}); render(); }
+  function addBlock(){ STEPS.push({id:uid(), type:'block', data:{}, children:[]}); render(); }
+  function addCool(){ STEPS.push({id:uid(), type:'cooldown', data:{sec:600}}); render(); }
+  el('add-warmup').onclick=addWarm; el('add-series').onclick=addSeries; el('add-single').onclick=addSingle; el('add-block').onclick=addBlock; el('add-cooldown').onclick=addCool;
+
+  // --- Save & Update ---
+  function compileToV2(){ let warm=0, cool=0; const series=[]; function walk(arr){ for(const s of arr){ if(s.type==='warmup') warm += Number(s.data.sec||0); else if(s.type==='cooldown') cool += Number(s.data.sec||0); else if(s.type==='single') series.push({reps:1,workSec:Number(s.data.workSec||0),restSec:0,seriesRestSec:0,note:s.data.note||''}); else if(s.type==='series') series.push({reps:Number(s.data.reps||0), workSec:Number(s.data.workSec||0), restSec:Number(s.data.restSec||0), seriesRestSec:Number(s.data.seriesRestSec||0), note:s.data.note||''}); else if(s.type==='block') walk(s.children||[]); } }
+    walk(STEPS); return {warmupSec:warm, cooldownSec:cool, series}; }
+
+  function loadFromV2(cfg){ STEPS=[]; if((cfg.warmupSec||0)>0) STEPS.push({id:uid(), type:'warmup', data:{sec:Number(cfg.warmupSec||0)}}); (cfg.series||[]).forEach(s=>{ if(Number(s.reps||0)===1 && Number(s.restSec||0)===0 && Number(s.seriesRestSec||0)===0){ STEPS.push({id:uid(), type:'single', data:{workSec:Number(s.workSec||0), note:s.note||''}}); } else { STEPS.push({id:uid(), type:'series', data:{reps:Number(s.reps||0), workSec:Number(s.workSec||0), restSec:Number(s.restSec||0), seriesRestSec:Number(s.seriesRestSec||0), note:s.note||''}}); } }); if((cfg.cooldownSec||0)>0) STEPS.push({id:uid(), type:'cooldown', data:{sec:Number(cfg.cooldownSec||0)}}); render(); }
+
+  function getAll(){ try{ return JSON.parse(localStorage.getItem(KEY)||'[]'); }catch(e){ return []; } }
+  function setAll(arr){ localStorage.setItem(KEY, JSON.stringify(arr)); }
+
+  el('b-save').onclick=()=>{ const arr=getAll(); const compiled=compileToV2(); const obj={ name: el('b-name').value||'Custom', desc: el('b-desc').value||'', warmupSec:compiled.warmupSec, cooldownSec:compiled.cooldownSec, series:compiled.series }; arr.push(obj); setAll(arr); alert('Lagret ny mal.'); renderList(); };
+  el('b-update').onclick=()=>{ if(editingIndex==null){ alert('Ingen mal valgt for oppdatering.'); return; } const arr=getAll(); const compiled=compileToV2(); arr[editingIndex]={ ...arr[editingIndex], name:el('b-name').value||arr[editingIndex].name, desc: el('b-desc').value||arr[editingIndex].desc, warmupSec:compiled.warmupSec, cooldownSec:compiled.cooldownSec, series:compiled.series }; setAll(arr); alert('Oppdatert.'); renderList(); };
+  el('b-clear').onclick=()=>{ editingIndex=null; el('b-update').classList.add('hidden'); el('b-save').classList.remove('hidden'); el('b-name').value=''; el('b-desc').value=''; STEPS=[]; render(); };
+
+  function renderList(){ const arr=getAll(); if(!arr.length){ listEl.innerHTML='<p class="small">Ingen lagrede maler enda.</p>'; return;} listEl.innerHTML=''; const wrap=document.createElement('div'); wrap.style.display='grid'; wrap.style.gap='8px'; arr.forEach((w,i)=>{ const row=document.createElement('div'); row.className='menu-item'; row.style.display='flex'; row.style.alignItems='center'; row.style.justifyContent='space-between'; const left=document.createElement('a'); left.href='javascript:void(0)'; left.textContent=`${w.name||'Uten navn'}`; left.onclick=()=>{ // load into editor (edit mode)
+      editingIndex=i; el('b-name').value=w.name||''; el('b-desc').value=w.desc||''; loadFromV2(w); el('b-update').classList.remove('hidden'); el('b-save').classList.add('hidden'); window.scrollTo({top:0,behavior:'smooth'}); };
+      const btns=document.createElement('div'); btns.style.display='flex'; btns.style.gap='6px';
+      const use=document.createElement('a'); use.className='secondary'; use.href='index.html'; use.textContent='Bruk';
+      const del=document.createElement('button'); del.className='ghost'; del.textContent='Slett'; del.onclick=()=>{ if(confirm('Slette denne malen?')){ const a=getAll(); a.splice(i,1); setAll(a); renderList(); } };
+      btns.appendChild(use); btns.appendChild(del);
+      row.appendChild(left); row.appendChild(btns); wrap.appendChild(row);
+    }); listEl.appendChild(wrap); }
 
   // init
-  addSeriesRow({reps:4,workSec:180,restSec:60,seriesRestSec:120,note:''});
-  renderList(); preview();
+  render(); renderList();
 })();

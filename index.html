@@ -51,7 +51,7 @@
           </div>
           <div id="progressbar"><div id="progress"></div></div>
         </div>
-        <div class="workout-controls">
+        <div class="workout-controls" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:8px">
           <button id="btn-start-pause" class="primary" title="Start/Pause"><i class="ph-play-pause"></i></button>
           <button id="btn-skip-back" class="secondary" title="Tilbake"><i class="ph-skip-back"></i></button>
           <button id="btn-skip-fwd" class="secondary" title="Frem"><i class="ph-skip-forward"></i></button>
@@ -61,26 +61,26 @@
       </div>
 
       <div class="card controls">
-        <div class="row space-between">
+        <div class="row" style="display:flex;justify-content:space-between;align-items:center">
           <h3>Fart og stigning</h3>
           <span id="ftms-status" class="badge">FTMS: Frakoblet</span>
         </div>
-        <div class="row">
-          <div class="field">
+        <div class="row" style="display:flex;gap:8px;flex-wrap:wrap">
+          <div class="field" style="flex:1;min-width:180px">
             <label>Fart (km/t)</label>
-            <div class="stepper">
+            <div class="stepper" style="display:flex;gap:6px;align-items:center">
               <button id="speed-dec" class="iconbtn" title="-0,1"><i class="ph-minus ph-2x"></i></button>
               <input id="manual-speed" type="number" min="0" step="0.1" value="0.0" />
               <button id="speed-inc" class="iconbtn" title="+0,1"><i class="ph-plus ph-2x"></i></button>
             </div>
-            <div class="row small">
+            <div class="row small" style="display:flex;gap:6px;margin-top:4px">
               <button class="speed-btn" data-speed="10">10 km/t</button>
               <button class="speed-btn" data-speed="15">15 km/t</button>
             </div>
           </div>
-          <div class="field">
+          <div class="field" style="flex:1;min-width:180px">
             <label>Stigning (%)</label>
-            <div class="stepper">
+            <div class="stepper" style="display:flex;gap:6px;align-items:center">
               <button id="grade-dec" class="iconbtn" title="-0,5%"><i class="ph-minus ph-2x"></i></button>
               <input id="manual-grade" type="number" step="0.5" value="0.0" />
               <button id="grade-inc" class="iconbtn" title="+0,5%"><i class="ph-plus ph-2x"></i></button>
@@ -97,7 +97,7 @@
 
     <section class="rightcol">
       <div class="card graphcard">
-        <div class="graphhdr">
+        <div class="graphhdr" style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;color:#5f6b7a;gap:8px">
           <div class="ghostctl">
             <strong>Graf</strong>
             <label><input type="checkbox" id="show-hr" checked> Puls</label>
@@ -113,11 +113,10 @@
           <canvas id="chart" aria-label="trening data graf" role="img"></canvas>
         </div>
       </div>
-      <p class="hint">Ghost = tidsjustert snitt av valgte økter (HR/Watt) som legges oppå live-kurven.</p>
+      <p class="small" style="margin:0 8px 12px 8px">Ghost = tidsjustert snitt av valgte økter (HR/Watt) som legges oppå live-kurven.</p>
     </section>
   </main>
 
-  <!-- Ghost dropdown -->
   <div id="ghost-menu" class="menu hidden">
     <div class="menu-item"><strong>Velg økter til ghost</strong></div>
     <div id="ghost-list"></div>
@@ -131,10 +130,5 @@
   </div>
 
   <script src="main.js" defer></script>
-  <script>
-    // runtime error overlay only when explicit error occurs
-    window.addEventListener('error', e=>{const c=document.getElementById('err-card');const pre=document.getElementById('err-log');if(c&&pre){c.classList.remove('hidden');pre.textContent += (e.error&&e.error.stack)? e.error.stack : (e.message||'Ukjent feil');}});
-    window.addEventListener('unhandledrejection', e=>{const c=document.getElementById('err-card');const pre=document.getElementById('err-log');if(c&&pre){c.classList.remove('hidden');pre.textContent += (e.reason&&e.reason.stack)? e.reason.stack : (e.reason||'Ukjent promise-feil');}});
-  </script>
 </body>
 </html>

@@ -3,16 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#f7fafc" />
+  <meta name="theme-color" content="#0b1020" />
   <title>Resultat – Intervall PWA</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://unpkg.com/phosphor-icons@1.4.2"></script>
 </head>
 <body>
 <header class="topbar">
-  <h1>Resultat</h1>
-  <div class="devicectl">
-    <a class="secondary" href="index.html"><i class="ph-arrow-left ph-fw"></i> Til hovedskjerm</a>
+  <div class="nav">
+    <a href="index.html">Til hovedskjerm</a>
+    <a href="log.html">Logg</a>
+    <a href="settings.html">Innstillinger</a>
   </div>
 </header>
 <main class="layout">
@@ -27,10 +28,11 @@
     </div>
 
     <div class="card">
-      <h3>Valgte metrikker</h3>
-      <label><input type="checkbox" id="r-show-hr" checked> Puls</label>
-      <label><input type="checkbox" id="r-show-watt" checked> Watt</label>
-      <label><input type="checkbox" id="r-show-speed" checked> Fart</label>
+      <h3>Vis metrikker</h3>
+      <label><input type="checkbox" id="r-show-hr" checked> Puls (rød)</label>
+      <label><input type="checkbox" id="r-show-watt" checked> Watt (grønn)</label>
+      <label><input type="checkbox" id="r-show-speed"> Fart (blå)</label>
+      <label><input type="checkbox" id="r-show-rpe" checked> RPE (gul)</label>
     </div>
 
     <div class="card">
@@ -59,7 +61,7 @@
 
   <section class="rightcol">
     <div class="card graphcard">
-      <div class="graphhdr"><strong>Hele økta</strong></div>
+      <div class="graphhdr"><strong>Hele økta</strong> <span class="small">(HR=rød, Watt=grønn, Fart=blå, RPE=gul)</span></div>
       <div class="graphwrap">
         <canvas id="r-chart" aria-label="Graf" role="img"></canvas>
       </div>
@@ -74,19 +76,5 @@
   </section>
 </main>
 <script src="results.js" defer></script>
-<script>
-  window.addEventListener('error', e => {
-    const card = document.getElementById('err-card');
-    const pre = document.getElementById('err-log');
-    card.classList.remove('hidden');
-    pre.textContent += (e.error && e.error.stack) ? e.error.stack : (e.message||'Ukjent feil');
-  });
-  window.addEventListener('unhandledrejection', e => {
-    const card = document.getElementById('err-card');
-    const pre = document.getElementById('err-log');
-    card.classList.remove('hidden');
-    pre.textContent += (e.reason && e.reason.stack) ? e.reason.stack : (e.reason||'Ukjent promise-feil');
-  });
-</script>
 </body>
 </html>

@@ -68,19 +68,25 @@ el('rpe-inc')?.addEventListener('click', ()=> applyRPEChange(+0.5));
 el('rpe-now')?.addEventListener('change', ()=> applyRPEChange(0));
 
 // ---- External work power model ----
-// P = m*g*v*grade + C_run*m*v, then multiply by K (calibration)
 function estimateWattExternal(speedKmh, gradePct, massKg, Crun, K){
   const g=9.81, v=(speedKmh||0)/3.6, grade=(gradePct||0)/100; // v in m/s
   const mech = massKg * (g * v * grade + Crun * v);
   return Math.max(0, Math.round(mech * (K||1)));
 }
 
-// ---- Display speed override during REST for visual only (0 during rest) ----
+// ---- Display speed override during REST for visual only ----
 function displaySpeedKmh(){ if(STATE.workout && (STATE.workout.phase==='rest' || STATE.workout.phase==='seriesrest')) return 0; return STATE.speedKmh; }
 
 // ---- Logger helpers ----
-function startLogger(){ STATE.logger.active=true; STATE.logger.startTs=Date.now(); STATE.logger.points=[]; STATE.logger.dist=0; }
+function startLogger(){ STATE.logger.active=true; STATE.logger.startTs=Date.now(); STATE.logger.points=[]; STATE.logger.dist=0; // write initial sample immediately
+  writeSample(STATE.logger.startTs);
+}
 function stopLogger(){ STATE.logger.active=false; }
+
+function writeSample(t){ const dispSpeed=displaySpeedKmh(); const speed_ms=dispSpeed/3.6; const w=estimateWattExternal(dispSpeed, STATE.gradePct, STATE.massKg, STATE.cal.Crun, STATE.cal.K); const wstate=STATE.workout; // ensure phase/rep captured
+  STATE.logger.dist += speed_ms * (STATE.logger.points.length? (t-STATE.logger.points[STATE.logger.points.length-1].ts)/1000 : 0);
+  STATE.logger.points.push({ ts:t, iso:new Date(t).toISOString(), hr:STATE.hr||0, speed_ms, grade:STATE.gradePct||0, dist_m:STATE.logger.dist, rpe:STATE.rpe, phase:wstate?wstate.phase:'', rep:wstate&&wstate.phase==='work'?wstate.rep:0, watt:w });
+}
 
 // ---- Ghost dropdown (unchanged scaffolding) ----
 function buildGhostMenu(){ const list=el('ghost-list'); if(!list) return; list.innerHTML=''; const sessions = JSON.parse(localStorage.getItem('sessions')||'[]'); if(!sessions.length){ list.innerHTML='<div class="muted">Ingen lagrede økter</div>'; return; } sessions.slice().reverse().forEach(s=>{ const dt=new Date(s.startedAt||Date.now()); const id=s.id; const row=document.createElement('label'); row.className='menu-item'; const cb=document.createElement('input'); cb.type='checkbox'; cb.value=id; cb.checked=STATE.ghost.ids.has(id); const span=document.createElement('span'); span.textContent=`${s.name||'Økt'} – ${dt.toLocaleString()}`; row.appendChild(cb); row.appendChild(span); list.appendChild(row); }); }
@@ -93,7 +99,7 @@ el('ghost-clear-all')?.addEventListener('click', (e)=>{ e.preventDefault(); cons
 el('ghost-apply')?.addEventListener('click', ()=>{ const checks=el('ghost-list').querySelectorAll('input[type=checkbox]'); STATE.ghost.ids=new Set(Array.from(checks).filter(c=>c.checked).map(c=>c.value)); closeGhostMenu(); });
 el('ghost-enable')?.addEventListener('change', e=>{ STATE.ghost.enabled=e.target.checked; });
 
-// ---- Workout Engine (multi-series already implemented earlier) minimal quick preset to demo ----
+// ---- Workout Engine ----
 const PRESETS={ '6x5':{name:'6×5 min',series:[{reps:6,workSec:300,restSec:60,seriesRestSec:0}], warmupSec:600, cooldownSec:600 }, '10x4':{name:'10×4 min',series:[{reps:10,workSec:240,restSec:60,seriesRestSec:0}], warmupSec:600, cooldownSec:600 }, '6x6':{name:'6×6 min',series:[{reps:6,workSec:360,restSec:60,seriesRestSec:0}], warmupSec:600, cooldownSec:600 }, '8x6':{name:'8×6 min',series:[{reps:8,workSec:360,restSec:60,seriesRestSec:0}], warmupSec:600, cooldownSec:600 } };
 
 function createWorkoutFromCustom(cw){ return { name:cw.name||'Custom', phase:'warmup', startedAt:null, endedAt:null, warmupSec:Number(cw.warmupSec)||0, cooldownSec:Number(cw.cooldownSec)||0, target:{speed:cw.targetSpeed, grade:cw.targetGrade}, series:cw.series||[], sIdx:-1, rep:0, tLeft:Number(cw.warmupSec)||0 } }
@@ -105,20 +111,24 @@ renderCustomPresetButtons();
 
 for(const btn of document.querySelectorAll('.preset')){ btn.addEventListener('click', ()=>{ const key=btn.dataset.set; const p=PRESETS[key]; if(p){ const cw={ name:p.name, warmupSec:p.warmupSec, cooldownSec:p.cooldownSec, series:p.series }; STATE.workout=createWorkoutFromCustom(cw); updateWorkoutUI(); localStorage.setItem('lastPreset', key); } }); }
 
-function startTicker(){ if(STATE.ticker) return; if(STATE.workout && !STATE.workout.startedAt){ STATE.workout.startedAt=new Date().toISOString(); startLogger(); } STATE.ticker=setInterval(tickWorkout,1000); }
+function startTicker(){ if(STATE.ticker) return; // set startedAt defensively here too
+  if(STATE.workout && !STATE.workout.startedAt){ STATE.workout.startedAt=new Date().toISOString(); if(!STATE.logger.active) startLogger(); }
+  STATE.ticker=setInterval(tickWorkout,1000);
+}
 function stopTicker(){ if(STATE.ticker){ clearInterval(STATE.ticker); STATE.ticker=null; } }
 
 function nextPhase(){ const w=STATE.workout; if(!w) return; if(w.phase==='warmup'){ if(w.series && w.series.length){ w.phase='work'; w.sIdx=0; w.rep=1; w.tLeft=w.series[0].workSec; } else { w.phase='cooldown'; w.tLeft=w.cooldownSec; } return; }
  if(w.phase==='work'){ const s=w.series[w.sIdx]; if(w.rep < s.reps){ w.phase='rest'; w.tLeft=s.restSec||0; return; } if(w.sIdx < w.series.length-1){ const sr=s.seriesRestSec||0; if(sr>0){ w.phase='seriesrest'; w.tLeft=sr; return; } w.sIdx++; w.phase='work'; w.rep=1; w.tLeft=w.series[w.sIdx].workSec; return; } w.phase='cooldown'; w.tLeft=w.cooldownSec; return; }
  if(w.phase==='rest'){ const s=w.series[w.sIdx]; w.rep++; w.phase='work'; w.tLeft=s.workSec; return; }
  if(w.phase==='seriesrest'){ w.sIdx++; w.phase='work'; w.rep=1; w.tLeft=w.series[w.sIdx].workSec; return; }
- if(w.phase==='cooldown'){ w.phase='done'; w.tLeft=0; w.endedAt=new Date().toISOString(); stopLogger(); finishSession(); return; }
+ if(w.phase==='cooldown'){ w.phase='done'; w.tLeft=0; w.endedAt=new Date().toISOString(); // write a final sample at end
+  writeSample(Date.now()); stopLogger(); finishSession(); return; }
 }
 
 function tickWorkout(){ if(!STATE.workout) return; const w=STATE.workout; if(w.phase==='done'){ stopTicker(); return; } w.tLeft=Math.max(0,(w.tLeft||0)-1); if(w.tLeft<=0){ nextPhase(); } updateWorkoutUI(); }
 
 function skipWarmup(){ const w=STATE.workout; if(w && w.phase==='warmup'){ w.tLeft=0; nextPhase(); updateWorkoutUI(); }}
-function skipCooldown(){ const w=STATE.workout; if(w && w.phase==='cooldown'){ w.phase='done'; w.tLeft=0; w.endedAt=new Date().toISOString(); stopLogger(); finishSession(); }}
+function skipCooldown(){ const w=STATE.workout; if(w && w.phase==='cooldown'){ w.phase='done'; w.tLeft=0; w.endedAt=new Date().toISOString(); writeSample(Date.now()); stopLogger(); finishSession(); }}
 function skipInterval(){ const w=STATE.workout; if(!w) return; if(w.phase==='warmup'){ skipWarmup(); return;} if(w.phase==='cooldown'){ skipCooldown(); return;} if(w.phase==='work'){ const s=w.series[w.sIdx]; if(w.rep < s.reps){ w.phase='rest'; w.tLeft=s.restSec||0; } else { if(w.sIdx < w.series.length-1){ const sr=w.series[w.sIdx].seriesRestSec||0; if(sr>0){ w.phase='seriesrest'; w.tLeft=sr; } else { w.sIdx++; w.phase='work'; w.rep=1; w.tLeft=w.series[w.sIdx].workSec; } } else { w.phase='cooldown'; w.tLeft=w.cooldownSec; } } }
  else if(w.phase==='rest'){ const s=w.series[w.sIdx]; if(w.rep < s.reps){ w.rep++; w.phase='work'; w.tLeft=s.workSec; } else { if(w.sIdx < w.series.length-1){ const sr=w.series[w.sIdx].seriesRestSec||0; if(sr>0){ w.phase='seriesrest'; w.tLeft=sr; } else { w.sIdx++; w.phase='work'; w.rep=1; w.tLeft=w.series[w.sIdx].workSec; } } else { w.phase='cooldown'; w.tLeft=w.cooldownSec; } } }
  else if(w.phase==='seriesrest'){ w.sIdx++; w.phase='work'; w.rep=1; w.tLeft=w.series[w.sIdx].workSec; }
@@ -130,69 +140,62 @@ el('skip-interval')?.addEventListener('click', skipInterval);
 
 el('start-workout')?.addEventListener('click', ()=>{ if(!STATE.workout){ const lp=localStorage.getItem('lastPreset'); if(lp && lp.startsWith('custom:')){ renderCustomPresetButtons(); const idx=lp.split(':')[1]; const customs=loadCustomWorkouts(); const cw=customs[Number(idx)]; if(cw){ STATE.workout=createWorkoutFromCustom(cw); updateWorkoutUI(); } }
   else { const k=(lp && PRESETS[lp])?lp:'6x5'; const presetBtn=document.querySelector(`.preset[data-set="${k}"]`); if(presetBtn) presetBtn.click(); }
-} if(STATE.workout && !STATE.workout.startedAt){ STATE.workout.startedAt=new Date().toISOString(); startLogger(); } startTicker(); });
+} if(STATE.workout && !STATE.workout.startedAt){ STATE.workout.startedAt=new Date().toISOString(); if(!STATE.logger.active) startLogger(); } startTicker(); });
 el('pause-workout')?.addEventListener('click', ()=>{ if(STATE.ticker){ stopTicker(); } else { startTicker(); }});
-el('reset-workout')?.addEventListener('click', ()=>{ stopTicker(); STATE.workout=null; STATE.logger.active=false; STATE.logger.points=[]; updateWorkoutUI(); });
-el('finish-now')?.addEventListener('click', ()=>{ if(!STATE.workout) return; STATE.workout.endedAt=new Date().toISOString(); stopLogger(); finishSession(); });
+el('reset-workout')?.addEventListener('click', ()=>{ stopTicker(); STATE.workout=null; STATE.logger.active=false; STATE.logger.points=[]; updateWorkoutUI(); draw(); });
+el('finish-now')?.addEventListener('click', ()=>{ if(!STATE.workout) return; if(!STATE.workout.startedAt){ STATE.workout.startedAt=new Date().toISOString(); if(!STATE.logger.active) startLogger(); }
+  STATE.workout.endedAt=new Date().toISOString(); writeSample(Date.now()); stopLogger(); finishSession(); });
 
 function fmtMMSS(s){ s=Math.max(0,Math.floor(s)); const m=Math.floor(s/60), ss=String(s%60).padStart(2,'0'); return `${m}:${ss}`; }
-function updateWorkoutUI(){ const ci=el('current-interval'), ph=el('phase'), tmr=el('timer'), bar=el('progress'); if(!STATE.workout){ ci.textContent='Ingen økt valgt'; ph.textContent='–'; tmr.textContent='00:00'; bar.style.width='0%'; return;} const w=STATE.workout; let label='', total=1, subtitle=''; if(w.phase==='warmup'){ label='Oppvarming'; total=w.warmupSec; } else if(w.phase==='work'){ const s=w.series[w.sIdx]; label='Drag'; total=s.workSec; subtitle=` – serie ${w.sIdx+1}/${w.series.length} – rep ${w.rep}/${s.reps}`; } else if(w.phase==='rest'){ const s=w.series[w.sIdx]; label='Pause'; total=s.restSec||0; subtitle=` – serie ${w.sIdx+1}/${w.series.length} – rep ${w.rep}/${s.reps}`; } else if(w.phase==='seriesrest'){ label='Serie‑pause'; total=w.series[w.sIdx].seriesRestSec||0; subtitle=` – mot serie ${w.sIdx+2}/${w.series.length}`; } else if(w.phase==='cooldown'){ label='Nedjogg'; total=w.cooldownSec; } else { label='Ferdig!'; }
+function updateWorkoutUI(){ const ci=el('current-interval'), ph=el('phase'), tmr=el('timer'), bar=el('progress'); if(!ci||!ph||!tmr||!bar) return; if(!STATE.workout){ ci.textContent='Ingen økt valgt'; ph.textContent='–'; tmr.textContent='00:00'; bar.style.width='0%'; return;} const w=STATE.workout; let label='', total=1, subtitle=''; if(w.phase==='warmup'){ label='Oppvarming'; total=w.warmupSec; } else if(w.phase==='work'){ const s=w.series[w.sIdx]; label='Drag'; total=s.workSec; subtitle=` – serie ${w.sIdx+1}/${w.series.length} – rep ${w.rep}/${s.reps}`; } else if(w.phase==='rest'){ const s=w.series[w.sIdx]; label='Pause'; total=s.restSec||0; subtitle=` – serie ${w.sIdx+1}/${w.series.length} – rep ${w.rep}/${s.reps}`; } else if(w.phase==='seriesrest'){ label='Serie‑pause'; total=w.series[w.sIdx].seriesRestSec||0; subtitle=` – mot serie ${w.sIdx+2}/${w.series.length}`; } else if(w.phase==='cooldown'){ label='Nedjogg'; total=w.cooldownSec; } else { label='Ferdig!'; }
   ci.textContent=`${w.name}${w.series?` (${w.series.length} serier)`:''}`; ph.textContent=`${label}${subtitle}`; tmr.textContent=fmtMMSS(w.tLeft); const pct=Math.min(100, Math.max(0, 100*(1 - (w.tLeft/Math.max(1,total))))); bar.style.width=`${pct}%`; }
 
-// ---- Series + UI periodic updates ----
+// ---- Series + UI periodic updates (1 Hz) ----
 function tick(){ const t=Date.now(); if(STATE.hr!=null) STATE.series.hr.push({t,y:STATE.hr}); const dispSpeed=displaySpeedKmh(); STATE.series.speed.push({t,y:dispSpeed}); const w=estimateWattExternal(dispSpeed, STATE.gradePct, STATE.massKg, STATE.cal.Crun, STATE.cal.K); STATE.series.watt.push({t,y:w}); STATE.series.rpe.push({t,y:STATE.rpe}); const cutoff=t-STATE.windowSec*1000; for(const k of ['hr','speed','watt','rpe']){ const arr=STATE.series[k]; while(arr.length && arr[0].t<cutoff) arr.shift(); }
-  el('pulse').textContent=STATE.hr!=null?STATE.hr:'--'; el('watt').textContent=w||'--'; const s=calcSlope(); el('slope').textContent=(s!=null)?(s>0?`+${s}`:`${s}`):'--'; draw();
-  if(STATE.workout && STATE.workout.phase==='work' && STATE.workout.rep>=1){ // write RPE for current drag every second
-    STATE.rpeByRep[ STATE.workout.rep ] = STATE.rpe;
-  }
-  if(STATE.logger.active){ const prevTs=STATE.logger.points.length? STATE.logger.points[STATE.logger.points.length-1].ts : STATE.logger.startTs; const dt=(t-prevTs)/1000; const speed_ms=dispSpeed/3.6; STATE.logger.dist += speed_ms*dt; const wstate=STATE.workout; STATE.logger.points.push({ ts:t, iso:new Date(t).toISOString(), hr:STATE.hr||0, speed_ms, grade:STATE.gradePct||0, dist_m:STATE.logger.dist, rpe:STATE.rpe, phase:wstate?wstate.phase:'', rep:wstate&&wstate.phase==='work'?wstate.rep:0, watt:w }); }
+  // write a sample every second to logger if active
+  if(STATE.logger.active){ writeSample(t); }
+  draw();
 }
 setInterval(tick,1000);
 
-// ---- Graph with multi-axes (HR left, Watt right, Speed top, RPE right-inner) ----
+// ---- Graph ----
 const canvas=el('chart'); const ctx=canvas?.getContext('2d'); const dpr=window.devicePixelRatio||1; function resizeCanvas(){ if(!canvas) return; const rect=canvas.getBoundingClientRect(); canvas.width=Math.floor(rect.width*dpr); canvas.height=Math.floor(rect.height*dpr);} window.addEventListener('resize', resizeCanvas); setTimeout(resizeCanvas,0);
 
-function draw(){ if(!ctx||!canvas) return; const W=canvas.width,H=canvas.height; ctx.clearRect(0,0,W,H); const padL=60*dpr,padR=60*dpr,padT=30*dpr,padB=30*dpr; const plotW=W-padL-padR, plotH=H-padT-padB; const now=Date.now(); const xmin=now-STATE.windowSec*1000, xmax=now; const showHR=el('show-hr')?.checked ?? getPref('defHR',true); const showWatt=el('show-watt')?.checked ?? getPref('defWatt',true); const showSpeed=el('show-speed')?.checked ?? getPref('defSpeed',false); const showRPE=el('show-rpe')?.checked ?? getPref('defRPE',true);
-  const hrMin= getPref('hrMin',80), hrMax=getPref('hrMax',200);
-  const yHR=v=> padT + (1 - (v-hrMin)/(hrMax-hrMin||1))*plotH;
-  // dynamic watt/speed range (map to right/top)
-  const sp = STATE.series.speed.filter(p=>p.t>=xmin);
-  const wt = STATE.series.watt.filter(p=>p.t>=xmin);
-  const rp = STATE.series.rpe.filter(p=>p.t>=xmin);
-  const spVals=sp.map(p=>p.y), wtVals=wt.map(p=>p.y), rpeVals=rp.map(p=>p.y);
-  const smin=Math.min(...(spVals.length?spVals:[0])), smax=Math.max(...(spVals.length?spVals:[1]));
-  const wmin=Math.min(...(wtVals.length?wtVals:[0])), wmax=Math.max(...(wtVals.length?wtVals:[1]));
-  const yWatt=v=> padT + (1 - (v-wmin)/Math.max(1,(wmax-wmin))) * plotH;
-  const yRPE=v => padT + (1 - v/10) * plotH;
-  const xTime=t=> padL + (t-xmin)/(xmax-xmin||1)*plotW;
-  // background bands for HR zones
+function draw(){ if(!ctx||!canvas) return; const W=canvas.width,H=canvas.height; const padL=60*dpr,padR=60*dpr,padT=30*dpr,padB=30*dpr; const plotW=W-padL-padR, plotH=H-padT-padB; ctx.clearRect(0,0,W,H); if(plotW<=0||plotH<=0) return; const now=Date.now(); const xmin=now-STATE.windowSec*1000, xmax=now; const showHR=el('show-hr')?.checked ?? getPref('defHR',true); const showWatt=el('show-watt')?.checked ?? getPref('defWatt',true); const showSpeed=el('show-speed')?.checked ?? getPref('defSpeed',false); const showRPE=el('show-rpe')?.checked ?? getPref('defRPE',true);
+  const hrMin= getPref('hrMin',80), hrMax=getPref('hrMax',200); const yHR=v=> padT + (1 - (v-hrMin)/(hrMax-hrMin||1))*plotH;
+  const sp = STATE.series.speed.filter(p=>p.t>=xmin); const wt = STATE.series.watt.filter(p=>p.t>=xmin); const rp = STATE.series.rpe.filter(p=>p.t>=xmin);
+  const spVals=sp.map(p=>p.y), wtVals=wt.map(p=>p.y);
+  const smin=Math.min(...(spVals.length?spVals:[0])), smax=Math.max(...(spVals.length?spVals:[1])); const wmin=Math.min(...(wtVals.length?wtVals:[0])), wmax=Math.max(...(wtVals.length?wtVals:[1]));
+  const yWatt=v=> padT + (1 - (v-wmin)/Math.max(1,(wmax-wmin))) * plotH; const yRPE=v => padT + (1 - v/10) * plotH; const xTime=t=> padL + (t-xmin)/(xmax-xmin||1)*plotW;
+  // HR zone bands
   ctx.fillStyle='rgba(239,68,68,0.06)'; ctx.fillRect(padL, yHR(STATE.LT2), plotW, yHR(hrMax)-yHR(STATE.LT2));
-  ctx.fillStyle='rgba(96,165,250,0.06)'; ctx.fillRect(padL, yHR(STATE.LT1), plotW, yHR(STATE.LT2)-yHR(STATE.LT1));
-  ctx.fillStyle='rgba(34,197,94,0.06)'; ctx.fillRect(padL, yHR(hrMin), plotW, yHR(STATE.LT1)-yHR(hrMin));
-  // grid (time)
-  ctx.strokeStyle='#374151'; ctx.lineWidth=1; ctx.beginPath(); for(let sec=0; sec<=STATE.windowSec; sec+=60){ const t=xmin+sec*1000; const x=padL+(t-xmin)/(xmax-xmin||1)*plotW; ctx.moveTo(x,padT); ctx.lineTo(x,padT+plotH);} ctx.stroke();
-  // HR horizontal ticks (10 bpm)
-  ctx.strokeStyle='#1f2937'; ctx.beginPath(); for(let v=hrMin; v<=hrMax; v+=10){ const y=yHR(v); ctx.moveTo(padL,y); ctx.lineTo(padL+plotW,y);} ctx.stroke();
+  ctx.fillStyle='rgba(37,99,235,0.06)'; ctx.fillRect(padL, yHR(STATE.LT1), plotW, yHR(STATE.LT2)-yHR(STATE.LT1));
+  ctx.fillStyle='rgba(16,163,74,0.06)'; ctx.fillRect(padL, yHR(hrMin), plotW, yHR(STATE.LT1)-yHR(hrMin));
+  // time grid
+  ctx.strokeStyle='#e2e8f0'; ctx.lineWidth=1; ctx.beginPath(); for(let sec=0; sec<=STATE.windowSec; sec+=60){ const t=xmin+sec*1000; const x=padL+(t-xmin)/(xmax-xmin||1)*plotW; ctx.moveTo(x,padT); ctx.lineTo(x,padT+plotH);} ctx.stroke();
+  // HR ticks
+  ctx.strokeStyle='#e5e7eb'; ctx.beginPath(); for(let v=hrMin; v<=hrMax; v+=10){ const y=yHR(v); ctx.moveTo(padL,y); ctx.lineTo(padL+plotW,y);} ctx.stroke();
   ctx.fillStyle='#ef4444'; ctx.font=`${12*dpr}px system-ui`; for(let v=hrMin; v<=hrMax; v+=20){ ctx.fillText(String(v), 8*dpr, yHR(v)+4*dpr); }
-  // Right axis for Watt
-  if(showWatt){ ctx.fillStyle='#22c55e'; ctx.textAlign='right'; const ticks=5; for(let i=0;i<=ticks;i++){ const v=wmin + (wmax-wmin)*i/ticks; const y=yWatt(v); ctx.fillText(String(Math.round(v)), W-8*dpr, y+4*dpr); } ctx.textAlign='left'; }
-  // Top axis for Speed (km/t)
-  if(showSpeed){ ctx.fillStyle='#60a5fa'; ctx.textAlign='center'; const ticks=5; for(let i=0;i<=ticks;i++){ const v=smin + (smax-smin)*i/ticks; const x=padL + plotW*i/ticks; ctx.fillText(String(v.toFixed(1)), x, (padT-8*dpr)); } ctx.textAlign='left'; }
-  // Right-inner axis for RPE 0..10
-  if(showRPE){ ctx.fillStyle='#facc15'; ctx.textAlign='right'; for(let v=0; v<=10; v+=2){ const y=yRPE(v); ctx.fillText(String(v), W-40*dpr, y+4*dpr); } ctx.textAlign='left'; }
+  // Right axis Watt
+  if(showWatt){ ctx.fillStyle='#16a34a'; ctx.textAlign='right'; const ticks=5; for(let i=0;i<=ticks;i++){ const v=wmin + (wmax-wmin)*i/ticks; const y=yWatt(v); ctx.fillText(String(Math.round(v)), W-8*dpr, y+4*dpr); } ctx.textAlign='left'; }
+  // Top axis Speed
+  if(showSpeed){ ctx.fillStyle='#2563eb'; ctx.textAlign='center'; const ticks=5; for(let i=0;i<=ticks;i++){ const v=smin + (smax-smin)*i/ticks; const x=padL + plotW*i/ticks; ctx.fillText(String(v.toFixed(1)), x, (padT-8*dpr)); } ctx.textAlign='left'; }
+  // Right-inner axis RPE
+  if(showRPE){ ctx.fillStyle='#d97706'; ctx.textAlign='right'; for(let v=0; v<=10; v+=2){ const y=yRPE(v); ctx.fillText(String(v), W-40*dpr, y+4*dpr); } ctx.textAlign='left'; }
   function drawLine(arr,color,ymap,alpha=1){ if(!arr || arr.length<2) return; ctx.strokeStyle=color; ctx.globalAlpha=alpha; ctx.lineWidth=2*dpr; ctx.beginPath(); let moved=false; for(const p of arr){ if(p.t<xmin) continue; const x=xTime(p.t), y=ymap(p.y); if(!moved){ ctx.moveTo(x,y); moved=true;} else ctx.lineTo(x,y);} ctx.stroke(); ctx.globalAlpha=1; }
   if(showHR) drawLine(STATE.series.hr, '#ef4444', yHR, 1);
-  if(showWatt) drawLine(STATE.series.watt, '#22c55e', yWatt, 1);
-  if(showSpeed){ const ySpeed=v=>{ // map speed to HR axis scale using top axis only for labels; for drawing, scale to HR axis linearly
-      return padT + (1 - (v - smin)/Math.max(1,(smax-smin))) * plotH;
-    }; drawLine(STATE.series.speed, '#60a5fa', ySpeed, 1);
-  }
-  if(showRPE) drawLine(STATE.series.rpe, '#facc15', yRPE, 1);
+  if(showWatt) drawLine(STATE.series.watt, '#16a34a', yWatt, 1);
+  if(showSpeed){ const ySpeed=v=> padT + (1 - (v - smin)/Math.max(1,(smax-smin))) * plotH; drawLine(STATE.series.speed, '#2563eb', ySpeed, 1); }
+  if(showRPE) drawLine(STATE.series.rpe, '#d97706', yRPE, 1);
 }
 
-// ---- Finish session: persist + redirect ----
+// ---- Finish session: persist + redirect (robust) ----
 function calcTotalReps(w){ if(!w||!w.series) return 0; return w.series.reduce((a,s)=>a+(Number(s.reps)||0),0); }
-function finishSession(){ try{ const w=STATE.workout; if(!w) return; const session={ id:'s'+Date.now(), name:w.name||'Økt', reps: calcTotalReps(w), startedAt:w.startedAt||new Date().toISOString(), endedAt:w.endedAt||new Date().toISOString(), lt1:STATE.LT1, lt2:STATE.LT2, massKg:STATE.massKg, rpeByRep:STATE.rpeByRep, points:STATE.logger.points };
+function finishSession(){ try{ const w=STATE.workout; if(!w) return; // Defensive timestamps
+  const nowIso=new Date().toISOString(); if(!w.startedAt) w.startedAt = STATE.logger.startTs? new Date(STATE.logger.startTs).toISOString(): nowIso; if(!w.endedAt) w.endedAt=nowIso;
+  // Guarantee at least two points for duration
+  if(STATE.logger.points.length<2){ const t0=STATE.logger.startTs || Date.now(); const t1=Date.now(); if(STATE.logger.points.length===0) writeSample(t0); writeSample(t1); }
+  const session={ id:'s'+Date.now(), name:w.name||'Økt', reps: calcTotalReps(w), startedAt:w.startedAt, endedAt:w.endedAt, lt1:STATE.LT1, lt2:STATE.LT2, massKg:STATE.massKg, rpeByRep:STATE.rpeByRep, points:STATE.logger.points };
   const key='sessions'; const arr=JSON.parse(localStorage.getItem(key)||'[]'); arr.push(session); localStorage.setItem(key, JSON.stringify(arr));
   window.location.assign('results.html#'+session.id);
 } catch(e){ console.error('finishSession failed', e); alert('Klarte ikke å lagre økt: '+e.message); } }

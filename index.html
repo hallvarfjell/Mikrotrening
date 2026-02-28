@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#0b1020" />
+  <meta name="theme-color" content="#f7fafc" />
   <title>Intervall PWA</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="style.css" />
@@ -145,7 +145,7 @@
                 </div>
                 <div id="ghost-list" class="menu-list"></div>
                 <div class="menu-footer">
-                  <label style="font-size:12px;color:#9ca3af"><input type="checkbox" id="ghost-enable"> Vis ghost</label>
+                  <label style="font-size:12px;color:#5f6b7a"><input type="checkbox" id="ghost-enable"> Vis ghost</label>
                   <button id="ghost-apply" class="primary">Bruk</button>
                 </div>
               </div>
@@ -170,10 +170,5 @@
   </main>
 
   <script src="main.js" defer></script>
-  <script>
-    if (new URLSearchParams(location.search).get('debug') === '1') {
-      document.getElementById('debug').classList.remove('hidden');
-    }
-  </script>
 </body>
 </html>

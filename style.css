@@ -52,6 +52,7 @@ button.ghost{background:transparent;border-color:#cbd5e1}
 .rowline{display:flex;align-items:center;gap:8px;justify-content:space-between;border:1px solid var(--line);border-radius:10px;padding:8px;background:#fff}
 .row-left{display:flex;align-items:center;gap:8px;min-width:0}
 .row-handle{cursor:grab;color:#64748b}
-.row-name{background:#eef2ff;border:1px solid #c7d2fe;color:#0b1020;border-radius:8px;padding:6px 10px;max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.row-desc{color:#475569;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px}
+.row-name{background:#eef2ff;border:1px solid #c7d2fe;color:#0b1020;border-radius:8px;padding:6px 10px;max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row-desc{color:#475569;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
+.row-dur{color:#0f172a;font-size:12px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:999px;padding:2px 8px}
 .row-btns{display:flex;align-items:center;gap:6px}

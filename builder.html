@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Øktbygger v2.5 – Intervall PWA</title>
+  <title>Øktbygger v2.6 – Intervall PWA</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://unpkg.com/phosphor-icons@1.4.2"></script>
 </head>
@@ -26,6 +26,7 @@
         <label>Beskrivelse (fritekst)
           <textarea id="b-desc" rows="3" placeholder="Hva er hensikten med økta?"></textarea>
         </label>
+        <div class="small">Total varighet: <strong id="b-total">0:00</strong></div>
       </div>
     </div>
 
@@ -44,7 +45,7 @@
         <button id="redo" class="ghost" title="Gjør om"><i class="ph-arrow-arc-right"></i> Gjør om</button>
       </div>
       <div id="steps" class="steps"></div>
-      <p class="small">Tips: Generert fartlek/pyramide legges inn med en **sammendragsrad** som kan utvides/skjules.</p>
+      <p class="small">Fartlek/pyramide genereres som en <em>sammendragsrad</em> med segmenter under. Sammendragsraden har egne knapper for <strong>Vis/Skjul</strong> og <strong>Dupliser</strong>.</p>
     </div>
 
     <div class="card">
@@ -53,7 +54,7 @@
         <button id="b-update" class="secondary hidden"><i class="ph-floppy-disk"></i> Oppdater mal</button>
         <button id="b-clear" class="ghost"><i class="ph-trash"></i> Nullstill</button>
       </div>
-      <p class="small">Lagring konverterer øktinnhold til warmup/serier/nedjogg (pauser = rest).</p>
+      <p class="small">Lagring konverterer øktinnhold til warmup/serier/nedjogg (pauser = rest). Total varighet beregnes fra alle steg.</p>
     </div>
   </section>
 

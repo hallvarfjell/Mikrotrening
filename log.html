@@ -24,7 +24,6 @@
   </section>
 </main>
 <script>
-// ---- Namespaced storage helpers ----
 function activeUser(){ return localStorage.getItem('active_user') || 'default'; }
 function nsKey(k){ return 'u:'+activeUser()+':'+k; }
 function getNS(k, d){ try{ const v=localStorage.getItem(nsKey(k)); if(v!=null) return JSON.parse(v); const ov=localStorage.getItem(k); return ov!=null? JSON.parse(ov): d; }catch(e){ return d; } }
@@ -42,7 +41,7 @@ function getNS(k, d){ try{ const v=localStorage.getItem(nsKey(k)); if(v!=null) r
       const right=document.createElement('div'); right.style.display='flex'; right.style.gap='8px'; right.style.alignItems='center';
       const distSpan=document.createElement('span'); distSpan.textContent=dist; right.appendChild(distSpan);
       const del=document.createElement('button'); del.className='ghost'; del.title='Slett'; del.innerHTML='<i class="ph-trash"></i>';
-      del.onclick=()=>{ if(confirm('Slette denne økta?')){ const arr=getNS('sessions',[]); const idx=arr.findIndex(x=>x.id===s.id); if(idx>=0){ arr.splice(idx,1); localStorage.setItem(nsKey('sessions'), JSON.stringify(arr)); render(); } } };
+      del.onclick=()=>{ if(confirm('Slette denne økta?')){ const arr=getNS('sessions',[]'); const idx=arr.findIndex(x=>x.id===s.id); if(idx>=0){ arr.splice(idx,1); localStorage.setItem(nsKey('sessions'), JSON.stringify(arr)); render(); } } };
       right.appendChild(del);
       row.appendChild(left); row.appendChild(right); ul.appendChild(row);
     });

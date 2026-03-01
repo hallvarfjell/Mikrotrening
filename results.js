@@ -1,1 +1,1 @@
-// Minimal results.js will be provided earlier; keeping existing from repo is recommended.
+console.log('results.js placeholder');

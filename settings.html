@@ -1,1 +1,152 @@
-<!DOCTYPE html><html><head><meta charset='utf-8'><title>Settings</title><link rel='stylesheet' href='style.css'></head><body>Settings</body></html>
+<!DOCTYPE html>
+<html lang='no'>
+<head>
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <title>Innstillinger – Intervall PWA</title>
+  <link rel='stylesheet' href='style.css' />
+  <script src="https://unpkg.com/phosphor-icons@1.4.2"></script>
+</head>
+<body>
+<header class='topbar'>
+  <div class='nav'>
+    <a href='index.html'>Til hovedskjerm</a>
+    <a href='builder.html'>Øktbygger</a>
+    <a href='log.html'>Logg</a>
+  </div>
+</header>
+<main class='layout'>
+  <section class='leftcol'>
+    <div class='card'>
+      <h3>Brukerprofiler</h3>
+      <div id='users-panel'></div>
+    </div>
+
+    <div class='card'>
+      <h3>Brukerinnstillinger</h3>
+      <div class='row' style="display:flex;gap:8px;flex-wrap:wrap">
+        <label>Kroppsvekt (kg)
+          <input id='s-mass' type='number' min='30' max='200' step='0.5' />
+        </label>
+        <label>LT1 (bpm)
+          <input id='s-lt1' type='number' min='80' max='220' step='1' />
+        </label>
+        <label>LT2 (bpm)
+          <input id='s-lt2' type='number' min='80' max='220' step='1' />
+        </label>
+      </div>
+    </div>
+
+    <div class='card'>
+      <h3>Powermodell</h3>
+      <div class='row' style="display:flex;gap:8px;flex-wrap:wrap">
+        <label>Kalibrering K
+          <input id='s-cal-k' type='number' step='0.01' />
+        </label>
+        <label>C_run (J/kg/m)
+          <input id='s-c-run' type='number' step='0.05' />
+        </label>
+      </div>
+      <p class='small'>Ytre arbeid: P = m·g·v·grade + C_run·m·v → deretter ×K.</p>
+    </div>
+
+    <div class='card'>
+      <h3>Graf</h3>
+      <div class='row' style="display:flex;gap:8px;flex-wrap:wrap">
+        <label><input type='checkbox' id='s-default-hr' /> Vis HR som standard</label>
+        <label><input type='checkbox' id='s-default-watt' /> Vis Watt som standard</label>
+        <label><input type='checkbox' id='s-default-speed' /> Vis Fart som standard</label>
+        <label><input type='checkbox' id='s-default-rpe' /> Vis RPE som standard</label>
+      </div>
+    </div>
+
+    <div class='card'>
+      <div class='row' style='display:flex;gap:8px;flex-wrap:wrap'>
+        <button id='s-save' class='primary'>Lagre innstillinger</button>
+      </div>
+    </div>
+
+    <div class='card'>
+      <details>
+        <summary style='cursor:pointer'><strong>🔢 RPE 1–10 forklart</strong> (trykk for å utvide)</summary>
+        <div class='small' style='white-space:pre-wrap;margin-top:8px'>RPE 1 – Ingen anstrengelse
+Føles som fullstendig hvile.
+Sitter eller ligger stille.
+Puls omtrent som i hvile.
+
+RPE 2 – Svært lett
+Veldig rolig bevegelse.
+Kan snakke helt uanstrengt i lange setninger.
+Typisk: veldig rolig spasertur.
+
+RPE 3 – Lett
+Behagelig og kontrollert.
+Pusten er litt dypere enn i hvile.
+Du kan føre en normal samtale uten problemer.
+Typisk: rolig jogg / restitusjonsøkt.
+
+RPE 4 – Moderat
+Du merker at du jobber.
+Pusten er tydelig raskere.
+Kan snakke i hele setninger, men vil helst ikke prate konstant.
+Typisk: komfortabel langkjøring.
+
+RPE 5 – Middels / kontrollert hard
+Nå begynner det å bli krevende.
+Pusten er tung, men rytmisk.
+Du kan snakke i korte setninger.
+Ofte rundt terskelfølelse for nybegynnere.
+
+RPE 6 – Moderat hard
+Du jobber tydelig hardt.
+Pusten er markant anstrengt.
+Du kan si noen få ord av gangen.
+Ofte rundt aerob terskel for godt trente.
+
+RPE 7 – Hard
+Krevende, men kontrollert.
+Du må fokusere for å holde tempoet.
+Vanskelig å snakke mer enn enkeltord.
+Typisk lengre intervaller (3–8 min drag).
+
+RPE 8 – Svært hard
+Nær maksimalt for lengre drag.
+Intens pust, brennende følelse i muskulaturen.
+Kan ikke føre samtale.
+Typisk korte intervaller (1–3 min).
+
+RPE 9 – Nesten maksimal
+Du presser deg.
+Føles svært ubehagelig.
+Kan bare holde intensiteten kort tid.
+Typisk sprintdrag på 20–60 sekunder.
+
+RPE 10 – Maksimal innsats
+Absolutt maks.
+Du kan ikke holde det mer enn noen sekunder.
+Full sprint / maksimal styrkeinnsats.
+Ingen kapasitet igjen.</div>
+      </details>
+    </div>
+  </section>
+</main>
+<script>
+function activeUser(){ return localStorage.getItem('active_user') || 'default'; }
+function nsKey(k){ return 'u:'+activeUser()+':'+k; }
+function getNS(k, d){ try{ const v=localStorage.getItem(nsKey(k)); if(v!=null) return JSON.parse(v); const ov=localStorage.getItem(k); return ov!=null? JSON.parse(ov): d; }catch(e){ return d; } }
+function setNS(k, v){ localStorage.setItem(nsKey(k), JSON.stringify(v)); }
+(function(){
+  const s=id=>document.getElementById(id);
+  function users(){ try{ return JSON.parse(localStorage.getItem('users_list')||'[]'); }catch(e){ return []; } }
+  function saveUsers(arr){ localStorage.setItem('users_list', JSON.stringify(arr)); }
+  function setActive(u){ localStorage.setItem('active_user', u); alert('Aktiv bruker: '+u+'\nLaster siden på nytt for å bruke riktig profil.'); location.reload(); }
+  function renderUsers(){ const panel=document.getElementById('users-panel'); const list=users(); const active=activeUser(); panel.innerHTML=''; const wrap=document.createElement('div'); wrap.style.display='grid'; wrap.style.gap='8px'; const header=document.createElement('div'); header.innerHTML = `<div class='small'>Aktiv bruker: <strong>${active}</strong></div>`; wrap.appendChild(header); list.forEach(u=>{ const row=document.createElement('div'); row.className='menu-item'; row.style.display='flex'; row.style.justifyContent='space-between'; row.style.alignItems='center'; const left=document.createElement('div'); left.textContent=u + (u===active? ' (aktiv)':''); const btns=document.createElement('div'); btns.style.display='flex'; btns.style.gap='6px'; const act=document.createElement('button'); act.className='secondary'; act.textContent='Bruk'; act.onclick=()=> setActive(u); const ren=document.createElement('button'); ren.className='ghost'; ren.textContent='Gi nytt navn'; ren.onclick=()=>{ const nu=prompt('Nytt navn for bruker', u); if(nu && nu!==u){ const arr=users(); const i=arr.indexOf(u); if(i>=0){ arr[i]=nu; saveUsers(arr); const migrate=[]; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k.startsWith('u:'+u+':')) migrate.push(k); } migrate.forEach(oldK=>{ const v=localStorage.getItem(oldK); const nk = 'u:'+nu+':'+oldK.split(':').slice(2).join(':'); localStorage.setItem(nk, v); localStorage.removeItem(oldK); }); if(activeUser()===u) setActive(nu); else renderUsers(); } } }; const del=document.createElement('button'); del.className='ghost'; del.textContent='Slett'; del.onclick=()=>{ if(!confirm('Slette bruker "'+u+'"? Dette påvirker ikke andre brukere.')) return; const arr=users().filter(x=>x!==u); saveUsers(arr); const delKeys=[]; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k.startsWith('u:'+u+':')) delKeys.push(k); } delKeys.forEach(k=>localStorage.removeItem(k)); if(activeUser()===u) setActive('default'); else renderUsers(); }; btns.appendChild(act); btns.appendChild(ren); btns.appendChild(del); row.appendChild(left); row.appendChild(btns); wrap.appendChild(row); }); const add=document.createElement('button'); add.className='secondary'; add.innerHTML='<i class="ph-user-plus"></i> Legg til bruker'; add.onclick=()=>{ const u=prompt('Navn på ny bruker'); if(!u) return; const arr=users(); if(arr.includes(u)){ alert('Brukernavn finnes allerede.'); return; } arr.push(u); saveUsers(arr); setActive(u); }; wrap.appendChild(add); panel.appendChild(wrap); }
+  if(users().length===0){ saveUsers(['default']); if(!localStorage.getItem('active_user')) localStorage.setItem('active_user','default'); }
+  renderUsers();
+  const gNS=(k,d)=>getNS(k,d), setNSf=(k,v)=>setNS(k,v);
+  s('s-mass').value=gNS('massKg',75); s('s-lt1').value=gNS('LT1',135); s('s-lt2').value=gNS('LT2',160); s('s-cal-k').value=gNS('calK',1.0); s('s-c-run').value=gNS('cRun',1.0); s('s-default-hr').checked=gNS('defHR',true); s('s-default-watt').checked=gNS('defWatt',true); s('s-default-speed').checked=gNS('defSpeed',false); s('s-default-rpe').checked=gNS('defRPE',true);
+  s('s-save').onclick=()=>{ setNSf('massKg', Number(s('s-mass').value||75)); setNSf('LT1', Number(s('s-lt1').value||135)); setNSf('LT2', Number(s('s-lt2').value||160)); setNSf('calK', Number(s('s-cal-k').value||1.0)); setNSf('cRun', Number(s('s-c-run').value||1.0)); setNSf('defHR', !!s('s-default-hr').checked); setNSf('defWatt', !!s('s-default-watt').checked); setNSf('defSpeed', !!s('s-default-speed').checked); setNSf('defRPE', !!s('s-default-rpe').checked); alert('Lagret'); };
+})();
+</script>
+</body>
+</html>

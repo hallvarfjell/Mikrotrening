@@ -160,6 +160,44 @@ function setNS(k, v){ localStorage.setItem(nsKey(k), JSON.stringify(v)); }
   s('s-mass').value=gNS('massKg',75); s('s-lt1').value=gNS('LT1',135); s('s-lt2').value=gNS('LT2',160); s('s-cal-k').value=gNS('calK',1.0); s('s-c-run').value=gNS('cRun',1.0); s('s-default-hr').checked=gNS('defHR',true); s('s-default-watt').checked=gNS('defWatt',true); s('s-default-speed').checked=gNS('defSpeed',false); s('s-default-rpe').checked=gNS('defRPE',true);
   s('s-save').onclick=()=>{ setNSf('massKg', Number(s('s-mass').value||75)); setNSf('LT1', Number(s('s-lt1').value||135)); setNSf('LT2', Number(s('s-lt2').value||160)); setNSf('calK', Number(s('s-cal-k').value||1.0)); setNSf('cRun', Number(s('s-c-run').value||1.0)); setNSf('defHR', !!s('s-default-hr').checked); setNSf('defWatt', !!s('s-default-watt').checked); setNSf('defSpeed', !!s('s-default-speed').checked); setNSf('defRPE', !!s('s-default-rpe').checked); alert('Lagret'); };
 })();
+
+  // --- Eksport/Import av hele localStorage (INTZ) ---
+function buildBackup(){
+  const dump = { meta:{ app:'INTZ', exportedAt:new Date().toISOString() }, localStorage:{} };
+  for (let i=0; i<localStorage.length; i++){
+    const k = localStorage.key(i);
+    dump.localStorage[k] = localStorage.getItem(k);
+  }
+  return dump;
+}
+function downloadJSON(name, obj){
+  const blob = new Blob([JSON.stringify(obj, null, 2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+}
+document.getElementById('backup-export')?.addEventListener('click', ()=>{
+  const bk = buildBackup();
+  const ts = new Date();
+  const name = `INTZ_backup_${ts.getFullYear()}-${String(ts.getMonth()+1).padStart(2,'0')}-${String(ts.getDate()).padStart(2,'0')}_${String(ts.getHours()).padStart(2,'0')}${String(ts.getMinutes()).padStart(2,'0')}.json`;
+  downloadJSON(name, bk);
+});
+document.getElementById('backup-import')?.addEventListener('click', ()=> document.getElementById('backup-file').click());
+document.getElementById('backup-file')?.addEventListener('change', (ev)=>{
+  const f = ev.target.files && ev.target.files[0]; if(!f) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const obj = JSON.parse(reader.result);
+      if(!obj || !obj.localStorage){ alert('Ugyldig backupfil.'); return; }
+      if(!confirm('Import erstatter hele INTZ-lagringen i denne nettleseren. Fortsette?')) return;
+      localStorage.clear();
+      for (const k of Object.keys(obj.localStorage)) localStorage.setItem(k, obj.localStorage[k]);
+      alert('Import fullført. Siden lastes på nytt.'); location.reload();
+    }catch(e){ alert('Import feilet: '+e.message); }
+  };
+  reader.readAsText(f);
+});
+  
 </script>
 </body>
 </html>

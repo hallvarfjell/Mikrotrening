@@ -33,8 +33,39 @@ function delNS(k){ localStorage.removeItem(nsKey(k)); }
   async function requestWakeLock(){ try{ if('wakeLock' in navigator){ STATE.wakeLock = await navigator.wakeLock.request('screen'); STATE.wakeLock.addEventListener('release', ()=>{ STATE.wakeLock=null; }); } }catch(e){} }
 
   async function connectHR(){ try{ if(!('bluetooth' in navigator)) return alert('Nettleseren støtter ikke Web Bluetooth'); const device=await navigator.bluetooth.requestDevice({filters:[{services:['heart_rate']}]}); const server=await device.gatt.connect(); const service=await server.getPrimaryService('heart_rate'); const ch=await service.getCharacteristic('heart_rate_measurement'); await ch.startNotifications(); ch.addEventListener('characteristicvaluechanged', ev=>{ const dv=ev.target.value; const flags=dv.getUint8(0); const hr16=flags&1; let i=1; const bpm=hr16? dv.getUint16(i,true):dv.getUint8(i); STATE.hr=bpm; }); }catch(e){ console.error(e); alert('Kunne ikke koble til pulsbelte: '+e);} }
-  async function connectTreadmill(){ try{ if(!('bluetooth' in navigator)) return alert('Nettleseren støtter ikke Web Bluetooth'); const device=await navigator.bluetooth.requestDevice({filters:[{services:[0x1826]}]}); const server=await device.gatt.connect(); const ftms=await server.getPrimaryService(0x1826); const tdc=await ftms.getCharacteristic('00002ACD-0000-1000-8000-00805F9B34FB'); await tdc.startNotifications(); const status=el('ftms-status'); if(status){ status.textContent='FTMS: Tilkoblet'; status.classList.add('connected'); }
-    tdc.addEventListener('characteristicvaluechanged', ev=>{ const dv=ev.target.value; let idx=0; const flags=dv.getUint16(idx,true); idx+=2; const INST=1<<0, INCL=1<<3; if(flags&INST){ const ms=dv.getUint16(idx,true)/100; idx+=2; const kmh=ms*3.6; setSpeed(kmh); } if(flags&INCL){ const rawIncl=dv.getInt16(idx,true); idx+=2; idx+=2; setGrade(rawIncl/10);} }); device.addEventListener('gattserverdisconnected', ()=>{ if(status){ status.textContent='FTMS: Frakoblet'; status.classList.remove('connected'); } }); }catch(e){ console.error(e); alert('Kunne ikke koble til tredemølle: '+e); } }
+
+  async function connectTreadmill(){
+    try{
+      if(!('bluetooth' in navigator)) return alert('Nettleseren støtter ikke Web Bluetooth');
+      const device=await navigator.bluetooth.requestDevice({filters:[{services:[0x1826]}]}); // FTMS
+      const server=await device.gatt.connect();
+      const ftms=await server.getPrimaryService(0x1826);
+
+      // Preferer alias (robust i Web Bluetooth). Fall tilbake til kanonisk lowercase streng om nødvendig.
+      let tdc=null;
+      try{ tdc = await ftms.getCharacteristic(0x2ACD); } // Treadmill Data
+      catch(_){ try{ tdc = await ftms.getCharacteristic('00002acd-0000-1000-8000-00805f9b34fb'); } catch(__){} }
+      if(!tdc){
+        // Sjekk om noen enheter bruker Indoor Bike Data
+        try{ tdc = await ftms.getCharacteristic(0x2AD2); }catch(_){ /* ignore */ }
+      }
+      if(!tdc) throw new Error('Fant ikke FTMS data‑karakteristikk (2ACD/2AD2).');
+
+      // Start notifikasjoner
+      await tdc.startNotifications();
+      tdc.addEventListener('characteristicvaluechanged', ev=>{
+        const dv=ev.target.value; let idx=0;
+        const flags = dv.getUint16(idx,true); idx+=2; // FTMS flagg
+        const INST=1<<0, INCL=1<<3;
+        if(flags & INST){ const ms=dv.getUint16(idx,true)/100; idx+=2; const kmh=ms*3.6; setSpeed(kmh); }
+        if(flags & INCL){ const rawIncl=dv.getInt16(idx,true); idx+=2; idx+=2; setGrade(rawIncl/10); }
+      });
+
+      const status=el('ftms-status');
+      if(status){ status.textContent='FTMS: Tilkoblet'; status.classList.add('connected'); }
+      device.addEventListener('gattserverdisconnected', ()=>{ if(status){ status.textContent='FTMS: Frakoblet'; status.classList.remove('connected'); } });
+    }catch(e){ console.error(e); alert('Kunne ikke koble til tredemølle: '+e); }
+  }
 
   function setSpeed(v){ STATE.speedKmh = Math.max(0, Number(v)||0); el('manual-speed') && (el('manual-speed').value = STATE.speedKmh.toFixed(1)); }
   function setGrade(v){ STATE.gradePct = Number(v)||0; el('manual-grade') && (el('manual-grade').value = STATE.gradePct.toFixed(1)); }
@@ -88,7 +119,39 @@ function delNS(k){ localStorage.removeItem(nsKey(k)); }
 
   let canvas, ctx, dpr;
   function resizeCanvas(){ if(!canvas) return; const rect=canvas.getBoundingClientRect(); canvas.width=Math.floor(rect.width*(dpr||1)); canvas.height=Math.floor(rect.height*(dpr||1)); }
-  function draw(){ try{ if(!ctx||!canvas) return; const W=canvas.width,H=canvas.height; const padL=60*dpr,padR=60*dpr,padT=30*dpr,padB=24*dpr; const plotW=W-padL-padR, plotH=H-padT-padB; ctx.clearRect(0,0,W,H); if(plotW<=0||plotH<=0) return; const now=Date.now(); const xmin=now-STATE.windowSec*1000, xmax=now; const showHR=el('show-hr')?.checked ?? getNS('defHR',true); const showWatt=el('show-watt')?.checked ?? getNS('defWatt',true); const showSpeed=el('show-speed')?.checked ?? getNS('defSpeed',false); const showRPE=el('show-rpe')?.checked ?? getNS('defRPE',true); const hrMin= getNS('hrMin',80), hrMax=getNS('hrMax',200); const yHR=v=> padT + (1 - (v-hrMin)/(hrMax-hrMin||1))*plotH; const sp = STATE.series.speed.filter(p=>p.t>=xmin); const wt = STATE.series.watt.filter(p=>p.t>=xmin); const spVals=sp.map(p=>p.y), wtVals=wt.map(p=>p.y); const smin=Math.min(...(spVals.length?spVals:[0])), smax=Math.max(...(spVals.length?spVals:[1])); const wmin=Math.min(...(wtVals.length?wtVals:[0])), wmax=Math.max(...(wtVals.length?wtVals:[1])); const yWatt=v=> padT + (1 - (v-wmin)/Math.max(1,(wmax-wmin))) * plotH; const yRPE=v => padT + (1 - v/10) * plotH; const xTime=t=> padL + (t-xmin)/(xmax-xmin||1)*plotW; ctx.strokeStyle='#e2e8f0'; ctx.lineWidth=1; ctx.beginPath(); for(let sec=0; sec<=STATE.windowSec; sec+=60){ const t=xmin+sec*1000; const x=padL+(t-xmin)/(xmax-xmin||1)*plotW; ctx.moveTo(x,padT); ctx.lineTo(x,padT+plotH);} ctx.stroke(); ctx.fillStyle='#ef4444'; ctx.font=`${12*dpr}px system-ui`; for(let v=hrMin; v<=hrMax; v+=20){ ctx.fillText(String(v), 8*dpr, yHR(v)+4*dpr); } function drawLine(arr,color,ymap,alpha=1){ if(!arr || arr.length<2) return; ctx.strokeStyle=color; ctx.globalAlpha=alpha; ctx.lineWidth=2*dpr; ctx.beginPath(); let moved=false; for(const p of arr){ if(p.t<xmin) continue; const x=xTime(p.t), y=ymap(p.y); if(!moved){ ctx.moveTo(x,y); moved=true;} else ctx.lineTo(x,y);} ctx.stroke(); ctx.globalAlpha=1; } if(showHR) drawLine(STATE.series.hr, '#ef4444', yHR, 1); if(showWatt) drawLine(STATE.series.watt, '#16a34a', yWatt, 1); if(showSpeed){ const ySpeed=v=> padT + (1 - (v - smin)/Math.max(1,(smax-smin))) * plotH; drawLine(STATE.series.speed, '#2563eb', ySpeed, 1); } if(showRPE) drawLine(STATE.series.rpe, '#d97706', yRPE, 1); } catch(e){ showErr(e); } }
+  function draw(){ try{ if(!ctx||!canvas) return; const W=canvas.width,H=canvas.height; const padL=60*dpr,padR=60*dpr,padT=30*dpr,padB=24*dpr; const plotW=W-padL-padR, plotH=H-padT-padB; ctx.clearRect(0,0,W,H); if(plotW<=0||plotH<=0) return; const now=Date.now(); const xmin=now-STATE.windowSec*1000, xmax=now; const showHR=el('show-hr')?.checked ?? getNS('defHR',true); const showWatt=el('show-watt')?.checked ?? getNS('defWatt',true); const showSpeed=el('show-speed')?.checked ?? getNS('defSpeed',false); const showRPE=el('show-rpe')?.checked ?? getNS('defRPE',true); const hrMin= getNS('hrMin',80), hrMax=getNS('hrMax',200);
+    const yHR=v=> padT + (1 - (v-hrMin)/(hrMax-hrMin||1))*plotH;
+    const xTime=t=> padL + (t-xmin)/(xmax-xmin||1)*plotW;
+
+    // LT-bakgrunn (under LT1 grønn, mellom LT1-LT2 gul, over LT2 rød)
+    const LT1=STATE.LT1||hrMin; const LT2=STATE.LT2||hrMax;
+    function fillBand(yTop,yBot,color){ ctx.fillStyle=color; ctx.fillRect(padL, Math.min(yTop,yBot), plotW, Math.abs(yBot-yTop)); }
+    fillBand(yHR(hrMin), yHR(Math.min(LT1,hrMax)), 'rgba(22,163,74,0.10)');
+    fillBand(yHR(Math.min(Math.max(LT1,hrMin),hrMax)), yHR(Math.min(Math.max(LT2,hrMin),hrMax)), 'rgba(217,119,6,0.08)');
+    fillBand(yHR(Math.min(Math.max(LT2,hrMin),hrMax)), yHR(hrMax), 'rgba(220,38,38,0.10)');
+
+    // Rutenett: vertikal hver 60s, horisontal hver 10 bpm
+    ctx.strokeStyle='#e2e8f0'; ctx.lineWidth=1; ctx.beginPath(); for(let sec=0; sec<=STATE.windowSec; sec+=60){ const t=xmin+sec*1000; const x=padL+(t-xmin)/(xmax-xmin||1)*plotW; ctx.moveTo(x,padT); ctx.lineTo(x,padT+plotH);} ctx.stroke();
+    ctx.strokeStyle='#edf2f7'; ctx.beginPath(); for(let v=Math.ceil(hrMin/10)*10; v<=hrMax; v+=10){ const y=yHR(v); ctx.moveTo(padL,y); ctx.lineTo(padL+plotW,y);} ctx.stroke();
+    // HR labels hver 20 bpm
+    ctx.fillStyle='#ef4444'; ctx.font=`${12*dpr}px system-ui`; for(let v=Math.ceil(hrMin/20)*20; v<=hrMax; v+=20){ ctx.fillText(String(v), 8*dpr, yHR(v)+4*dpr); }
+
+    const sp = STATE.series.speed.filter(p=>p.t>=xmin);
+    const wt = STATE.series.watt.filter(p=>p.t>=xmin);
+    const sVals=sp.map(p=>p.y); const wVals=wt.map(p=>p.y);
+    const smin=(sVals.length?Math.min(...sVals):0), smax=(sVals.length?Math.max(...sVals):1);
+    const wmin=(wVals.length?Math.min(...wVals):0), wmax=(wVals.length?Math.max(...wVals):1);
+    const yWatt=v=> padT + (1 - (v-wmin)/Math.max(1,(wmax-wmin))) * plotH;
+    const ySpeed=v=> padT + (1 - (v - smin)/Math.max(1,(smax-smin))) * plotH;
+    const yRPE=v => padT + (1 - v/10) * plotH;
+
+    function drawLine(arr,color,ymap,alpha=1){ if(!arr || arr.length<2) return; ctx.strokeStyle=color; ctx.globalAlpha=alpha; ctx.lineWidth=2*dpr; ctx.beginPath(); let moved=false; for(const p of arr){ if(p.t<xmin) continue; const x=xTime(p.t), y=ymap(p.y); if(!moved){ ctx.moveTo(x,y); moved=true;} else ctx.lineTo(x,y);} ctx.stroke(); ctx.globalAlpha=1; }
+    if(showHR) drawLine(STATE.series.hr, '#ef4444', yHR, 1);
+    if(showWatt) drawLine(STATE.series.watt, '#16a34a', yWatt, 1);
+    if(showSpeed) drawLine(STATE.series.speed, '#2563eb', ySpeed, 1);
+    if(showRPE) drawLine(STATE.series.rpe, '#d97706', yRPE, 1);
+
+  } catch(e){ showErr(e); } }
 
   function buildGhostList(){ const list=el('ghost-list'); if(!list) return; list.innerHTML=''; const sessions = getNS('sessions',[]); if(!sessions.length){ list.innerHTML='<div class=\"small\" style=\"padding:6px 8px\">Ingen lagrede økter</div>'; return; } sessions.slice().reverse().forEach(s=>{ const dt=new Date(s.startedAt||Date.now()).toLocaleString(); const id=s.id; const row=document.createElement('label'); row.className='menu-item'; const cb=document.createElement('input'); cb.type='checkbox'; cb.value=id; cb.checked=STATE.ghost.ids.has(id); const span=document.createElement('span'); span.textContent=`${s.name||'Økt'} – ${dt}`; row.appendChild(cb); row.appendChild(span); list.appendChild(row); }); }
   function computeGhostAverage(){ const ids=Array.from(STATE.ghost.ids||[]); const sessions=getNS('sessions',[]).filter(s=> ids.includes(s.id)); if(!sessions.length){ STATE.ghost.avg=null; return; } const perSess = sessions.map(s=>{ const pts=s.points||[]; if(!pts.length) return {dur:0, hr:[], w:[]}; const t0=pts[0].ts; const tN=pts[pts.length-1].ts; const dur=Math.max(0, Math.round((tN - t0)/1000)); const hr=new Array(dur+1).fill(null), w=new Array(dur+1).fill(null); let idx=0; for(let sec=0; sec<=dur; sec++){ const target=t0+sec*1000; while(idx+1<pts.length && pts[idx+1].ts<=target) idx++; const p=pts[idx]; hr[sec]=p.hr||0; w[sec]=Math.round(p.watt||0); } return {dur, hr, w}; }); const maxDur = Math.max(...perSess.map(x=>x.dur)); const avgHR=new Array(maxDur+1).fill(0); const avgW=new Array(maxDur+1).fill(0); const cnt=new Array(maxDur+1).fill(0); perSess.forEach(ss=>{ for(let i=0;i<=ss.dur;i++){ if(ss.hr[i]!=null){ avgHR[i]+=ss.hr[i]; avgW[i]+=ss.w[i]; cnt[i]++; } } }); for(let i=0;i<=maxDur;i++){ if(cnt[i]>0){ avgHR[i]=Math.round(avgHR[i]/cnt[i]); avgW[i]=Math.round(avgW[i]/cnt[i]); } else { avgHR[i]=null; avgW[i]=null; } } STATE.ghost.avg={dur:maxDur, hr:avgHR, w:avgW}; }
@@ -115,7 +178,6 @@ function delNS(k){ localStorage.removeItem(nsKey(k)); }
     el('grade-inc')?.addEventListener('click', ()=> setGrade(STATE.gradePct+0.5));
     for(const btn of document.querySelectorAll('.grade-btn')) btn.addEventListener('click', (ev)=> setGrade(Number(ev.currentTarget.dataset.grade||0)) );
 
-    // no-HR modal events
     el('nohr-cancel')?.addEventListener('click', ()=> el('nohr-modal')?.classList.remove('open'));
     el('nohr-start')?.addEventListener('click', ()=>{ el('nohr-modal')?.classList.remove('open'); startTicker(); });
     el('nohr-connect')?.addEventListener('click', async ()=>{ el('nohr-modal')?.classList.remove('open'); await connectHR(); });
@@ -132,7 +194,8 @@ function delNS(k){ localStorage.removeItem(nsKey(k)); }
     el('btn-stop-save')?.addEventListener('click', ()=>{ if(!STATE.workout) return; if(confirm('Stopp og lagre økta?')){ STATE.workout.endedAt=new Date().toISOString(); writeSample(Date.now()); stopLogger(); finishSession(); } });
     el('btn-discard')?.addEventListener('click', ()=>{ if(confirm('Forkast økta (ikke lagre)?')){ if(STATE.ticker) clearInterval(STATE.ticker), STATE.ticker=null; STATE.workout=null; STATE.logger.active=false; STATE.logger.points=[]; updateWorkoutUI(); draw(); } });
 
-    canvas=el('chart'); ctx=canvas?.getContext('2d'); dpr=window.devicePixelRatio||1; window.addEventListener('resize', resizeCanvas); resizeCanvas();
+    const canvasEl=el('chart'); if(canvasEl){ canvas=canvasEl; ctx=canvas.getContext('2d'); }
+    dpr=window.devicePixelRatio||1; window.addEventListener('resize', resizeCanvas); resizeCanvas();
 
     el('ghost-picker')?.addEventListener('click', (e)=>{ e.stopPropagation(); el('ghost-menu')?.classList.remove('hidden'); buildGhostList(); });
     document.addEventListener('click', (e)=>{ const menu=el('ghost-menu'); const picker=el('ghost-picker'); if(menu && !menu.classList.contains('hidden') && !menu.contains(e.target) && e.target!==picker) menu.classList.add('hidden'); });

@@ -119,11 +119,10 @@
           <canvas id="chart" aria-label="trening data graf" role="img"></canvas>
         </div>
       </div>
-      <p class="small" style="margin:0 8px 12px 8px">Ghost = tidsjustert snitt av valgte økter (HR/Watt) lagt oppå live-kurven.</p>
+      <p class="small" style="margin:0 8px 12px 8px">Bakgrunnsfarger markerer LT‑soner: <span style="background:#dcfce7">under LT1</span>, <span style="background:#fef9c3">LT1–LT2</span>, <span style="background:#fee2e2">over LT2</span>. Horisontale linjer for hver 10. bpm.</p>
     </section>
   </main>
 
-  <!-- Ghost menu with sticky controls on top -->
   <div id="ghost-menu" class="menu hidden" style="position:absolute;right:16px;top:72px;width:360px;max-height:420px;overflow:auto;padding:8px;z-index:20">
     <div class="menu-item" style="justify-content:space-between;position:sticky;top:0;background:#fff;z-index:1">
       <strong>Velg ghost‑økter</strong>
@@ -136,7 +135,6 @@
     <div id="ghost-list"></div>
   </div>
 
-  <!-- Modal: Start uten pulsbelte -->
   <div id="nohr-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="nohr-title">
     <div class="modalpanel">
       <h3 id="nohr-title">Pulsbelte ikke tilkoblet</h3>

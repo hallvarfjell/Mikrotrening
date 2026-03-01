@@ -8,7 +8,9 @@ function delNS(k){ localStorage.removeItem(nsKey(k)); }
   const el=id=>document.getElementById(id);
   const errCard=()=>el('err-card');
   const errLog =()=>el('err-log');
-  function showErr(e){ try{ errCard()?.classList.remove('hidden'); (errLog()&&(errLog().textContent += (e&&e.stack)? e.stack+'\n' : (e?.message||String(e))+'\n')); }catch(_){} }
+  function showErr(e){ try{ errCard()?.classList.remove('hidden'); (errLog()&&(errLog().textContent += (e&&e.stack)? e.stack+'
+' : (e?.message||String(e))+'
+')); }catch(_){} }
   window.addEventListener('error', e=> showErr(e.error||e.message));
   window.addEventListener('unhandledrejection', e=> showErr(e.reason||e));
 
@@ -109,7 +111,6 @@ function delNS(k){ localStorage.removeItem(nsKey(k)); }
     el('grade-dec')?.addEventListener('click', ()=> setGrade(STATE.gradePct-0.5));
     el('grade-inc')?.addEventListener('click', ()=> setGrade(STATE.gradePct+0.5));
 
-    // Hurtigknapper for stigning (5%/10%)
     for(const btn of document.querySelectorAll('.grade-btn')) btn.addEventListener('click', (ev)=> setGrade(Number(ev.currentTarget.dataset.grade||0)) );
 
     el('btn-start-pause')?.addEventListener('click', async ()=>{

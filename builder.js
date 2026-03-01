@@ -1,11 +1,8 @@
 
-
 function activeUser(){ return localStorage.getItem('active_user') || 'default'; }
 function nsKey(k){ return 'u:'+activeUser()+':'+k; }
 function getNS(k, d){ try{ const v=localStorage.getItem(nsKey(k)); if(v!=null) return JSON.parse(v); const ov=localStorage.getItem(k); return ov!=null? JSON.parse(ov): d; }catch(e){ return d; } }
 function setNS(k, v){ localStorage.setItem(nsKey(k), JSON.stringify(v)); }
-function delNS(k){ localStorage.removeItem(nsKey(k)); }
-
 (function(){
   const KEY='custom_workouts_v2';
   const el=id=>document.getElementById(id);
@@ -115,10 +112,7 @@ function delNS(k){ localStorage.removeItem(nsKey(k)); }
   function openGen(mode){ GEN_MODE=mode; gTitle.textContent = mode==='pyramide'? 'Pyramidegenerator' : 'Fartlekgenerator'; gSeg.value=''; gAsc.value=''; gMirror.checked=(mode==='pyramide'); gPause.value='0'; gGroup.checked=true; gAbsorb.checked=false; updateGenPreview(); modal.classList.add('open'); }
   function closeGen(){ modal.classList.remove('open'); }
   function parseCSV(str){ return (str||'').split(',').map(x=>Number(x.trim())).filter(x=>x>0); }
-  function buildSegments(){ let base=[]; const seg=parseCSV(gSeg.value); const asc=parseCSV(gAsc.value); if(asc.length){ base = asc.slice(); if(gMirror.checked){ // mirror excluding last apex duplicate
-        base = base.concat(asc.slice(0,-1).reverse());
-      }
-  }
+  function buildSegments(){ let base=[]; const seg=parseCSV(gSeg.value); const asc=parseCSV(gAsc.value); if(asc.length){ base = asc.slice(); if(gMirror.checked){ base = base.concat(asc.slice(0,-1).reverse()); } }
     if(seg.length){ base = base.concat(seg); }
     return base; }
   function updateGenPreview(){ const arr=buildSegments(); const pause=Number(gPause.value||0); let total=0; if(arr.length){ total += arr.reduce((a,b)=>a+b,0); if(pause>0) total += pause*(arr.length-1); } gPrev.textContent=`Forhåndsvisning: ${arr.length} segmenter, ${fmt(total)}`; }
@@ -126,21 +120,17 @@ function delNS(k){ localStorage.removeItem(nsKey(k)); }
 
   function addGeneratorFromGUI(){ const arr=buildSegments(); const pause=Number(gPause.value||0); const makeGroup=!!gGroup.checked; const absorb=!!gAbsorb.checked; if(!arr.length){ alert('Ingen segmenter.'); return; }
     pushState();
-    // Absorb to Series if all equal and pause constant
     const allEq = arr.every(x=>x===arr[0]);
-    if(absorb && allEq){ // collapse
-      const reps=arr.length; const work=arr[0]; const rest=pause>0? pause:0; STEPS.push({id:uid(), type:'series', data:{reps, workSec:work, restSec:rest, seriesRestSec:0, note:''}}); render(); return;
-    }
-    // Otherwise, create group + singles (+ pause children)
+    if(absorb && allEq){ const reps=arr.length; const work=arr[0]; const rest=pause>0? pause:0; STEPS.push({id:uid(), type:'series', data:{reps, workSec:work, restSec:rest, seriesRestSec:0, note:''}}); render(); return; }
     let gid=null; if(makeGroup){ gid=uid(); const title=(GEN_MODE==='pyramide')? 'Pyramide' : 'Fartlek'; STEPS.push({id:gid, type:'group', data:{title, secs:[...arr], collapsed:true}}); }
     arr.forEach((s,i)=>{ STEPS.push({id:uid(), type:'single', data:{workSec:s, note:'', _groupId:gid||undefined}}); if(pause>0 && i<arr.length-1){ STEPS.push({id:uid(), type:'pause', data:{sec:pause, _groupId:gid||undefined}}); } });
     render();
   }
 
-  el('gen-fartlek').onclick=()=> openGen('fartlek');
-  el('gen-pyramid').onclick=()=> openGen('pyramide');
-  el('gen-apply').onclick=()=>{ addGeneratorFromGUI(); closeGen(); };
-  el('gen-cancel').onclick=()=> closeGen();
+  document.getElementById('gen-fartlek').onclick=()=> openGen('fartlek');
+  document.getElementById('gen-pyramid').onclick=()=> openGen('pyramide');
+  document.getElementById('gen-apply').onclick=()=>{ addGeneratorFromGUI(); closeGen(); };
+  document.getElementById('gen-cancel').onclick=()=> closeGen();
   modal.addEventListener('click', (e)=>{ if(e.target===modal) closeGen(); });
 
   // ===== Save & Update =====

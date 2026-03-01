@@ -10,7 +10,7 @@
   <script src="https://unpkg.com/phosphor-icons@1.4.2"></script>
 </head>
 <body>
-  <header class="topbar">
+  <header class="topbar" id="topbar">
     <div class="nav">
       <a href="index.html"><strong>INTZ</strong></a>
       <a href="builder.html">Øktbygger</a>
@@ -52,7 +52,7 @@
           <div id="progressbar" style="height:8px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:999px;overflow:hidden"><div id="progress" style="height:100%;width:0;background:#16a34a"></div></div>
         </div>
         <div class="workout-controls" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:8px">
-          <button id="btn-start-pause" class="primary" title="Start/Pause"><i class="ph-play-pause"></i></button>
+          <button id="btn-start-pause" class="primary btn-hero" title="Start/Pause"><i id="sp-icon" class="ph-play"></i><span id="sp-label">Start</span></button>
           <button id="btn-skip-back" class="secondary" title="Tilbake"><i class="ph-skip-back"></i></button>
           <button id="btn-skip-fwd" class="secondary" title="Frem"><i class="ph-skip-forward"></i></button>
           <button id="btn-stop-save" class="ghost" title="Stopp & lagre"><i class="ph-stop"></i></button>

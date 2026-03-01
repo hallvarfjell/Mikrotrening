@@ -16,6 +16,10 @@ button.secondary{background:#e2e8f0;border-color:#cbd5e1}
 button.ghost{background:transparent;border-color:#cbd5e1}
 .iconbtn{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9px;border:1px solid #cbd5e1;background:#e2e8f0;color:#0b1020}
 
+/* Large Start/Pause */
+.btn-hero{display:inline-flex;align-items:center;gap:10px;padding:14px 18px;font-size:18px;border-radius:14px}
+.btn-hero i{font-size:22px}
+
 /* Builder: Step editor */
 .toolbar{display:flex;gap:6px;flex-wrap:wrap}
 .steps{display:grid;gap:8px}
@@ -43,3 +47,11 @@ button.ghost{background:transparent;border-color:#cbd5e1}
 .nav{display:flex;gap:8px}
 .nav a{color:#1d4ed8;text-decoration:none}
 .hidden{display:none}
+
+/* Saved templates list */
+.rowline{display:flex;align-items:center;gap:8px;justify-content:space-between;border:1px solid var(--line);border-radius:10px;padding:8px;background:#fff}
+.row-left{display:flex;align-items:center;gap:8px;min-width:0}
+.row-handle{cursor:grab;color:#64748b}
+.row-name{background:#eef2ff;border:1px solid #c7d2fe;color:#0b1020;border-radius:8px;padding:6px 10px;max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row-desc{color:#475569;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px}
+.row-btns{display:flex;align-items:center;gap:6px}

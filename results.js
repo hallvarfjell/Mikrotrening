@@ -30,7 +30,8 @@ function setNS(k, v){ localStorage.setItem(nsKey(k), JSON.stringify(v)); }
 
   function splitLaps(s){ const pts=s.points||[]; if(!pts.length) return []; const laps=[]; let cur={startTs:pts[0].ts, distStart:pts[0].dist_m||0, pts:[], hrSum:0, hrCnt:0, hrMax:0, rpeSum:0, rpeCnt:0}; let lastPhase=pts[0].phase||'', lastRep=pts[0].rep||0; for(const p of pts){ const phase=p.phase||''; const rep=p.rep||0; const boundary = (phase==='work' && rep!==lastRep) || (phase!=='work' && lastPhase==='work');
       if(boundary && cur.pts.length){ const last=cur.pts[cur.pts.length-1]; cur.endTs=last.ts; cur.distEnd=last.dist_m||0; laps.push(cur); cur={startTs:p.ts, distStart:p.dist_m||0, pts:[], hrSum:0, hrCnt:0, hrMax:0, rpeSum:0, rpeCnt:0}; }
-      cur.pts.push(p); if(p.hr){ cur.hrSum+=p.hr; cur.hrCnt++; if(p.hr>cur.hrMax) cur.hrMax=p.hr; } if(typeof p.rpe==='number'){ cur.rpeSum+=p.rpe; cur.rpeCnt++; } lastPhase=phase; lastRep=rep; }
+      cur.pts.push(p); if(p.hr){ cur.hrSum+=p.hr; cur.hrCnt++; if(p.hr>cur.hrMax) cur.hrMax=p.hr; } if(typeof p.rpe==='number'){ cur.rpeSum+=p.rpe; cur.rpeCnt++; } lastPhase=phase; lastRep=rep;
+    }
     if(cur.pts.length){ const last=cur.pts[cur.pts.length-1]; cur.endTs=last.ts; cur.distEnd=last.dist_m||0; laps.push(cur); }
     const workLaps = laps.filter(l=> l.pts.some(p=> (p.phase||'')==='work'));
     return workLaps.length? workLaps : (laps.length? [ { ...laps[0] } ] : []);
@@ -79,22 +80,12 @@ ${lapsXml}
   function resizeCanvas(){ if(!CAN) return; const rect=CAN.getBoundingClientRect(); CAN.width=Math.floor(rect.width*(DPR||1)); CAN.height=Math.floor(rect.height*(DPR||1)); }
 
   function draw(){ if(!CTX||!CAN||!SESSION) return; const pts=SESSION.points||[]; const showHR=$('r-show-hr')?.checked; const showWatt=$('r-show-watt')?.checked; const showSpeed=$('r-show-speed')?.checked; const showRPE=$('r-show-rpe')?.checked; const W=CAN.width,H=CAN.height; const padL=60*DPR,padR=60*DPR,padT=30*DPR,padB=24*DPR; const plotW=W-padL-padR, plotH=H-padT-padB; CTX.clearRect(0,0,W,H); if(!pts.length||plotW<=0||plotH<=0){ return; }
-    const t0=pts[0].ts, tN=pts[pts.length-1].ts; const xmin=t0, xmax=tN; const hrMin=80, hrMax=200; const yHR=v=> padT + (1 - (v-hrMin)/(hrMax-hrMin||1))*plotH; const xT=t=> padL + (t-xmin)/(xmax-xmin||1)*plotW;
-
-    // LT-bakgrunn (under/ mellom/ over)
-    const LT1=SESSION.lt1||135, LT2=SESSION.lt2||160; function fillBand(yTop,yBot,color){ CTX.fillStyle=color; CTX.fillRect(padL, Math.min(yTop,yBot), plotW, Math.abs(yBot-yTop)); }
-    fillBand(yHR(hrMin), yHR(Math.min(LT1,hrMax)), 'rgba(22,163,74,0.10)');
-    fillBand(yHR(Math.min(Math.max(LT1,hrMin),hrMax)), yHR(Math.min(Math.max(LT2,hrMin),hrMax)), 'rgba(217,119,6,0.08)');
-    fillBand(yHR(Math.min(Math.max(LT2,hrMin),hrMax)), yHR(hrMax), 'rgba(220,38,38,0.10)');
-
-    // Rutenett
+    const t0=pts[0].ts, tN=pts[pts.length-1].ts; const xmin=t0, xmax=tN; const hrMin=80, hrMax=200; const yHR=v=> padT + (1 - (v-hrMin)/(hrMax-hrMin||1))*plotH; const wVals=pts.map(p=> p.watt||0), wmin=Math.min(...wVals), wmax=Math.max(...wVals); const yW=v=> padT + (1 - (v-wmin)/Math.max(1,(wmax-wmin))) * plotH; const spVals=pts.map(p=> (p.speed_ms||0)*3.6), smin=Math.min(...spVals), smax=Math.max(...spVals); const yS=v=> padT + (1 - (v - smin)/Math.max(1,(smax-smin))) * plotH; const yR=v=> padT + (1 - (v/10)) * plotH; const xT=t=> padL + (t-xmin)/(xmax-xmin||1)*plotW;
     CTX.strokeStyle='#e2e8f0'; CTX.lineWidth=1; CTX.beginPath(); const totSec=Math.max(1, Math.round((xmax-xmin)/1000)); for(let sec=0; sec<=totSec; sec+=60){ const t=xmin+sec*1000; const x=xT(t); CTX.moveTo(x,padT); CTX.lineTo(x,padT+plotH);} CTX.stroke();
-    CTX.strokeStyle='#edf2f7'; CTX.beginPath(); for(let v=Math.ceil(hrMin/10)*10; v<=hrMax; v+=10){ const y=yHR(v); CTX.moveTo(padL,y); CTX.lineTo(padL+plotW,y);} CTX.stroke();
-    CTX.fillStyle='#ef4444'; CTX.font=`${12*DPR}px system-ui`; for(let v=Math.ceil(hrMin/20)*20; v<=hrMax; v+=20){ CTX.fillText(String(v), 8*DPR, yHR(v)+4*DPR); }
-
-    const wVals=pts.map(p=> p.watt||0), wmin=Math.min(...wVals), wmax=Math.max(...wVals); const spVals=pts.map(p=> (p.speed_ms||0)*3.6), smin=Math.min(...spVals), smax=Math.max(...spVals);
-    const yW=v=> padT + (1 - (v-wmin)/Math.max(1,(wmax-wmin))) * plotH; const yS=v=> padT + (1 - (v - smin)/Math.max(1,(smax-smin))) * plotH; const yR=v=> padT + (1 - (v/10)) * plotH;
-
+    CTX.fillStyle='#ef4444'; CTX.font=`${12*DPR}px system-ui`; for(let v=hrMin; v<=hrMax; v+=20){ CTX.fillText(String(v), 8*DPR, yHR(v)+4*DPR); }
+    if(showWatt){ CTX.fillStyle='#16a34a'; CTX.textAlign='right'; const ticks=5; for(let i=0;i<=ticks;i++){ const v=wmin + (wmax-wmin)*i/ticks; CTX.fillText(String(Math.round(v)), W-8*DPR, yW(v)+4*DPR); } CTX.textAlign='left'; }
+    if(showSpeed){ CTX.fillStyle='#2563eb'; CTX.textAlign='center'; const ticks=5; for(let i=0;i<=ticks;i++){ const v=smin + (smax-smin)*i/ticks; const x=padL + plotW*i/ticks; CTX.fillText(String(isFinite(v)? v.toFixed(1):'0.0'), x, (padT-8*DPR)); } CTX.textAlign='left'; }
+    if(showRPE){ CTX.fillStyle='#d97706'; CTX.textAlign='right'; for(let v=0; v<=10; v+=2){ CTX.fillText(String(v), W-40*DPR, yR(v)+4*DPR); } CTX.textAlign='left'; }
     function drawLine(extract,color,ymap){ const vals=pts.map(extract); const any = vals.some(v=> v!=null); if(!any) return; CTX.strokeStyle=color; CTX.lineWidth=2*DPR; CTX.beginPath(); let moved=false; for(let i=0;i<pts.length;i++){ const p=pts[i]; const val=vals[i]; if(val==null) continue; const x=xT(p.ts), y=ymap(val); if(!moved){ CTX.moveTo(x,y); moved=true; } else CTX.lineTo(x,y); } CTX.stroke(); }
     if(showHR) drawLine(p=>p.hr, '#ef4444', yHR); if(showWatt) drawLine(p=>p.watt, '#16a34a', yW); if(showSpeed) drawLine(p=> (p.speed_ms||0)*3.6, '#2563eb', yS); if(showRPE) drawLine(p=>p.rpe, '#d97706', yR);
   }

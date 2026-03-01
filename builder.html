@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Øktbygger v2.6 – Intervall PWA</title>
+  <title>Øktbygger v2.7 – Intervall PWA</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://unpkg.com/phosphor-icons@1.4.2"></script>
 </head>
@@ -45,7 +45,7 @@
         <button id="redo" class="ghost" title="Gjør om"><i class="ph-arrow-arc-right"></i> Gjør om</button>
       </div>
       <div id="steps" class="steps"></div>
-      <p class="small">Fartlek/pyramide genereres som en <em>sammendragsrad</em> med segmenter under. Sammendragsraden har egne knapper for <strong>Vis/Skjul</strong> og <strong>Dupliser</strong>.</p>
+      <p class="small">Fartlek/pyramide genereres som en <em>sammendragsrad</em> med segmenter under. Sammendragsraden har <strong>Vis/Skjul</strong> og <strong>Dupliser</strong>.</p>
     </div>
 
     <div class="card">
@@ -65,6 +65,35 @@
     </div>
   </section>
 </main>
+
+<!-- Generator Modal -->
+<div id="gen-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="gen-title">
+  <div class="modalpanel">
+    <h3 id="gen-title">Generator</h3>
+    <div class="modalgrid">
+      <label>Segmenter (sek, kommadelt)
+        <textarea id="gen-segments" rows="5" placeholder="f.eks. 60,90,60,120"></textarea>
+      </label>
+      <div>
+        <label>Hurtig: bygg pyramide fra stigende sekvenser (kommaseparert)
+          <input id="gen-asc" type="text" placeholder="f.eks. 60,120,180" />
+        </label>
+        <label><input id="gen-mirror" type="checkbox" checked /> Speil stigende side (pyramide)</label>
+        <label>Pause mellom segmenter (s)
+          <input id="gen-pause" type="number" min="0" step="5" value="0" />
+        </label>
+        <label><input id="gen-group" type="checkbox" checked /> Start som sammendragsgruppe</label>
+        <label><input id="gen-absorb" type="checkbox" /> Forsøk å slå sammen til <em>Serie</em> når mulig</label>
+      </div>
+    </div>
+    <div class="small" id="gen-preview">Forhåndsvisning: 0 segmenter, 0:00</div>
+    <div class="modalactions">
+      <button id="gen-cancel" class="ghost">Avbryt</button>
+      <button id="gen-apply" class="primary">Bruk</button>
+    </div>
+  </div>
+</div>
+
 <script src="builder.js" defer></script>
 </body>
 </html>

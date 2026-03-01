@@ -12,10 +12,7 @@ function delNS(k){ localStorage.removeItem(nsKey(k)); }
   const stepsEl=el('steps'), listEl=el('b-list');
   let editingIndex=null;
 
-  // Step types: warmup, cooldown, single, series, pause, seriespause, group (ui)
-  let STEPS=[];
-  const UNDO=[], REDO=[]; const UNDO_LIMIT=20;
-
+  let STEPS=[]; const UNDO=[], REDO=[]; const UNDO_LIMIT=20;
   function pushState(){ UNDO.push(JSON.stringify({STEPS, editingIndex, name: el('b-name').value, desc: el('b-desc').value})); if(UNDO.length>UNDO_LIMIT) UNDO.shift(); REDO.length=0; }
   function restoreState(stateStr){ const s=JSON.parse(stateStr); STEPS=s.STEPS; editingIndex=s.editingIndex; el('b-name').value=s.name||''; el('b-desc').value=s.desc||''; render(); }
   function undo(){ if(!UNDO.length) return; const cur=JSON.stringify({STEPS, editingIndex, name:el('b-name').value, desc:el('b-desc').value}); REDO.push(cur); const prev=UNDO.pop(); restoreState(prev); }
@@ -27,6 +24,7 @@ function delNS(k){ localStorage.removeItem(nsKey(k)); }
   const fmt=(s)=>{ s=Math.max(0,Math.round(s)); const m=Math.floor(s/60), ss=String(s%60).padStart(2,'0'); return `${m}:${ss}`; };
 
   function stepCard(step){ const card=document.createElement('div'); card.className='step'; card.draggable = step.type!=='group'; card.dataset.id=step.id; card.innerHTML = renderStepInner(step); wireStepCard(card, step); return card; }
+  function labelFor(step){ return ({warmup:'Oppvarming', cooldown:'Nedjogg', single:'Enkelt‑drag', series:'Serie', pause:'Pause', seriespause:'Seriepause', group:'Sammendrag'})[step.type]||step.type; }
 
   function renderStepInner(step){ const t=step.type; const h=`<div class=\"step-header\"><span class=\"handle\"><i class=\"ph-dots-six\"></i></span><span class=\"step-title\">${labelFor(step)}</span></div>`;
     if(t==='group'){
@@ -61,8 +59,6 @@ function delNS(k){ localStorage.removeItem(nsKey(k)); }
     return h;
   }
 
-  function labelFor(step){ return ({warmup:'Oppvarming', cooldown:'Nedjogg', single:'Enkelt‑drag', series:'Serie', pause:'Pause', seriespause:'Seriepause', group:'Sammendrag'})[step.type]||step.type; }
-
   function wireStepCard(card, step){
     if(step.type==='group'){
       const tgl=card.querySelector('.act-tgl'); if(tgl) tgl.onclick=()=>{ pushState(); step.data.collapsed=!step.data.collapsed; render(); };
@@ -90,29 +86,21 @@ function delNS(k){ localStorage.removeItem(nsKey(k)); }
   function insertAfterStep(targetId, newStep){ const idx=indexOfId(targetId); if(idx>=0){ STEPS.splice(idx+1,0,newStep); render(); }}
   function removeStep(id){ const i=indexOfId(id); if(i>=0){ const st=STEPS[i]; if(st.type==='group'){ deleteGroup(st.id); return; } STEPS.splice(i,1); render(); }}
 
-  function deleteGroup(groupId){ const i=indexOfId(groupId); if(i<0) return; // remove header + children
-    STEPS.splice(i,1); while(i<STEPS.length && STEPS[i].data && STEPS[i].data._groupId===groupId){ STEPS.splice(i,1); }
-    render(); }
-
+  function deleteGroup(groupId){ const i=indexOfId(groupId); if(i<0) return; STEPS.splice(i,1); while(i<STEPS.length && STEPS[i].data && STEPS[i].data._groupId===groupId){ STEPS.splice(i,1); } render(); }
   function duplicateGroup(groupId){ const i=indexOfId(groupId); if(i<0) return; const hdr=STEPS[i]; const kids=[]; let j=i+1; while(j<STEPS.length && STEPS[j].data && STEPS[j].data._groupId===groupId){ kids.push(STEPS[j]); j++; }
     const newId=uid(); const newHdr={...JSON.parse(JSON.stringify(hdr)), id:newId}; newHdr.data.collapsed=hdr.data.collapsed; STEPS.splice(j,0,newHdr); kids.forEach((k,idx)=>{ const nk=JSON.parse(JSON.stringify(k)); nk.id=uid(); nk.data._groupId=newId; STEPS.splice(j+1+idx,0,nk); }); render(); }
 
-  function reorderBefore(srcId, dstId){ const si=indexOfId(srcId); const di=indexOfId(dstId); if(si<0||di<0) return; const src=STEPS[si]; if(src.type==='group'){ // move header+children
-      const kids=[]; let j=si+1; while(j<STEPS.length && STEPS[j].data && STEPS[j].data._groupId===src.id){ kids.push(STEPS[j]); j++; }
-      const bundle=[...STEPS.splice(si,1), ...STEPS.splice(si, kids.length)]; const di2=indexOfId(dstId); const insert = (si<di2)? di2-1 : di2; STEPS.splice(insert,0,...bundle); render(); return; }
+  function reorderBefore(srcId, dstId){ const si=indexOfId(srcId); const di=indexOfId(dstId); if(si<0||di<0) return; const src=STEPS[si]; if(src.type==='group'){ const kids=[]; let j=si+1; while(j<STEPS.length && STEPS[j].data && STEPS[j].data._groupId===src.id){ kids.push(STEPS[j]); j++; } const bundle=[...STEPS.splice(si,1), ...STEPS.splice(si, kids.length)]; const di2=indexOfId(dstId); const insert = (si<di2)? di2-1 : di2; STEPS.splice(insert,0,...bundle); render(); return; }
     const [item]=STEPS.splice(si,1); const di2=indexOfId(dstId); const insert= si<di2? di2-1: di2; STEPS.splice(insert,0,item); render(); }
 
   function render(){ stepsEl.innerHTML=''; for(let i=0;i<STEPS.length;i++){
       const st=STEPS[i]; const c=stepCard(st); stepsEl.appendChild(c);
-      if(st.type==='group' && st.data.collapsed){ // skip rendering children
-        let j=i+1; while(j<STEPS.length && STEPS[j].data && STEPS[j].data._groupId===st.id){ j++; }
-        i=j-1; continue;
-      }
+      if(st.type==='group' && st.data.collapsed){ let j=i+1; while(j<STEPS.length && STEPS[j].data && STEPS[j].data._groupId===st.id){ j++; } i=j-1; continue; }
     }
     renderList(); refreshTotal();
   }
 
-  // Toolbar actions
+  // Toolbar
   function addWarm(){ pushState(); STEPS.push({id:uid(), type:'warmup', data:{sec:600}}); render(); }
   function addSeries(){ pushState(); STEPS.push({id:uid(), type:'series', data:{reps:4,workSec:180,restSec:60,seriesRestSec:0,note:''}}); render(); }
   function addSingle(){ pushState(); STEPS.push({id:uid(), type:'single', data:{workSec:60,note:''}}); render(); }
@@ -121,15 +109,43 @@ function delNS(k){ localStorage.removeItem(nsKey(k)); }
   function addCool(){ pushState(); STEPS.push({id:uid(), type:'cooldown', data:{sec:600}}); render(); }
   el('add-warmup').onclick=addWarm; el('add-series').onclick=addSeries; el('add-single').onclick=addSingle; el('add-pause').onclick=addPause; el('add-seriepause').onclick=addSeriesPause; el('add-cooldown').onclick=addCool;
 
-  // Generators with optional pause between segments
-  function addGenerator(title, secs){ if(!secs.length) return; const pause=Number(prompt('Pause mellom segmenter (sek, 0 for ingen)', '0')||'0'); pushState(); const gid=uid(); STEPS.push({id:gid, type:'group', data:{title, secs:[...secs], collapsed:true}}); secs.forEach((s,i)=>{ STEPS.push({id:uid(), type:'single', data:{workSec:s, note:'', _groupId:gid}}); if(pause>0 && i<secs.length-1){ STEPS.push({id:uid(), type:'pause', data:{sec:pause, _groupId:gid}}); } }); render(); }
-  el('gen-fartlek').onclick=()=>{ const s=prompt('Varigheter i sek (kommadelt), f.eks. 60,90,60,120'); if(!s) return; const arr=s.split(',').map(x=>Number(x.trim())).filter(x=>x>0); addGenerator('Fartlek', arr); };
-  el('gen-pyramid').onclick=()=>{ const s=prompt('Varigheter i sek for pyramide (kommadelt), f.eks. 60,120,180,120,60'); if(!s) return; const arr=s.split(',').map(x=>Number(x.trim())).filter(x=>x>0); addGenerator('Pyramide', arr); };
+  // ===== Generator GUI =====
+  let GEN_MODE='fartlek';
+  const modal=el('gen-modal'); const gTitle=el('gen-title'); const gSeg=el('gen-segments'); const gAsc=el('gen-asc'); const gMirror=el('gen-mirror'); const gPause=el('gen-pause'); const gGroup=el('gen-group'); const gAbsorb=el('gen-absorb'); const gPrev=el('gen-preview');
+  function openGen(mode){ GEN_MODE=mode; gTitle.textContent = mode==='pyramide'? 'Pyramidegenerator' : 'Fartlekgenerator'; gSeg.value=''; gAsc.value=''; gMirror.checked=(mode==='pyramide'); gPause.value='0'; gGroup.checked=true; gAbsorb.checked=false; updateGenPreview(); modal.classList.add('open'); }
+  function closeGen(){ modal.classList.remove('open'); }
+  function parseCSV(str){ return (str||'').split(',').map(x=>Number(x.trim())).filter(x=>x>0); }
+  function buildSegments(){ let base=[]; const seg=parseCSV(gSeg.value); const asc=parseCSV(gAsc.value); if(asc.length){ base = asc.slice(); if(gMirror.checked){ // mirror excluding last apex duplicate
+        base = base.concat(asc.slice(0,-1).reverse());
+      }
+  }
+    if(seg.length){ base = base.concat(seg); }
+    return base; }
+  function updateGenPreview(){ const arr=buildSegments(); const pause=Number(gPause.value||0); let total=0; if(arr.length){ total += arr.reduce((a,b)=>a+b,0); if(pause>0) total += pause*(arr.length-1); } gPrev.textContent=`Forhåndsvisning: ${arr.length} segmenter, ${fmt(total)}`; }
+  gSeg.addEventListener('input', updateGenPreview); gAsc.addEventListener('input', updateGenPreview); gMirror.addEventListener('change', updateGenPreview); gPause.addEventListener('change', updateGenPreview);
 
-  // Save & Update
-  function compileToV2(){ let warm=0, cool=0; const series=[]; for(const s of STEPS){ if(s.type==='warmup') warm += Number(s.data.sec||0); else if(s.type==='cooldown') cool += Number(s.data.sec||0); else if(s.type==='single'){ series.push({reps:1,workSec:Number(s.data.workSec||0),restSec:0,seriesRestSec:0,note:s.data.note||''}); } else if(s.type==='series'){ series.push({reps:Number(s.data.reps||0), workSec:Number(s.data.workSec||0), restSec:Number(s.data.rest||s.data.restSec||0), seriesRestSec:Number(s.data.seriesRestSec||0), note:s.data.note||''}); } else if(s.type==='pause' || s.type==='seriespause'){ const sec=Number(s.data.sec||0); series.push({reps:1, workSec:0, restSec:sec, seriesRestSec:0, note:''}); } else if(s.type==='group'){ /* ui only */ } }
+  function addGeneratorFromGUI(){ const arr=buildSegments(); const pause=Number(gPause.value||0); const makeGroup=!!gGroup.checked; const absorb=!!gAbsorb.checked; if(!arr.length){ alert('Ingen segmenter.'); return; }
+    pushState();
+    // Absorb to Series if all equal and pause constant
+    const allEq = arr.every(x=>x===arr[0]);
+    if(absorb && allEq){ // collapse
+      const reps=arr.length; const work=arr[0]; const rest=pause>0? pause:0; STEPS.push({id:uid(), type:'series', data:{reps, workSec:work, restSec:rest, seriesRestSec:0, note:''}}); render(); return;
+    }
+    // Otherwise, create group + singles (+ pause children)
+    let gid=null; if(makeGroup){ gid=uid(); const title=(GEN_MODE==='pyramide')? 'Pyramide' : 'Fartlek'; STEPS.push({id:gid, type:'group', data:{title, secs:[...arr], collapsed:true}}); }
+    arr.forEach((s,i)=>{ STEPS.push({id:uid(), type:'single', data:{workSec:s, note:'', _groupId:gid||undefined}}); if(pause>0 && i<arr.length-1){ STEPS.push({id:uid(), type:'pause', data:{sec:pause, _groupId:gid||undefined}}); } });
+    render();
+  }
+
+  el('gen-fartlek').onclick=()=> openGen('fartlek');
+  el('gen-pyramid').onclick=()=> openGen('pyramide');
+  el('gen-apply').onclick=()=>{ addGeneratorFromGUI(); closeGen(); };
+  el('gen-cancel').onclick=()=> closeGen();
+  modal.addEventListener('click', (e)=>{ if(e.target===modal) closeGen(); });
+
+  // ===== Save & Update =====
+  function compileToV2(){ let warm=0, cool=0; const series=[]; for(const s of STEPS){ if(s.type==='warmup') warm += Number(s.data.sec||0); else if(s.type==='cooldown') cool += Number(s.data.sec||0); else if(s.type==='single'){ series.push({reps:1,workSec:Number(s.data.workSec||0),restSec:0,seriesRestSec:0,note:s.data.note||''}); } else if(s.type==='series'){ series.push({reps:Number(s.data.reps||0), workSec:Number(s.data.workSec||0), restSec:Number(s.data.rest||s.data.restSec||0), seriesRestSec:Number(s.data.seriesRestSec||0), note:s.data.note||''}); } else if(s.type==='pause' || s.type==='seriespause'){ const sec=Number(s.data.sec||0); series.push({reps:1, workSec:0, restSec:sec, seriesRestSec:0, note:''}); } }
     return {warmupSec:warm, cooldownSec:cool, series}; }
-
   function totalDurationSec(){ const cfg=compileToV2(); const s=cfg.series||[]; let total=Number(cfg.warmupSec||0)+Number(cfg.cooldownSec||0); for(const x of s){ total += Number(x.reps||0) * (Number(x.workSec||0) + Number(x.restSec||0)); total += Number(x.seriesRestSec||0); } return total; }
   function refreshTotal(){ el('b-total').textContent = fmt(totalDurationSec()); }
 
@@ -147,10 +163,7 @@ function delNS(k){ localStorage.removeItem(nsKey(k)); }
   el('b-clear').onclick=()=>{ pushState(); editingIndex=null; el('b-update').classList.add('hidden'); el('b-save').classList.remove('hidden'); el('b-name').value=''; el('b-desc').value=''; STEPS=[]; render(); };
 
   function autorunIndex(i){ setNS('preselect', {type:'custom', index:i}); location.href='index.html'; }
-
-  // Saved templates UI (name btn, play, trash, desc, duration) and DnD reorder
-  function rowDuration(w){ // compute from compiled
-    const s=w.series||[]; let total=Number(w.warmupSec||0)+Number(w.cooldownSec||0); for(const x of s){ total += Number(x.reps||0) * (Number(x.workSec||0) + Number(x.restSec||0)); total += Number(x.seriesRestSec||0); } return fmt(total); }
+  function rowDuration(w){ const s=w.series||[]; let total=Number(w.warmupSec||0)+Number(w.cooldownSec||0); for(const x of s){ total += Number(x.reps||0) * (Number(x.workSec||0) + Number(x.restSec||0)); total += Number(x.seriesRestSec||0); } return fmt(total); }
 
   function renderList(){ const arr=getAll(); if(!arr.length){ listEl.innerHTML='<p class="small">Ingen lagrede maler enda.</p>'; return;} listEl.innerHTML=''; const wrap=document.createElement('div'); wrap.style.display='grid'; wrap.style.gap='8px';
     arr.forEach((w,i)=>{
@@ -181,6 +194,5 @@ function delNS(k){ localStorage.removeItem(nsKey(k)); }
     listEl.appendChild(wrap);
   }
 
-  // init
   render(); renderList();
 })();

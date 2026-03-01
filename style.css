@@ -56,3 +56,14 @@ button.ghost{background:transparent;border-color:#cbd5e1}
 .row-desc{color:#475569;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
 .row-dur{color:#0f172a;font-size:12px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:999px;padding:2px 8px}
 .row-btns{display:flex;align-items:center;gap:6px}
+
+/* Modal */
+.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,0.4);z-index:100}
+.modal.open{display:flex}
+.modalpanel{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);width:min(680px,96vw);padding:12px}
+.modalpanel h3{margin:4px 0 8px 0}
+.modalgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.modalgrid label{display:grid;gap:4px;font-size:13px}
+.modalgrid input, .modalgrid textarea, .modalgrid select{padding:6px;border:1px solid #cbd5e1;border-radius:8px}
+.modalactions{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+.badge{background:#eef2ff;border:1px solid #c7d2fe;color:#0b1020;border-radius:999px;padding:2px 8px;font-size:12px}

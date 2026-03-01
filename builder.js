@@ -22,35 +22,35 @@ function setNS(k, v){ localStorage.setItem(nsKey(k), JSON.stringify(v)); }
   function stepCard(step){ const card=document.createElement('div'); card.className='step'; card.draggable = step.type!=='group'; card.dataset.id=step.id; card.innerHTML = renderStepInner(step); wireStepCard(card, step); return card; }
   function labelFor(step){ return ({warmup:'Oppvarming', cooldown:'Nedjogg', single:'Enkelt‑drag', series:'Serie', pause:'Pause', seriespause:'Seriepause', group:'Sammendrag'})[step.type]||step.type; }
 
-  function renderStepInner(step){ const t=step.type; const h=`<div class="step-header"><span class="handle"><i class="ph-dots-six"></i></span><span class="step-title">${labelFor(step)}</span></div>`;
+  function renderStepInner(step){ const t=step.type; const h=`<div class=\"step-header\"><span class=\"handle\"><i class=\"ph-dots-six\"></i></span><span class=\"step-title\">${labelFor(step)}</span></div>`;
     if(t==='group'){
       const arr=step.data.secs||[]; const collapsed = !!step.data.collapsed; const label = step.data.title || 'Gruppe';
-      return `<div class="step-header"><span class="handle"><i class="ph-dots-six"></i></span><span class="step-title">${label} – ${arr.length} segmenter</span><div class="step-actions"><button class="ghost act-dupgrp"><i class="ph-copy"></i> Dupliser</button><button class="ghost act-tgl">${collapsed?'Vis':'Skjul'}</button><button class="ghost act-del"><i class="ph-trash"></i> Slett</button></div>`;
+      return `<div class=\"step-header\"><span class=\"handle\"><i class=\"ph-dots-six\"></i></span><span class=\"step-title\">${label} – ${arr.length} segmenter</span><div class=\"step-actions\"><button class=\"ghost act-dupgrp\"><i class=\"ph-copy\"></i> Dupliser</button><button class=\"ghost act-tgl\">${collapsed?'Vis':'Skjul'}</button><button class=\"ghost act-del\"><i class=\"ph-trash\"></i> Slett</button></div>`;
     }
     if(t==='warmup' || t==='cooldown'){
-      return h+`<div class="step-fields">`+
-        `<label>Varighet (min)<input type="number" class="f-min" min="0" step="1" value="${(step.data.sec||0)/60}"></label>`+
-        `</div><div class="step-actions"><button class="ghost act-dup"><i class="ph-copy"></i> Dupliser</button><button class="ghost act-del"><i class="ph-trash"></i> Slett</button></div>`;
+      return h+`<div class=\"step-fields\">`+
+        `<label>Varighet (min)<input type=\"number\" class=\"f-min\" min=\"0\" step=\"1\" value=\"${(step.data.sec||0)/60}\"></label>`+
+        `</div><div class=\"step-actions\"><button class=\"ghost act-dup\"><i class=\"ph-copy\"></i> Dupliser</button><button class=\"ghost act-del\"><i class=\"ph-trash\"></i> Slett</button></div>`;
     }
     if(t==='single'){
-      return h+`<div class="step-fields enlarge-note">`+
-        `<label>Work (s)<input type="number" class="f-work" min="5" step="5" value="${step.data.workSec||60}"></label>`+
-        `<label style="grid-column: span 5">Merknad<textarea class="f-note" rows="2" placeholder="f.eks. HM‑fart">${step.data.note||''}</textarea></label>`+
-        `</div><div class="step-actions"><button class="ghost act-dup"><i class="ph-copy"></i> Dupliser</button><button class="ghost act-del"><i class="ph-trash"></i> Slett</button></div>`;
+      return h+`<div class=\"step-fields enlarge-note\">`+
+        `<label>Work (s)<input type=\"number\" class=\"f-work\" min=\"5\" step=\"5\" value=\"${step.data.workSec||60}\"></label>`+
+        `<label style=\"grid-column: span 5\">Merknad<textarea class=\"f-note\" rows=\"2\" placeholder=\"f.eks. HM‑fart\">${step.data.note||''}</textarea></label>`+
+        `</div><div class=\"step-actions\"><button class=\"ghost act-dup\"><i class=\"ph-copy\"></i> Dupliser</button><button class=\"ghost act-del\"><i class=\"ph-trash\"></i> Slett</button></div>`;
     }
     if(t==='series'){
-      return h+`<div class="step-fields enlarge-note">`+
-        `<label>Reps<input type="number" class="f-reps" min="1" step="1" value="${step.data.reps||4}"></label>`+
-        `<label>Work (s)<input type="number" class="f-work" min="10" step="5" value="${step.data.workSec||180}"></label>`+
-        `<label>Rest (s)<input type="number" class="f-rest" min="0" step="5" value="${step.data.restSec||60}"></label>`+
-        `<label>Seriepause (s)<input type="number" class="f-srest" min="0" step="10" value="${step.data.seriesRestSec||0}"></label>`+
-        `<label style="grid-column: span 2">Merknad<textarea class="f-note" rows="2" placeholder="f.eks. 90% HRmax">${step.data.note||''}</textarea></label>`+
-        `</div><div class="step-actions"><button class="ghost act-dup"><i class="ph-copy"></i> Dupliser</button><button class="ghost act-del"><i class="ph-trash"></i> Slett</button></div>`;
+      return h+`<div class=\"step-fields enlarge-note\">`+
+        `<label>Reps<input type=\"number\" class=\"f-reps\" min=\"1\" step=\"1\" value=\"${step.data.reps||4}\"></label>`+
+        `<label>Work (s)<input type=\"number\" class=\"f-work\" min=\"10\" step=\"5\" value=\"${step.data.workSec||180}\"></label>`+
+        `<label>Rest (s)<input type=\"number\" class=\"f-rest\" min=\"0\" step=\"5\" value=\"${step.data.restSec||60}\"></label>`+
+        `<label>Seriepause (s)<input type=\"number\" class=\"f-srest\" min=\"0\" step=\"10\" value=\"${step.data.seriesRestSec||0}\"></label>`+
+        `<label style=\"grid-column: span 2\">Merknad<textarea class=\"f-note\" rows=\"2\" placeholder=\"f.eks. 90% HRmax\">${step.data.note||''}</textarea></label>`+
+        `</div><div class=\"step-actions\"><button class=\"ghost act-dup\"><i class=\"ph-copy\"></i> Dupliser</button><button class=\"ghost act-del\"><i class=\"ph-trash\"></i> Slett</button></div>`;
     }
     if(t==='pause' || t==='seriespause'){
-      return h+`<div class="step-fields">`+
-        `<label>Varighet (s)<input type="number" class="f-sec" min="5" step="5" value="${step.data.sec||60}"></label>`+
-        `</div><div class="step-actions"><button class="ghost act-dup"><i class="ph-copy"></i> Dupliser</button><button class="ghost act-del"><i class="ph-trash"></i> Slett</button></div>`;
+      return h+`<div class=\"step-fields\">`+
+        `<label>Varighet (s)<input type=\"number\" class=\"f-sec\" min=\"5\" step=\"5\" value=\"${step.data.sec||60}\"></label>`+
+        `</div><div class=\"step-actions\"><button class=\"ghost act-dup\"><i class=\"ph-copy\"></i> Dupliser</button><button class=\"ghost act-del\"><i class=\"ph-trash\"></i> Slett</button></div>`;
     }
     return h;
   }

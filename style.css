@@ -4,7 +4,7 @@
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font:16px system-ui,Segoe UI,Roboto,Helvetica,Arial}
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#ffffff;border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
-.topbar a{color:var(--fg);text-decoration:none}
+.topbar a{color:#0b1020;text-decoration:none}
 .layout{display:grid;grid-template-columns: 480px 1fr;gap:16px;padding:16px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:var(--shadow)}
 .card h3{margin:4px 0 12px 0;font-size:16px}

@@ -1,2 +1,154 @@
 <!DOCTYPE html>
-<html lang="no"> ... (full content) ...</html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#f7fafc" />
+  <title>Intervall PWA</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://unpkg.com/phosphor-icons@1.4.2"></script>
+</head>
+<body>
+  <header class="topbar" id="topbar">
+    <div class="nav">
+      <a href="index.html"><strong>INTZ</strong></a>
+      <a href="builder.html">Øktbygger</a>
+      <a href="log.html">Logg</a>
+      <a href="settings.html">Innstillinger</a>
+    </div>
+    <div class="devicectl">
+      <button id="connect-hr" class="primary" title="Koble til puls"><i class="ph-heart ph-fw"></i> Puls</button>
+      <button id="connect-treadmill" class="secondary" title="Koble til mølle"><i class="ph-treadmill ph-fw"></i> Mølle</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="leftcol">
+      <div class="card metrics" id="dashboard">
+        <div class="metric metric-big" style="display:flex;align-items:baseline;gap:8px"><label style="width:170px;color:#5f6b7a">Puls</label><span id="pulse" class="big-num" style="font-size:56px;line-height:1;color:#ef4444">--</span><small>bpm</small></div>
+        <div class="metric" style="display:flex;align-items:baseline;gap:8px"><label style="width:170px;color:#5f6b7a">Estimert watt</label><span id="watt">--</span><small>W</small></div>
+        <div class="metric" style="display:flex;align-items:baseline;gap:8px"><label style="width:170px;color:#5f6b7a">Slope (20s−120s)</label><span id="slope">--</span><small>bpm</small></div>
+        <div class="rpe-compact" style="display:flex;align-items:center;gap:8px;margin-top:6px">
+          <label for="rpe-now" style="width:170px;color:#5f6b7a">RPE nå</label>
+          <button id="rpe-dec" class="iconbtn" title="-0,5"><i class="ph-minus"></i></button>
+          <input id="rpe-now" type="number" step="0.5" min="0" max="10" value="0" style="width:72px;text-align:center" />
+          <button id="rpe-inc" class="iconbtn" title="+0,5"><i class="ph-plus"></i></button>
+        </div>
+        <div class="rpe-help"><span id="rpe-desc">RPE 0–10 – velg et nivå</span></div>
+      </div>
+
+      <div class="card workout workout-panel">
+        <div class="workout-header" style="display:flex;gap:8px;align-items:center">
+          <i class="ph-notepad"></i>
+          <select id="workout-select" title="Velg treningsøkt" style="flex:1"></select>
+          <span id="sel-dur" class="badge" title="Total varighet">--:--</span>
+        </div>
+        <div class="nowplaying" style="display:grid;gap:8px">
+          <div id="current-step-name" class="step-label" style="font-weight:600">Ingen økt valgt</div>
+          <div id="timer" class="big-timer">00:00</div>
+          <div class="next-steps" style="display:grid;gap:2px;color:#475569;font-size:13px">
+            <div id="next1">Neste: –</div>
+            <div id="next2">Deretter: –</div>
+          </div>
+          <div id="progressbar" style="height:8px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:999px;overflow:hidden"><div id="progress" style="height:100%;width:0;background:#16a34a"></div></div>
+        </div>
+        <div class="workout-controls" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:8px">
+          <button id="btn-start-pause" class="primary btn-hero" title="Start/Pause"><i id="sp-icon" class="ph-play"></i><span id="sp-label">Start</span></button>
+          <button id="btn-skip-back" class="secondary" title="Tilbake"><i class="ph-skip-back"></i></button>
+          <button id="btn-skip-fwd" class="secondary" title="Frem"><i class="ph-skip-forward"></i></button>
+          <button id="btn-stop-save" class="ghost" title="Stopp & lagre"><i class="ph-stop"></i></button>
+          <button id="btn-discard" class="ghost" title="Forkast (ikke lagre)"><i class="ph-trash"></i></button>
+        </div>
+      </div>
+
+      <div class="card controls">
+        <div class="row" style="display:flex;justify-content:space-between;align-items:center">
+          <h3>Fart og stigning</h3>
+          <span id="ftms-status" class="badge" style="background:#ecfeff;border:1px solid #a5f3fc;color:#155e75;padding:4px 8px;border-radius:999px;font-size:12px">FTMS: Frakoblet</span>
+        </div>
+        <div class="row" style="display:flex;gap:8px;flex-wrap:wrap">
+          <div class="field" style="flex:1;min-width:180px">
+            <label>Fart (km/t)</label>
+            <div class="stepper" style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap">
+              <button id="speed-dec" class="iconbtn" title="-0,1"><i class="ph-minus ph-2x"></i></button>
+              <input id="manual-speed" type="number" min="0" step="0.1" value="0.0" />
+              <button id="speed-inc" class="iconbtn" title="+0,1"><i class="ph-plus ph-2x"></i></button>
+            </div>
+            <div class="quickrow small">
+              <button class="speed-btn" data-speed="10">10 km/t</button>
+              <button class="speed-btn" data-speed="15">15 km/t</button>
+            </div>
+          </div>
+          <div class="field" style="flex:1;min-width:180px">
+            <label>Stigning (%)</label>
+            <div class="stepper" style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap">
+              <button id="grade-dec" class="iconbtn" title="-0,5%"><i class="ph-minus ph-2x"></i></button>
+              <input id="manual-grade" type="number" step="0.5" value="0.0" />
+              <button id="grade-inc" class="iconbtn" title="+0,5%"><i class="ph-plus ph-2x"></i></button>
+            </div>
+            <div class="quickrow small">
+              <button class="grade-btn" data-grade="5">5&nbsp;%</button>
+              <button class="grade-btn" data-grade="10">10&nbsp;%</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card warning hidden" id="err-card">
+        <h3>Kjøretidsfeil</h3>
+        <pre id="err-log"></pre>
+      </div>
+    </section>
+
+    <section class="rightcol">
+      <div class="card graphcard" style="padding:8px">
+        <div class="graphhdr" style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;color:#5f6b7a;gap:8px">
+          <div class="ghostctl">
+            <strong>Graf</strong>
+            <label><input type="checkbox" id="show-hr" checked> Puls</label>
+            <label><input type="checkbox" id="show-watt" checked> Watt</label>
+            <label><input type="checkbox" id="show-speed"> Fart</label>
+            <label><input type="checkbox" id="show-rpe" checked> RPE</label>
+            <label><input type="checkbox" id="ghost-enable"> Ghost</label>
+            <button id="ghost-picker" class="secondary"><i class="ph-faders"></i> Velg ghost‑økter</button>
+          </div>
+          <div class="axislegend small">HR (venstre) · Watt (høyre) · Fart (topp) · RPE (høyre‑innvendig)</div>
+        </div>
+        <div class="graphwrap">
+          <canvas id="chart" aria-label="trening data graf" role="img"></canvas>
+        </div>
+      </div>
+      <p class="small" style="margin:0 8px 12px 8px">Ghost = tidsjustert snitt av valgte økter (HR/Watt) lagt oppå live-kurven.</p>
+    </section>
+  </main>
+
+  <!-- Ghost menu with sticky controls on top -->
+  <div id="ghost-menu" class="menu hidden" style="position:absolute;right:16px;top:72px;width:360px;max-height:420px;overflow:auto;padding:8px;z-index:20">
+    <div class="menu-item" style="justify-content:space-between;position:sticky;top:0;background:#fff;z-index:1">
+      <strong>Velg ghost‑økter</strong>
+      <div>
+        <button id="ghost-select-all" class="ghost">Velg alle</button>
+        <button id="ghost-clear-all" class="ghost">Fjern alle</button>
+        <button id="ghost-apply" class="primary">Bruk</button>
+      </div>
+    </div>
+    <div id="ghost-list"></div>
+  </div>
+
+  <!-- Modal: Start uten pulsbelte -->
+  <div id="nohr-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="nohr-title">
+    <div class="modalpanel">
+      <h3 id="nohr-title">Pulsbelte ikke tilkoblet</h3>
+      <p>Vil du koble til nå, eller starte økta uten pulsbelte?</p>
+      <div class="modalactions">
+        <button id="nohr-cancel" class="ghost">Avbryt</button>
+        <button id="nohr-start" class="secondary">Start uten pulsbelte</button>
+        <button id="nohr-connect" class="primary">Koble til</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="main.js" defer></script>
+</body>
+</html>

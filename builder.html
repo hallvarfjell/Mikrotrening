@@ -1,6 +1,98 @@
-<!DOCTYPE html> 
-<html lang="no"> 
-<head> 
- <meta charset="UTF-8" /> 
- ... (full content omitted due to length) ...
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Øktbygger – Intervall PWA</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://unpkg.com/phosphor-icons@1.4.2"></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="nav">
+    <a href="index.html">Til hovedskjerm</a>
+    <a href="log.html">Øktlogg</a>
+    <a href="settings.html">Innstillinger</a>
+  </div>
+</header>
+<main class="layout">
+  <section class="leftcol">
+    <div class="card">
+      <h3>Øktinformasjon</h3>
+      <div class="row" style="display:grid;gap:8px">
+        <label>Øktnavn
+          <input id="b-name" type="text" placeholder="f.eks. Terskel – 4×10 min" />
+        </label>
+        <label>Beskrivelse (fritekst)
+          <textarea id="b-desc" rows="3" placeholder="Hva er hensikten med økta?"></textarea>
+        </label>
+        <div class="small">Total varighet: <strong id="b-total">0:00</strong></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Øktinnhold</h3>
+      <div class="toolbar" style="display:flex;gap:6px;flex-wrap:wrap">
+        <button id="add-warmup" class="secondary"><i class="ph-thermometer-simple"></i> Oppvarming</button>
+        <button id="add-series" class="secondary"><i class="ph-rows"></i> Serie</button>
+        <button id="add-single" class="secondary"><i class="ph-timer"></i> Enkelt‑drag</button>
+        <button id="add-pause" class="secondary"><i class="ph-coffee"></i> Pause</button>
+        <button id="add-seriepause" class="secondary"><i class="ph-arrows-in-line-horizontal"></i> Seriepause</button>
+        <button id="add-cooldown" class="secondary"><i class="ph-thermometer-cold"></i> Nedjogg</button>
+        <button id="gen-fartlek" class="secondary"><i class="ph-wave-sine"></i> Fartlek</button>
+        <button id="gen-pyramid" class="secondary"><i class="ph-triangle"></i> Pyramide</button>
+        <button id="undo" class="ghost" title="Angre (opptil 20)"><i class="ph-arrow-arc-left"></i> Angre</button>
+        <button id="redo" class="ghost" title="Gjør om"><i class="ph-arrow-arc-right"></i> Gjør om</button>
+      </div>
+      <div id="steps" class="steps" style="display:grid;gap:8px"></div>
+      <p class="small">Fartlek/pyramide genereres som en <em>sammendragsrad</em> med segmenter under. Sammendragsraden har <strong>Vis/Skjul</strong> og <strong>Dupliser</strong>.</p>
+    </div>
+
+    <div class="card">
+      <div class="row" style="display:flex;gap:8px;flex-wrap:wrap">
+        <button id="b-save" class="primary"><i class="ph-floppy-disk"></i> Lagre som ny</button>
+        <button id="b-update" class="secondary hidden"><i class="ph-floppy-disk"></i> Oppdater mal</button>
+        <button id="b-clear" class="ghost"><i class="ph-trash"></i> Nullstill</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="rightcol">
+    <div class="card">
+      <h3>Lagrede maler</h3>
+      <div id="b-list"></div>
+    </div>
+  </section>
+</main>
+
+<!-- Generator Modal -->
+<div id="gen-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="gen-title">
+  <div class="modalpanel">
+    <h3 id="gen-title">Generator</h3>
+    <div class="modalgrid">
+      <label>Segmenter (sek, kommadelt)
+        <textarea id="gen-segments" rows="5" placeholder="f.eks. 60,90,60,120"></textarea>
+      </label>
+      <div>
+        <label>Hurtig: bygg pyramide fra stigende sekvenser (kommaseparert)
+          <input id="gen-asc" type="text" placeholder="f.eks. 60,120,180" />
+        </label>
+        <label><input id="gen-mirror" type="checkbox" checked /> Speil stigende side (pyramide)</label>
+        <label>Pause mellom segmenter (s)
+          <input id="gen-pause" type="number" min="0" step="5" value="0" />
+        </label>
+        <label><input id="gen-group" type="checkbox" checked /> Start som sammendragsgruppe</label>
+        <label><input id="gen-absorb" type="checkbox" /> Slå sammen til <em>Serie</em> når mulig</label>
+      </div>
+    </div>
+    <div class="small" id="gen-preview">Forhåndsvisning: 0 segmenter, 0:00</div>
+    <div class="modalactions">
+      <button id="gen-cancel" class="ghost">Avbryt</button>
+      <button id="gen-apply" class="primary">Bruk</button>
+    </div>
+  </div>
+</div>
+
+<script src="builder.js" defer></script>
+</body>
 </html>

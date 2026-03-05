@@ -474,6 +474,7 @@ function delNS(k){ localStorage.removeItem(nsKey(k)); }
     try{
       if(!ctx||!canvas) return;
       const W=canvas.width, H=canvas.height;
+      const dpr = window.devicePixelRatio||1;
       const padL=60*dpr, padR=60*dpr, padT=30*dpr, padB=24*dpr;
       const plotW=W-padL-padR, plotH=H-padT-padB;
       ctx.clearRect(0,0,W,H);
@@ -481,59 +482,99 @@ function delNS(k){ localStorage.removeItem(nsKey(k)); }
 
       const now=Date.now();
       const xmin=now-STATE.windowSec*1000, xmax=now;
+      const showHR = document.getElementById('show-hr')?.checked ?? getNS('defHR',true);
+      const showWatt = document.getElementById('show-watt')?.checked ?? getNS('defWatt',true);
+      const showSpeed= document.getElementById('show-speed')?.checked ?? getNS('defSpeed',false);
+      const showRPE = document.getElementById('show-rpe')?.checked ?? getNS('defRPE',true);
 
-      const showHR   = el('show-hr')?.checked   ?? getNS('defHR',true);
-      const showWatt = el('show-watt')?.checked ?? getNS('defWatt',true);
-      const showSpeed= el('show-speed')?.checked?? getNS('defSpeed',false);
-      const showRPE  = el('show-rpe')?.checked  ?? getNS('defRPE',true);
+      const HR = (STATE.series.hr||[]).filter(p=>p.t>=xmin);
+      const WT = (STATE.series.watt||[]).filter(p=>p.t>=xmin);
+      const SP = (STATE.series.speed||[]).filter(p=>p.t>=xmin);
+      const RP = (STATE.series.rpe||[]).filter(p=>p.t>=xmin);
 
-      const hrMin= getNS('hrMin',80), hrMax=getNS('hrMax',200);
-      const yHR = v => padT + (1 - (v-hrMin)/(hrMax-hrMin||1))*plotH;
-      const xTime = t => padL + (t-xmin)/(xmax-xmin||1)*plotW;
+      const hrVals = HR.map(p=>p.y).filter(v=>v!=null);
+      const wVals = WT.map(p=>p.y).filter(v=>v!=null);
+      const sVals = SP.map(p=>p.y).filter(v=>v!=null);
+      const rVals = RP.map(p=>p.y).filter(v=>v!=null);
 
-      // Vertikale minutt-linjer
-      ctx.strokeStyle='#e2e8f0'; ctx.lineWidth=1; ctx.beginPath();
-      for(let sec=0; sec<=STATE.windowSec; sec+=60){
-        const t=xmin+sec*1000; const x=padL+(t-xmin)/(xmax-xmin||1)*plotW;
-        ctx.moveTo(x,padT); ctx.lineTo(x,padT+plotH);
+      // Axis locks
+      const lockHR = getNS('hrLock', false);
+      let hrMin = lockHR? Number(getNS('hrMin',80)) : (hrVals.length? Math.min(...hrVals):80);
+      let hrMax = lockHR? Number(getNS('hrMax',200)) : (hrVals.length? Math.max(...hrVals):200);
+      if(!lockHR){ hrMin=Math.floor(hrMin-2); hrMax=Math.ceil(hrMax+2); if(hrMax<=hrMin) hrMax=hrMin+1; }
+
+      const lockW = getNS('wLock', false);
+      let wMin = lockW? Number(getNS('wMin',0)) : (wVals.length? Math.min(...wVals):0);
+      let wMax = lockW? Number(getNS('wMax',400)) : (wVals.length? Math.max(...wVals):400);
+      if(!lockW){ const pad=Math.max(10, Math.round((wMax-wMin)*0.05)); wMin-=pad; wMax+=pad; if(wMax<=wMin) wMax=wMin+1; }
+
+      const lockS = getNS('sLock', false);
+      let sMin = lockS? Number(getNS('sMin',0)) : (sVals.length? Math.min(...sVals):0);
+      let sMax = lockS? Number(getNS('sMax',20)) : (sVals.length? Math.max(...sVals):20);
+      if(!lockS){ const pad=(sMax-sMin)*0.05||0.5; sMin-=pad; sMax+=pad; if(sMax<=sMin) sMax=sMin+0.5; }
+
+      const lockR = getNS('rpeLock', false);
+      let rMin = lockR? Number(getNS('rpeMin',0)) : 0;
+      let rMax = lockR? Number(getNS('rpeMax',10)) : 10;
+
+      const xTime = t => padL + (t-xmin)/Math.max(1,(xmax-xmin))*plotW;
+      const yHR   = v => padT + (1 - (v-hrMin)/Math.max(1,(hrMax-hrMin)))*plotH;
+      const yWatt = v => padT + (1 - (v-wMin)/Math.max(1,(wMax-wMin)))*plotH;
+      const ySpeed= v => padT + (1 - (v-sMin)/Math.max(1,(sMax-sMin)))*plotH;
+      const yRPE  = v => padT + (1 - (v-rMin)/Math.max(1,(rMax-rMin)))*plotH;
+
+      // LT background bands (based on HR scale)
+      const LT1 = STATE.LT1, LT2 = STATE.LT2;
+      const yLT1 = yHR(LT1), yLT2 = yHR(LT2);
+      ctx.save();
+      ctx.fillStyle = 'rgba(220,38,38,0.10)'; // over LT2
+      ctx.fillRect(padL, padT, plotW, Math.max(0, yLT2-padT));
+      ctx.fillStyle = 'rgba(217,119,6,0.08)'; // LT1-LT2
+      ctx.fillRect(padL, Math.max(padT,yLT2), plotW, Math.max(0, Math.min(H-padB, yLT1) - Math.max(padT, yLT2)));
+      ctx.fillStyle = 'rgba(22,163,74,0.08)'; // under LT1
+      ctx.fillRect(padL, Math.max(padT,yLT1), plotW, Math.max(0, (H-padB) - Math.max(padT, yLT1)));
+      ctx.restore();
+
+      // Minute grid
+      ctx.strokeStyle='#e2e8f0'; ctx.lineWidth=1*dpr; ctx.beginPath();
+      const windowSec = STATE.windowSec;
+      for(let sec=0; sec<=windowSec; sec+=60){ const t=xmin+sec*1000; const x=padL+(t-xmin)/Math.max(1,(xmax-xmin))*plotW; ctx.moveTo(x,padT); ctx.lineTo(x,padT+plotH);} ctx.stroke();
+
+      // Y labels: HR left
+      ctx.fillStyle='#ef4444'; ctx.font=`${12*dpr}px system-ui`; ctx.textAlign='left';
+      const hrTick = Math.max(10, Math.round((hrMax-hrMin)/6/10)*10);
+      for(let v=Math.ceil(hrMin/hrTick)*hrTick; v<=hrMax; v+=hrTick){ ctx.fillText(String(v), 8*dpr, yHR(v)+4*dpr); }
+      // Watt right (outer)
+      if(showWatt){ ctx.fillStyle='#16a34a'; ctx.textAlign='right'; const ticks=5; for(let i=0;i<=ticks;i++){ const v=wMin+(wMax-wMin)*i/ticks; ctx.fillText(String(Math.round(v)), W-8*dpr, yWatt(v)+4*dpr);} }
+      // RPE right inner
+      if(showRPE){ ctx.fillStyle='#d97706'; ctx.textAlign='right'; for(let v=rMin; v<=rMax; v+=2){ ctx.fillText(String(v), W-40*dpr, yRPE(v)+4*dpr); } }
+
+      function drawLine(arr, color, ymap, alpha=1){ if(!arr||arr.length<2) return; ctx.strokeStyle=color; ctx.globalAlpha=alpha; ctx.lineWidth=2*dpr; ctx.beginPath(); let moved=false; for(const p of arr){ if(p.t<xmin) continue; const x=xTime(p.t), y=ymap(p.y); if(!moved){ ctx.moveTo(x,y); moved=true;} else ctx.lineTo(x,y);} ctx.stroke(); ctx.globalAlpha=1; }
+
+      if(showHR)   drawLine(HR, '#ef4444', yHR, 1);
+      if(showWatt) drawLine(WT, '#16a34a', yWatt, 1);
+      if(showSpeed)drawLine(SP, '#2563eb', ySpeed, 1);
+      if(showRPE)  drawLine(RP, '#d97706', yRPE, 1);
+
+      // Ghost overlay
+      const ghostEnabled = document.getElementById('ghost-enable')?.checked || false;
+      if(ghostEnabled && STATE.ghost && STATE.ghost.avg && STATE.workout && STATE.workout.startedAt){
+        const g=STATE.ghost.avg; const startTs=new Date(STATE.workout.startedAt).getTime();
+        const gHR=[], gW=[]; for(let t=xmin; t<=xmax; t+=1000){ const sec=Math.floor((t-startTs)/1000); if(sec>=0 && sec<=g.dur){ if(g.hr[sec]!=null) gHR.push({t,y:g.hr[sec]}); if(g.w[sec]!=null) gW.push({t,y:g.w[sec]}); }}
+        if(showHR && gHR.length>1) drawLine(gHR, '#ef4444', yHR, 0.35);
+        if(showWatt && gW.length>1) drawLine(gW, '#16a34a', yWatt, 0.35);
       }
-      ctx.stroke();
 
-      // Y‑akse HR-etiketter hver 20 bpm
-      ctx.fillStyle='#ef4444'; ctx.font=`${12*dpr}px system-ui`;
-      for(let v=hrMin; v<=hrMax; v+=20){ ctx.fillText(String(v), 8*dpr, yHR(v)+4*dpr); }
+      // Slope (20s - 120s)
+      function avgSince(arr, tmin){ const xs=arr.filter(p=>p.t>=tmin).map(p=>p.y).filter(v=>v!=null); if(!xs.length) return null; return xs.reduce((a,b)=>a+b,0)/xs.length; }
+      const a20=avgSince(STATE.series.hr||[], now-20000), a120=avgSince(STATE.series.hr||[], now-120000);
+      const slopeVal=(a20!=null && a120!=null)? Math.round(a20-a120) : null;
+      const slopeEl=document.getElementById('slope'); if(slopeEl) slopeEl.textContent = (slopeVal==null? '--': String(slopeVal));
 
-      // Dataskalaer
-      const sp = STATE.series.speed.filter(p=>p.t>=xmin);
-      const wt = STATE.series.watt.filter(p=>p.t>=xmin);
-      const spVals=sp.map(p=>p.y), wtVals=wt.map(p=>p.y);
-      const smin=Math.min(...(spVals.length?spVals:[0])), smax=Math.max(...(spVals.length?spVals:[1]));
-      const wmin=Math.min(...(wtVals.length?wtVals:[0])), wmax=Math.max(...(wtVals.length?wtVals:[1]));
-      const yWatt=v=> padT + (1 - (v-wmin)/Math.max(1,(wmax-wmin))) * plotH;
-      const yRPE =v=> padT + (1 - v/10) * plotH;
-
-      function drawLine(arr,color,ymap,alpha=1){
-        if(!arr || arr.length<2) return;
-        ctx.strokeStyle=color; ctx.globalAlpha=alpha; ctx.lineWidth=2*dpr;
-        ctx.beginPath(); let moved=false;
-        for(const p of arr){
-          if(p.t<xmin) continue;
-          const x=xTime(p.t), y=ymap(p.y);
-          if(!moved){ ctx.moveTo(x,y); moved=true; } else ctx.lineTo(x,y);
-        }
-        ctx.stroke(); ctx.globalAlpha=1;
-      }
-
-      if(showHR)   drawLine(STATE.series.hr,   '#ef4444', yHR, 1);
-      if(showWatt) drawLine(STATE.series.watt, '#16a34a', yWatt, 1);
-      if(showSpeed){
-        const ySpeed=v=> padT + (1 - (v - smin)/Math.max(1,(smax-smin))) * plotH;
-        drawLine(STATE.series.speed, '#2563eb', ySpeed, 1);
-      }
-      if(showRPE)  drawLine(STATE.series.rpe,  '#d97706', yRPE, 1);
-
-    }catch(e){ showErr(e); }
-  }
+    }catch(e){
+      try{ document.getElementById('err-card')?.classList.remove('hidden'); const L=document.getElementById('err-log'); if(L) L.textContent += (e?.stack||e?.message||String(e))+"\n"; }catch(_){}
+    }
+}
 
   function buildGhostList(){
     const list=el('ghost-list'); if(!list) return; list.innerHTML='';

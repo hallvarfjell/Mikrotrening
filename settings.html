@@ -5,7 +5,37 @@
   <meta name='viewport' content='width=device-width, initial-scale=1.0'>
   <title>Innstillinger – Intervall PWA</title>
   <link rel='stylesheet' href='style.css' />
-  <script src="https://unpkg.com/phosphor-icons@1.4.2"></script>
+  <script src="https://unpkg.com/phosphor-icons@1.4.2">
+// INTZ_v10_1_axis: persist/load axis locks
+(function(){
+  const s=id=>document.getElementById(id);
+  function activeUser(){ return localStorage.getItem('active_user') || 'default'; }
+  function nsKey(k){ return 'u:'+activeUser()+':'+k; }
+  function getNS(k, d){ try{ const v=localStorage.getItem(nsKey(k)); return v!=null? JSON.parse(v): d; }catch(e){ return d; } }
+  function setNS(k, v){ localStorage.setItem(nsKey(k), JSON.stringify(v)); }
+  if(s('s-hr-lock')){
+    s('s-hr-lock').checked=getNS('hrLock',false);
+    s('s-hr-min').value=getNS('hrMin',80);
+    s('s-hr-max').value=getNS('hrMax',200);
+    s('s-w-lock').checked=getNS('wLock',false);
+    s('s-w-min').value=getNS('wMin',0);
+    s('s-w-max').value=getNS('wMax',400);
+    s('s-s-lock').checked=getNS('sLock',false);
+    s('s-s-min').value=getNS('sMin',0);
+    s('s-s-max').value=getNS('sMax',20);
+    s('s-r-lock').checked=getNS('rpeLock',false);
+    s('s-r-min').value=getNS('rpeMin',0);
+    s('s-r-max').value=getNS('rpeMax',10);
+    const btn=document.getElementById('s-save');
+    if(btn && !btn._axes){ btn._axes=true; btn.addEventListener('click', ()=>{
+      setNS('hrLock', !!s('s-hr-lock').checked); setNS('hrMin', Number(s('s-hr-min').value||80)); setNS('hrMax', Number(s('s-hr-max').value||200));
+      setNS('wLock', !!s('s-w-lock').checked); setNS('wMin', Number(s('s-w-min').value||0)); setNS('wMax', Number(s('s-w-max').value||400));
+      setNS('sLock', !!s('s-s-lock').checked); setNS('sMin', Number(s('s-s-min').value||0)); setNS('sMax', Number(s('s-s-max').value||20));
+      setNS('rpeLock', !!s('s-r-lock').checked); setNS('rpeMin', Number(s('s-r-min').value||0)); setNS('rpeMax', Number(s('s-r-max').value||10));
+    }); }
+  }
+})();
+</script>
 </head>
 <body>
 <header class='topbar'>
@@ -141,7 +171,22 @@ Full sprint / maksimal styrkeinnsats.
 Ingen kapasitet igjen.</div>
       </details>
     </div>
-  </section>
+  
+ <div class='card'>
+  <h3>Skala (Y-akse)</h3>
+  <div class='row' style="display:grid;grid-template-columns:repeat(2,minmax(240px,1fr));gap:8px">
+   <label><input type='checkbox' id='s-hr-lock'/> Lås HR-skala</label>
+   <div style='display:flex;gap:6px;align-items:center'><span class='small'>HR min/max</span> <input id='s-hr-min' type='number' step='1' style='width:90px'/> <input id='s-hr-max' type='number' step='1' style='width:90px'/></div>
+   <label><input type='checkbox' id='s-w-lock'/> Lås Watt-skala</label>
+   <div style='display:flex;gap:6px;align-items:center'><span class='small'>W min/max</span> <input id='s-w-min' type='number' step='1' style='width:90px'/> <input id='s-w-max' type='number' step='1' style='width:90px'/></div>
+   <label><input type='checkbox' id='s-s-lock'/> Lås Fart-skala</label>
+   <div style='display:flex;gap:6px;align-items:center'><span class='small'>Fart min/max</span> <input id='s-s-min' type='number' step='0.1' style='width:90px'/> <input id='s-s-max' type='number' step='0.1' style='width:90px'/></div>
+   <label><input type='checkbox' id='s-r-lock'/> Lås RPE-skala</label>
+   <div style='display:flex;gap:6px;align-items:center'><span class='small'>RPE min/max</span> <input id='s-r-min' type='number' step='0.5' style='width:90px'/> <input id='s-r-max' type='number' step='0.5' style='width:90px'/></div>
+  </div>
+ </div>
+
+ </section>
 </main>
 <script>
 function activeUser(){ return localStorage.getItem('active_user') || 'default'; }
@@ -198,6 +243,36 @@ document.getElementById('backup-file')?.addEventListener('change', (ev)=>{
   reader.readAsText(f);
 });
   
+
+// INTZ_v10_1_axis: persist/load axis locks
+(function(){
+  const s=id=>document.getElementById(id);
+  function activeUser(){ return localStorage.getItem('active_user') || 'default'; }
+  function nsKey(k){ return 'u:'+activeUser()+':'+k; }
+  function getNS(k, d){ try{ const v=localStorage.getItem(nsKey(k)); return v!=null? JSON.parse(v): d; }catch(e){ return d; } }
+  function setNS(k, v){ localStorage.setItem(nsKey(k), JSON.stringify(v)); }
+  if(s('s-hr-lock')){
+    s('s-hr-lock').checked=getNS('hrLock',false);
+    s('s-hr-min').value=getNS('hrMin',80);
+    s('s-hr-max').value=getNS('hrMax',200);
+    s('s-w-lock').checked=getNS('wLock',false);
+    s('s-w-min').value=getNS('wMin',0);
+    s('s-w-max').value=getNS('wMax',400);
+    s('s-s-lock').checked=getNS('sLock',false);
+    s('s-s-min').value=getNS('sMin',0);
+    s('s-s-max').value=getNS('sMax',20);
+    s('s-r-lock').checked=getNS('rpeLock',false);
+    s('s-r-min').value=getNS('rpeMin',0);
+    s('s-r-max').value=getNS('rpeMax',10);
+    const btn=document.getElementById('s-save');
+    if(btn && !btn._axes){ btn._axes=true; btn.addEventListener('click', ()=>{
+      setNS('hrLock', !!s('s-hr-lock').checked); setNS('hrMin', Number(s('s-hr-min').value||80)); setNS('hrMax', Number(s('s-hr-max').value||200));
+      setNS('wLock', !!s('s-w-lock').checked); setNS('wMin', Number(s('s-w-min').value||0)); setNS('wMax', Number(s('s-w-max').value||400));
+      setNS('sLock', !!s('s-s-lock').checked); setNS('sMin', Number(s('s-s-min').value||0)); setNS('sMax', Number(s('s-s-max').value||20));
+      setNS('rpeLock', !!s('s-r-lock').checked); setNS('rpeMin', Number(s('s-r-min').value||0)); setNS('rpeMax', Number(s('s-r-max').value||10));
+    }); }
+  }
+})();
 </script>
 </body>
 </html>

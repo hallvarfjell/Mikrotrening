@@ -40,8 +40,9 @@ function delNS(k){ localStorage.removeItem(nsKey(k)); }
     rpe:0, rpeByRep:{},
     logger:{active:false, points:[], startTs:null, dist:0},
     ghost:{enabled:false, ids:new Set(), avg:null},
-    cal:{K:Number(getNS('calK',1.0)), Crun:Number(getNS('cRun',1.0))}
-  };
+ cal:{K:Number(getNS('calK',1.0)), Crun:Number(getNS('cRun',1.0))},
+ metrics:{elevGainM:0, tss:0}
+ };
 
   function clamp(n,min,max){ return Math.min(max, Math.max(min,n)); }
   function fmtMMSS(s){ s=Math.max(0,Math.floor(s)); const m=Math.floor(s/60), ss=String(s%60).padStart(2,'0'); return `${m}:${ss}`; }
@@ -190,7 +191,8 @@ function delNS(k){ localStorage.removeItem(nsKey(k)); }
         if(cw){
           STATE.workout=workoutFromCfg(cw);
           updateWorkoutUI();
-          setNS('lastPreset','custom:'+idx);
+ STATE.totalSec = computeTotalDur(cw);
+ setNS('lastPreset','custom:'+idx);
           const sd=el('sel-dur'); if(sd) sd.textContent = fmtMMSS(computeTotalDur(cw));
         }
       }
@@ -333,6 +335,19 @@ function delNS(k){ localStorage.removeItem(nsKey(k)); }
       grade:STATE.gradePct||0, dist_m:STATE.logger.dist, rpe:STATE.rpe,
       phase:wstate?wstate.phase:'', rep:wstate&&wstate.phase==='work'?wstate.rep:0, watt:w
     });
+ try{
+  const last=STATE.logger.points.length>1? STATE.logger.points[STATE.logger.points.length-2]: null;
+  if(last){
+    const dt=(t - last.ts)/1000;
+    const gradeFrac = (STATE.gradePct||0)/100;
+    const dh = speed_ms * gradeFrac * dt;
+    if(dh>0) STATE.metrics.elevGainM += dh;
+    const LTHR = STATE.LT2||160;
+    const hr = STATE.hr||0;
+    const ifHr = LTHR>0? (hr/LTHR):0;
+    STATE.metrics.tss += (dt/3600) * (ifHr*ifHr) * 100;
+  }
+ }catch(e){}
   }
   function finishSession(){
     try{

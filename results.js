@@ -14,19 +14,43 @@ function setNS(k, v){ localStorage.setItem(nsKey(k), JSON.stringify(v)); }
   function formatMMSS(sec){ sec=Math.max(0, Math.round(sec)); const m=Math.floor(sec/60), s=String(sec%60).padStart(2,'0'); return `${m}:${s}`; }
   function avg(arr){ return arr.length? arr.reduce((a,b)=>a+b,0)/arr.length:0; }
 
-  function computeSummary(s){ const pts=s.points||[]; if(!pts.length) return {dur:0,dist:0,avgHR:0,avgW:0}; const dur = Math.max(0, (new Date(s.endedAt).getTime() - new Date(s.startedAt).getTime())/1000);
-    const dist = (pts[pts.length-1].dist_m||0)/1000; let sumHR=0,cntHR=0,sumW=0,cntW=0; pts.forEach(p=>{ if(p.hr){ sumHR+=p.hr; cntHR++; } if(p.watt!=null){ sumW += p.watt; cntW++; } }); const avgHR= cntHR? Math.round(sumHR/cntHR):0; const avgW= cntW? Math.round(sumW/cntW):0; return {dur,dist,avgHR,avgW}; }
+  function computeSummary(s){
+  const pts=s.points||[];
+  if(!pts.length) return {dur:0,dist:0,avgHR:0,avgW:0,maxHR:0,elev:0,tss:0};
+  const dur = Math.max(0, (new Date(s.endedAt).getTime() - new Date(s.startedAt).getTime())/1000);
+  const dist = (pts[pts.length-1].dist_m||0)/1000;
+  let sumHR=0,cntHR=0,sumW=0,cntW=0,maxHR=0;
+  let elev=0; let last=null; const LTHR = s.lt2||160; let tss=0;
+  for(const p of pts){
+    if(p.hr){ sumHR+=p.hr; cntHR++; if(p.hr>maxHR) maxHR=p.hr; }
+    if(p.watt!=null){ sumW += p.watt; cntW++; }
+    if(last){
+      const dt = (p.ts - last.ts)/1000;
+      const gradeFrac = (p.grade||0)/100;
+      const dh = (p.speed_ms||0) * gradeFrac * dt;
+      if(dh>0) elev += dh;
+      const hr = p.hr||0; const ifHr = LTHR>0? (hr/LTHR):0; tss += (dt/3600) * (ifHr*ifHr) * 100;
+    }
+    last=p;
+  }
+  const avgHR= cntHR? Math.round(sumHR/cntHR):0;
+  const avgW= cntW? Math.round(sumW/cntW):0;
+  return {dur,dist,avgHR,avgW,maxHR:Math.round(maxHR),elev:Math.round(elev),tss:Math.round(tss)};
+}
 
   function renderSummary(){ const s=SESSION; const sum=computeSummary(s); const when=new Date(s.startedAt||Date.now()); const name=s.name||'Økt'; const reps=s.reps||0; $('summary').innerHTML = `
+  <div style="display:grid;gap:4px">
     <div><strong>${name}</strong></div>
     <div class="small">${when.toLocaleString()}</div>
-    <ul style="list-style:none;padding-left:0;display:grid;gap:4px;margin:8px 0 0 0">
-      <li><strong>Varighet:</strong> ${formatMMSS(sum.dur)}</li>
-      <li><strong>Distanse:</strong> ${(isFinite(sum.dist)? sum.dist.toFixed(2):'0.00')} km</li>
-      <li><strong>Snitt HR:</strong> ${sum.avgHR||'–'} bpm</li>
-      <li><strong>Snitt Watt:</strong> ${sum.avgW||'–'} W</li>
-      <li><strong>Antall drag:</strong> ${reps}</li>
-    </ul>`; $('notes').value = s.notes||''; }
+    <div>- Varighet: ${formatMMSS(sum.dur)}</div>
+    <div>- Distanse: ${(isFinite(sum.dist)? sum.dist.toFixed(2):'0.00')} km</div>
+    <div>- Høydemeter: ${sum.elev} m</div>
+    <div>- Snitt HR: ${sum.avgHR||'–'} bpm · Maks HR: ${sum.maxHR||'–'} bpm</div>
+    <div>- Snitt Watt: ${sum.avgW||'–'} W</div>
+    <div>- Antall drag: ${reps}</div>
+    <div>- TSS: ${sum.tss}</div>
+  </div>`;
+$('notes').value = s.notes||''; }
 
   function splitLaps(s){ const pts=s.points||[]; if(!pts.length) return []; const laps=[]; let cur={startTs:pts[0].ts, distStart:pts[0].dist_m||0, pts:[], hrSum:0, hrCnt:0, hrMax:0, rpeSum:0, rpeCnt:0}; let lastPhase=pts[0].phase||'', lastRep=pts[0].rep||0; for(const p of pts){ const phase=p.phase||''; const rep=p.rep||0; const boundary = (phase==='work' && rep!==lastRep) || (phase!=='work' && lastPhase==='work');
       if(boundary && cur.pts.length){ const last=cur.pts[cur.pts.length-1]; cur.endTs=last.ts; cur.distEnd=last.dist_m||0; laps.push(cur); cur={startTs:p.ts, distStart:p.dist_m||0, pts:[], hrSum:0, hrCnt:0, hrMax:0, rpeSum:0, rpeCnt:0}; }

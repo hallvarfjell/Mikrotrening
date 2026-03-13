@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html lang='no'>
+
+<html lang="no">
 <head>
-  <meta charset='UTF-8'>
-  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-  <title>Innstillinger – Intervall PWA</title>
-  <link rel='stylesheet' href='style.css' />
-  <script src="https://unpkg.com/phosphor-icons@1.4.2">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Innstillinger – Intervall PWA</title>
+<link href="style.css" rel="stylesheet"/>
+<script src="https://unpkg.com/phosphor-icons@1.4.2">
 // INTZ_v10_1_axis: persist/load axis locks
 (function(){
   const s=id=>document.getElementById(id);
@@ -38,81 +39,78 @@
 </script>
 </head>
 <body>
-<header class='topbar'>
-  <div class='nav'>
-    <a href='index.html'>Til hovedskjerm</a>
-    <a href='builder.html'>Øktbygger</a>
-    <a href='log.html'>Logg</a>
-  </div>
+<header class="topbar">
+<div class="nav">
+<span><strong>INTZ</strong></span>
+<a href="index.html">Hovedside</a>
+<a href="builder.html">Øktbygger</a>
+<a href="log.html">Logg</a>
+<a href="settings.html">Innstillinger</a>
+<a href="help.html">Hjelp</a>
+</div>
 </header>
-<main class='layout'>
-  <section class='leftcol'>
-    <div class='card'>
-      <h3>Brukerprofiler</h3>
-      <div id='users-panel'></div>
-    </div>
-
-    <div class='card'>
-      <h3>Brukerinnstillinger</h3>
-      <div class='row' style="display:flex;gap:8px;flex-wrap:wrap">
-        <label>Kroppsvekt (kg)
-          <input id='s-mass' type='number' min='30' max='200' step='0.5' />
-        </label>
-        <label>LT1 (bpm)
-          <input id='s-lt1' type='number' min='80' max='220' step='1' />
-        </label>
-        <label>LT2 (bpm)
-          <input id='s-lt2' type='number' min='80' max='220' step='1' />
-        </label>
-      </div>
-    </div>
-
-    <div class='card'>
-      <h3>Powermodell</h3>
-      <div class='row' style="display:flex;gap:8px;flex-wrap:wrap">
-        <label>Kalibrering K
-          <input id='s-cal-k' type='number' step='0.01' />
-        </label>
-        <label>C_run (J/kg/m)
-          <input id='s-c-run' type='number' step='0.05' />
-        </label>
-      </div>
-      <p class='small'>Ytre arbeid: P = m·g·v·grade + C_run·m·v → deretter ×K.</p>
-    </div>
-
-    <div class='card'>
-      <h3>Graf</h3>
-      <div class='row' style="display:flex;gap:8px;flex-wrap:wrap">
-        <label><input type='checkbox' id='s-default-hr' /> Vis HR som standard</label>
-        <label><input type='checkbox' id='s-default-watt' /> Vis Watt som standard</label>
-        <label><input type='checkbox' id='s-default-speed' /> Vis Fart som standard</label>
-        <label><input type='checkbox' id='s-default-rpe' /> Vis RPE som standard</label>
-      </div>
-    </div>
-
-    <div class='card'>
-      <div class='row' style='display:flex;gap:8px;flex-wrap:wrap'>
-        <button id='s-save' class='primary'>Lagre innstillinger</button>
-      </div>
-    </div>
-
+<main class="layout">
+<section class="leftcol">
 <div class="card">
-  <h3>Sikkerhetskopi & flytting</h3>
-  <p class="small">
+<h3>Brukerprofiler</h3>
+<div id="users-panel"></div>
+</div>
+<div class="card">
+<h3>Brukerinnstillinger</h3>
+<div class="row" style="display:flex;gap:8px;flex-wrap:wrap">
+<label>Kroppsvekt (kg)
+          <input id="s-mass" max="200" min="30" step="0.5" type="number"/>
+</label>
+<label>LT1 (bpm)
+          <input id="s-lt1" max="220" min="80" step="1" type="number"/>
+</label>
+<label>LT2 (bpm)
+          <input id="s-lt2" max="220" min="80" step="1" type="number"/>
+</label>
+</div>
+</div>
+<div class="card">
+<h3>Powermodell</h3>
+<div class="row" style="display:flex;gap:8px;flex-wrap:wrap">
+<label>Kalibrering K
+          <input id="s-cal-k" step="0.01" type="number"/>
+</label>
+<label>C_run (J/kg/m)
+          <input id="s-c-run" step="0.05" type="number"/>
+</label>
+</div>
+<p class="small">Ytre arbeid: P = m·g·v·grade + C_run·m·v → deretter ×K.</p>
+</div>
+<div class="card">
+<h3>Graf</h3>
+<div class="row" style="display:flex;gap:8px;flex-wrap:wrap">
+<label><input id="s-default-hr" type="checkbox"/> Vis HR som standard</label>
+<label><input id="s-default-watt" type="checkbox"/> Vis Watt som standard</label>
+<label><input id="s-default-speed" type="checkbox"/> Vis Fart som standard</label>
+<label><input id="s-default-rpe" type="checkbox"/> Vis RPE som standard</label>
+</div>
+</div>
+<div class="card">
+<div class="row" style="display:flex;gap:8px;flex-wrap:wrap">
+<button class="primary" id="s-save">Lagre innstillinger</button>
+</div>
+</div>
+<div class="card">
+<h3>Sikkerhetskopi &amp; flytting</h3>
+<p class="small">
     Eksporter <em>alt</em> (brukere, maler, økter, innstillinger) til én JSON-fil,
     eller importer en tidligere sikkerhetskopi. Import <strong>erstatter hele</strong> lokallagringen.
   </p>
-  <div class="row" style="display:flex;gap:8px;flex-wrap:wrap">
-    <button id="backup-export" class="secondary">Eksporter alt</button>
-    <button id="backup-import" class="secondary">Importer alt</button>
-    <input id="backup-file" type="file" accept="application/json" style="display:none" />
-  </div>
+<div class="row" style="display:flex;gap:8px;flex-wrap:wrap">
+<button class="secondary" id="backup-export">Eksporter alt</button>
+<button class="secondary" id="backup-import">Importer alt</button>
+<input accept="application/json" id="backup-file" style="display:none" type="file"/>
 </div>
-
-    <div class='card'>
-      <details>
-        <summary style='cursor:pointer'><strong>🔢 RPE 1–10 forklart</strong> (trykk for å utvide)</summary>
-        <div class='small' style='white-space:pre-wrap;margin-top:8px'>RPE 1 – Ingen anstrengelse
+</div>
+<div class="card">
+<details>
+<summary style="cursor:pointer"><strong>🔢 RPE 1–10 forklart</strong> (trykk for å utvide)</summary>
+<div class="small" style="white-space:pre-wrap;margin-top:8px">RPE 1 – Ingen anstrengelse
 Føles som fullstendig hvile.
 Sitter eller ligger stille.
 Puls omtrent som i hvile.
@@ -169,24 +167,22 @@ Absolutt maks.
 Du kan ikke holde det mer enn noen sekunder.
 Full sprint / maksimal styrkeinnsats.
 Ingen kapasitet igjen.</div>
-      </details>
-    </div>
-  
- <div class='card'>
-  <h3>Skala (Y-akse)</h3>
-  <div class='row' style="display:grid;grid-template-columns:repeat(2,minmax(240px,1fr));gap:8px">
-   <label><input type='checkbox' id='s-hr-lock'/> Lås HR-skala</label>
-   <div style='display:flex;gap:6px;align-items:center'><span class='small'>HR min/max</span> <input id='s-hr-min' type='number' step='1' style='width:90px'/> <input id='s-hr-max' type='number' step='1' style='width:90px'/></div>
-   <label><input type='checkbox' id='s-w-lock'/> Lås Watt-skala</label>
-   <div style='display:flex;gap:6px;align-items:center'><span class='small'>W min/max</span> <input id='s-w-min' type='number' step='1' style='width:90px'/> <input id='s-w-max' type='number' step='1' style='width:90px'/></div>
-   <label><input type='checkbox' id='s-s-lock'/> Lås Fart-skala</label>
-   <div style='display:flex;gap:6px;align-items:center'><span class='small'>Fart min/max</span> <input id='s-s-min' type='number' step='0.1' style='width:90px'/> <input id='s-s-max' type='number' step='0.1' style='width:90px'/></div>
-   <label><input type='checkbox' id='s-r-lock'/> Lås RPE-skala</label>
-   <div style='display:flex;gap:6px;align-items:center'><span class='small'>RPE min/max</span> <input id='s-r-min' type='number' step='0.5' style='width:90px'/> <input id='s-r-max' type='number' step='0.5' style='width:90px'/></div>
-  </div>
- </div>
-
- </section>
+</details>
+</div>
+<div class="card">
+<h3>Skala (Y-akse)</h3>
+<div class="row" style="display:grid;grid-template-columns:repeat(2,minmax(240px,1fr));gap:8px">
+<label><input id="s-hr-lock" type="checkbox"/> Lås HR-skala</label>
+<div style="display:flex;gap:6px;align-items:center"><span class="small">HR min/max</span> <input id="s-hr-min" step="1" style="width:90px" type="number"/> <input id="s-hr-max" step="1" style="width:90px" type="number"/></div>
+<label><input id="s-w-lock" type="checkbox"/> Lås Watt-skala</label>
+<div style="display:flex;gap:6px;align-items:center"><span class="small">W min/max</span> <input id="s-w-min" step="1" style="width:90px" type="number"/> <input id="s-w-max" step="1" style="width:90px" type="number"/></div>
+<label><input id="s-s-lock" type="checkbox"/> Lås Fart-skala</label>
+<div style="display:flex;gap:6px;align-items:center"><span class="small">Fart min/max</span> <input id="s-s-min" step="0.1" style="width:90px" type="number"/> <input id="s-s-max" step="0.1" style="width:90px" type="number"/></div>
+<label><input id="s-r-lock" type="checkbox"/> Lås RPE-skala</label>
+<div style="display:flex;gap:6px;align-items:center"><span class="small">RPE min/max</span> <input id="s-r-min" step="0.5" style="width:90px" type="number"/> <input id="s-r-max" step="0.5" style="width:90px" type="number"/></div>
+</div>
+</div>
+</section>
 </main>
 <script>
 function activeUser(){ return localStorage.getItem('active_user') || 'default'; }

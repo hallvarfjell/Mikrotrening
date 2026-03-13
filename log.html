@@ -1,29 +1,31 @@
 <!DOCTYPE html>
+
 <html lang="no">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Øktlogg – Intervall PWA</title>
-  <link rel="stylesheet" href="style.css" />
-  <script src="https://unpkg.com/phosphor-icons@1.4.2"></script>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Øktlogg – Intervall PWA</title>
+<link href="style.css" rel="stylesheet"/>
+<script src="https://unpkg.com/phosphor-icons@1.4.2"></script>
 </head>
 <body>
 <header class="topbar">
-   <div class="nav">
-  <span><strong>INTZ</strong></span>
-  <a href="index.html">Hovedside</a>
-  <a href="builder.html">Øktbygger</a>
-  <a href="log.html">Logg</a>
-  <a href="settings.html">Innstillinger</a>
- </div>
+<div class="nav">
+<span><strong>INTZ</strong></span>
+<a href="index.html">Hovedside</a>
+<a href="builder.html">Øktbygger</a>
+<a href="log.html">Logg</a>
+<a href="settings.html">Innstillinger</a>
+<a href="help.html">Hjelp</a>
+</div>
 </header>
 <main class="layout">
-  <section class="leftcol">
-    <div class="card">
-      <h3>Økter</h3>
-      <div id="log-list"></div>
-    </div>
-  </section>
+<section class="leftcol">
+<div class="card">
+<h3>Økter</h3>
+<div id="log-list"></div>
+</div>
+</section>
 </main>
 <script>
 function activeUser(){ return localStorage.getItem('active_user') || 'default'; }

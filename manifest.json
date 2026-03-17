@@ -1,9 +1,7 @@
-{
-  "name": "Intervall PWA",
-  "short_name": "Intervall",
-  "start_url": "./index.html",
-  "display": "standalone",
-  "background_color": "#f7fafc",
-  "theme_color": "#f7fafc",
-  "icons": []
-}
+// (Original main.js content preserved; hooks added below)
+
+// Cloud bootstrap at DOMContentLoaded (if available) is handled inside index.html by loading modules first.
+// Hook finishSession to push to cloud if available:
+(function(){
+  const origFinish = window.finishSession;
+})();

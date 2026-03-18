@@ -7,7 +7,7 @@
 <title>Resultat – Intervall PWA</title>
 <link href="style.css" rel="stylesheet"/>
 <script src="https://unpkg.com/phosphor-icons@1.4.2"></script>
-<!-- Supabase & Cloud (ESM) -->
+
 <script type="module" src="supabase-init.js"></script>
 <script type="module" src="cloud-sessions.js"></script>
 </head>
@@ -20,7 +20,8 @@
 <a href="log.html">Logg</a>
 <a href="settings.html">Innstillinger</a>
 <a href="help.html">Hjelp</a>
-<span id="cloud-status" class="tag">Sky: offline</span>
+
+<span id="cloud-status" class="badge">Sky: offline</span>
 <button id="cloud-sync" class="ghost" title="Synkroniser nå">Synk</button>
 <button id="cloud-auth" class="secondary" title="Logg inn">Logg inn</button>
 </div>
@@ -48,7 +49,7 @@
 <div class="row" style="margin-top:8px"><button class="secondary" id="save-notes"><i class="ph-floppy-disk ph-fw"></i> Lagre</button></div>
 </div>
 <div class="card" id="zones-card">
-<h3>Tid i pulssoner (LT—basert)</h3>
+<h3>Tid i pulssoner (LT‑basert)</h3>
 <canvas aria-label="Tid i soner" height="220" id="zones" role="img" width="420"></canvas>
 <small class="muted">Under LT1, mellom LT1–LT2, over LT2</small>
 </div>
@@ -64,7 +65,7 @@
 </section>
 <section class="rightcol">
 <div class="card graphcard">
-<div class="graphhdr"><strong>Hele økta</strong> <span class="small">(HR=rød, Watt=høyre grønn, Fart=topp blå, RPE=høyre—innvendig gul)</span></div>
+<div class="graphhdr"><strong>Hele økta</strong> <span class="small">(HR=rød, Watt=høyre grønn, Fart=topp blå, RPE=høyre‑innvendig gul)</span></div>
 <div class="graphwrap">
 <canvas aria-label="Graf" id="r-chart" role="img"></canvas>
 </div>

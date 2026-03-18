@@ -1,1 +1,1 @@
-// (Original results.js from project – unchanged here)
+// results.js original content (placeholder for this packaging)

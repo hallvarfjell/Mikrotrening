@@ -1,172 +1,64 @@
 <!DOCTYPE html>
 <html lang="no">
 <head>
- <meta charset="UTF-8" />
- <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
- <meta name="theme-color" content="#f7fafc" />
- <title>INTZ – Hovedside</title>
- <link rel="manifest" href="manifest.json" />
- <link rel="stylesheet" href="style.css" />
- <!-- Phosphor Icons -->
- <script src="https://unpkg.com/phosphor-icons@1.4.2"></script>
- <!-- Supabase & Cloud (ESM) -->
- <script type="module" src="supabase-init.js"></script>
- <script type="module" src="cloud-sync.js"></script>
- <script type="module" src="cloud-sessions.js"></script>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Øktlogg – Intervall PWA</title>
+<link href="style.css" rel="stylesheet"/>
+<script src="https://unpkg.com/phosphor-icons@1.4.2"></script>
+
+<script type="module" src="supabase-init.js"></script>
+<script type="module" src="cloud-sessions.js"></script>
 </head>
 <body>
- <header class="topbar" id="topbar">
- <div class="nav">
- <a href="index.html"><strong>INTZ</strong></a>
- <a href="index.html">Hovedside</a>
- <a href="builder.html">Øktbygger</a>
- <a href="log.html">Logg</a>
- <a href="settings.html">Innstillinger</a>
- <a href="help.html">Hjelp</a>
- <span id="cloud-status" class="tag">Sky: offline</span>
- <button id="cloud-sync" class="ghost" title="Synkroniser nå">Synk</button>
- <button id="cloud-auth" class="secondary" title="Logg inn">Logg inn</button>
- </div>
- <div class="devicectl">
- <button id="connect-hr" class="btn-device disconnected" title="Koble til puls">
- <i class="ph-heart"></i><span>Puls</span>
- </button>
- <button id="connect-treadmill" class="btn-device disconnected" title="Koble til mølle">
- <i class="ph-trend-up"></i><span>Mølle</span>
- </button>
- </div>
- </header>
- <main class="layout">
- <!-- (rest of original content kept) -->
- <section class="leftcol">
- <div class="card metrics" id="dashboard">
- <div class="metric metric-big" style="display:flex;align-items:baseline;gap:8px">
- <label style="width:170px;color:#5f6b7a">Puls</label>
- <span id="pulse" class="big-num" style="font-size:56px;line-height:1;color:#ef4444">--</span><small>bpm</small>
- </div>
- <div class="metric" style="display:flex;align-items:baseline;gap:8px">
- <label style="width:170px;color:#5f6b7a">Estimert watt</label><span id="watt">--</span><small>W</small>
- </div>
- <div class="metric" style="display:flex;align-items:baseline;gap:8px">
- <label style="width:170px;color:#5f6b7a">Slope (20s–120s)</label><span id="slope">--</span><small>bpm</small>
- </div>
- <div class="rpe-compact" style="display:flex;align-items:center;gap:8px;margin-top:6px">
- <label for="rpe-now" id="rpe-label" style="width:170px;color:#5f6b7a">RPE nå: –</label>
- <button id="rpe-dec" class="iconbtn" title="-0,5"><i class="ph-minus"></i></button>
- <input id="rpe-now" type="number" step="0.5" min="0" max="10" value="0" class="bigvalue" style="width:120px;text-align:center" />
- <button id="rpe-inc" class="iconbtn" title="+0,5"><i class="ph-plus"></i></button>
- </div>
- </div>
- <div class="card workout workout-panel">
- <div class="workout-header" style="display:flex;gap:8px;align-items:center">
- <i class="ph-notepad"></i>
- <select id="workout-select" title="Velg treningsøkt" style="flex:1"></select>
- <span id="sel-dur" class="badge" title="Total varighet">--:--</span>
- </div>
- <div class="nowplaying" style="display:grid;gap:8px">
- <div id="current-step-name" class="step-label" style="font-weight:600">Ingen økt valgt</div>
- <div id="timer" class="big-timer">00:00</div>
- <div class="next-steps" style="display:grid;gap:2px;color:#475569;font-size:13px">
- <div id="next1">Neste: –</div>
- <div id="next2">Deretter: –</div>
- </div>
- <div id="progressbar" style="height:8px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:999px;overflow:hidden"><div id="progress" style="height:100%;width:0;background:#16a34a"></div></div>
- </div>
- <div class="workout-controls" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:8px">
- <button id="btn-start-pause" class="primary btn-hero" title="Start/Pause"><i id="sp-icon" class="ph-play"></i><span id="sp-label">Start</span></button>
- <button id="btn-skip-back" class="secondary" title="Tilbake"><i class="ph-skip-back"></i></button>
- <button id="btn-skip-fwd" class="secondary" title="Frem"><i class="ph-skip-forward"></i></button>
- <button id="btn-stop-save" class="secondary" title="Stopp og lagre"><i class="ph-check-circle"></i></button>
- <button id="btn-discard" class="ghost" title="Forkast"><i class="ph-x-circle"></i></button>
- </div>
- </div>
- <div class="card" id="speed-grade-card">
- <div class="sg-grid">
- <div class="sg-row">
- <button id="speed-dec" class="giantbtn" aria-label="Lavere fart">−</button>
- <div class="sg-center">
- <div class="small">Fart (km/t)</div>
- <input id="manual-speed" type="number" step="0.1" min="0" value="0" class="bigvalue" />
- </div>
- <button id="speed-inc" class="giantbtn" aria-label="Høyere fart">+</button>
- </div>
- <div class="sg-row">
- <button id="grade-dec" class="giantbtn" aria-label="Lavere stigning">−</button>
- <div class="sg-center">
- <div class="small">Stigning (%)</div>
- <input id="manual-grade" type="number" step="0.5" value="0" class="bigvalue" />
- </div>
- <button id="grade-inc" class="giantbtn" aria-label="Høyere stigning">+</button>
- </div>
- <div class="quickrow">
- <button class="speed-btn" data-speed="10">10 km/t</button>
- <button class="speed-btn" data-speed="15">15 km/t</button>
- <button class="grade-btn" data-grade="5">5%</button>
- <button class="grade-btn" data-grade="10">10%</button>
- </div>
- </div>
- </div>
- </section>
- <section class="rightcol">
- <div class="card" id="graph-card">
- <div style="display:flex;align-items:center;gap:8px;justify-content:space-between;margin-bottom:4px">
- <div class="small" style="display:flex;align-items:center;gap:8px">
- <label><input type="checkbox" id="show-hr" checked> HR</label>
- <label><input type="checkbox" id="show-watt" checked> Watt</label>
- <label><input type="checkbox" id="show-speed"> Fart</label>
- <label><input type="checkbox" id="show-rpe" checked> RPE</label>
- </div>
- <div class="small" style="display:flex;align-items:center;gap:8px">
- <label><input type="checkbox" id="ghost-enable"> Ghost</label>
- <button id="ghost-picker" class="secondary">Velg ghost</button>
- </div>
- </div>
- <div class="graphwrap">
- <canvas id="chart" aria-label="trening data graf" role="img"></canvas>
- </div>
- </div>
- <div class="card" id="status-card">
- <h3>Øktstatus</h3>
- <div class="statusgrid" style="display:grid;grid-template-columns:repeat(3,minmax(160px,1fr));gap:8px">
- <div><div class="small">Påløpt tid</div><div id="st-elapsed" class="bigstat">--:--</div></div>
- <div><div class="small">Gjenstående</div><div id="st-remaining" class="bigstat">--:--</div></div>
- <div><div class="small">Distanse</div><div id="st-dist" class="bigstat">0.00 km</div></div>
- <div><div class="small">Høydemeter</div><div id="st-elev" class="bigstat">0 m</div></div>
- <div><div class="small">TSS</div><div id="st-tss" class="bigstat">0</div></div>
- <div><div class="small">Siste drag</div><div id="st-last" class="bigstat">-- km/t · -- bpm</div></div>
- </div>
- </div>
- <p class="small" style="margin:0 8px 12px 8px">Ghost = tidsjustert snitt av valgte økter (HR/Watt) lagt oppå live-kurven.</p>
- </section>
- </main>
- <div id="ghost-menu" class="menu hidden" style="position:fixed;top:72px;right:16px;min-width:340px;z-index:50">
- <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;padding:8px;border-bottom:1px solid #f1f5f9">
- <strong>Velg ghost-økter</strong>
- <div style="display:flex;gap:6px">
- <a href="#" id="ghost-select-all" class="small">Alle</a>
- <a href="#" id="ghost-clear-all" class="small">Ingen</a>
- </div>
- </div>
- <div id="ghost-list" style="max-height:320px;overflow:auto"></div>
- <div style="padding:8px;border-top:1px solid #f1f5f9;display:flex;justify-content:flex-end">
- <button id="ghost-apply" class="primary">Bruk</button>
- </div>
- </div>
- <div id="err-card" class="card warning hidden" style="position:fixed;left:12px;bottom:12px;right:12px;z-index:999">
- <h3>Kjøretidsfeil</h3>
- <pre id="err-log"></pre>
- </div>
- <div id="nohr-modal" class="modal">
- <div class="modalpanel">
- <h3>Pulsbelte ikke tilkoblet</h3>
- <p>Vil du koble til pulsbelte, eller starte uten?</p>
- <div class="modalactions">
- <button id="nohr-cancel" class="ghost">Avbryt</button>
- <button id="nohr-connect" class="secondary">Koble til</button>
- <button id="nohr-start" class="primary">Start uten</button>
- </div>
- </div>
- </div>
- <script src="main.js"></script>
+<header class="topbar">
+<div class="nav">
+<span><strong>INTZ</strong></span>
+<a href="index.html">Hovedside</a>
+<a href="builder.html">Øktbygger</a>
+<a href="log.html">Logg</a>
+<a href="settings.html">Innstillinger</a>
+<a href="help.html">Hjelp</a>
+
+<span id="cloud-status" class="badge">Sky: offline</span>
+<button id="cloud-sync" class="ghost" title="Synkroniser nå">Synk</button>
+<button id="cloud-auth" class="secondary" title="Logg inn">Logg inn</button>
+</div>
+</header>
+<main class="layout">
+<section class="leftcol">
+<div class="card">
+<h3>Økter</h3>
+<div id="log-list"></div>
+</div>
+</section>
+</main>
+<script>
+function activeUser(){ return localStorage.getItem('active_user') || 'default'; }
+function nsKey(k){ return 'u:'+activeUser()+':'+k; }
+function getNS(k, d){ try{ const v=localStorage.getItem(nsKey(k)); if(v!=null) return JSON.parse(v); const ov=localStorage.getItem(k); return ov!=null? JSON.parse(ov): d; }catch(e){ return d; } }
+(function(){
+ function render(){
+ const list=document.getElementById('log-list'); list.innerHTML='';
+ const sessions=getNS('sessions',[]);
+ if(!sessions.length){ list.innerHTML='<p class="small">Ingen økter enda.</p>'; return; }
+ const ul=document.createElement('div'); ul.style.display='grid'; ul.style.gap='8px';
+ sessions.slice().reverse().forEach(s=>{
+ const row=document.createElement('div'); row.className='menu-item'; row.style.justifyContent='space-between'; row.style.alignItems='center'; row.style.display='flex';
+ const when=new Date(s.startedAt||Date.now()).toLocaleString();
+ const dist=s.points&&s.points.length? (s.points[s.points.length-1].dist_m/1000).toFixed(2)+' km' : '';
+ const left=document.createElement('a'); left.href='results.html#'+s.id; left.textContent=`${s.name||'Økt'} — ${when}`; left.style.flex='1'; left.style.textDecoration='none';
+ const right=document.createElement('div'); right.style.display='flex'; right.style.gap='8px'; right.style.alignItems='center';
+ const distSpan=document.createElement('span'); distSpan.textContent=dist; right.appendChild(distSpan);
+ const del=document.createElement('button'); del.className='ghost'; del.title='Slett'; del.innerHTML='<i class="ph-trash"></i>';
+ del.onclick=()=>{ if(confirm('Slette denne økta?')){ const arr=getNS('sessions',[]); const idx=arr.findIndex(x=>x.id===s.id); if(idx>=0){ arr.splice(idx,1); localStorage.setItem(nsKey('sessions'), JSON.stringify(arr)); render(); } } };
+ right.appendChild(del);
+ row.appendChild(left); row.appendChild(right); ul.appendChild(row);
+ });
+ list.appendChild(ul);
+ }
+ render();
+})();
+</script>
 </body>
 </html>

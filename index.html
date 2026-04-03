@@ -2,135 +2,319 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
-body { font-family: sans-serif; margin:0; }
-.grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:10px; }
-button { font-size:20px; padding:20px; }
-.done { background:#4caf50; color:white; }
-.out { background:#ccc; }
-.top { padding:10px; background:#eee; }
+body{font-family:sans-serif;margin:0}
+nav{display:flex}
+nav button{flex:1;padding:10px;font-size:18px}
+.page{display:none;padding:8px}
+.active{display:block}
+
+.header{
+text-align:center;
+font-size:clamp(22px,5vw,40px);
+font-weight:bold;
+}
+
+.grid{
+display:grid;
+gap:8px;
+}
+
+@media (min-width:1000px){
+.grid{grid-template-columns:repeat(4,1fr);}
+}
+
+@media (max-width:999px){
+.grid{grid-template-columns:repeat(3,1fr);}
+}
+
+@media (max-width:500px){
+.grid{grid-template-columns:repeat(2,1fr);}
+}
+
+.runner{
+padding:18px;
+font-size:clamp(16px,3vw,28px);
+border-radius:6px;
+border:1px solid #999;
+}
+
+.white{background:white}
+.green{background:#4caf50;color:white}
+.red{background:#f44336;color:white}
+.gray{background:#ccc}
+
+table{width:100%;border-collapse:collapse}
+td,th{border:1px solid #ccc;padding:4px;font-size:14px}
+input{width:100%}
 </style>
 </head>
 <body>
 
-<div class="top">
-<span id="time"></span>
-<button onclick="add()">+</button>
+<nav>
+<button onclick="show('reg')">Registrering</button>
+<button onclick="show('live')">Live</button>
+<button onclick="show('admin')">Admin</button>
+</nav>
+
+<div id="reg" class="page active">
+<div class="header" id="header"></div>
+<div class="grid" id="grid"></div>
 </div>
 
-<div class="grid" id="grid"></div>
+<div id="live" class="page">
+<table id="liveTable"></table>
+</div>
 
-<h3>Resultat</h3>
-<div id="result"></div>
+<div id="admin" class="page">
 
-<h3>Siste</h3>
-<div id="last"></div>
+<h3>Løp</h3>
+Start: <input id="startTime" type="datetime-local">
+Intervall min: <input id="interval" type="number" value="60">
+Km: <input id="km" type="number" value="6.7">
+<button onclick="startRace()">Start</button>
+<button onclick="stopRace()">Stopp</button>
+
+<h3>Deltakere</h3>
+<button onclick="addRunner()">+ legg til</button>
+<table id="adminTable"></table>
+
+</div>
 
 <script>
-const url="https://wjmucbavcslivuzofayi.supabase.co"
-const key="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqbXVjYmF2Y3NsaXZ1em9mYXlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNjQxNDMsImV4cCI6MjA5MDc0MDE0M30.Tr6_K5_DIoW0wafZiOjKhPxjtmlw6k-mqVmSrSrKfus"
-const db=supabase.createClient(url,key)
 
-let participants=[]
+const db = supabase.createClient(
+"https://wjmucbavcslivuzofayi.supabase.co",
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqbXVjYmF2Y3NsaXZ1em9mYXlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNjQxNDMsImV4cCI6MjA5MDc0MDE0M30.Tr6_K5_DIoW0wafZiOjKhPxjtmlw6k-mqVmSrSrKfus"
+)
+
+let race={}
+let runners=[]
 let laps=[]
-let start
+
+function show(id){
+document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"))
+document.getElementById(id).classList.add("active")
+}
 
 async function load(){
-  participants=(await db.from('participants').select('*')).data
-  laps=(await db.from('laps').select('*')).data
-  start=new Date((await db.from('race').select('*').eq('id',1).single()).data.start_time)
-  draw()
+race=(await db.from("race").select("*").limit(1)).data[0]||{}
+runners=(await db.from("participants").select("*").order("bib")).data||[]
+laps=(await db.from("laps").select("*")).data||[]
+draw()
+}
+
+function now(){return new Date()}
+
+function currentRound(){
+if(!race.start_time) return 1
+const start=new Date(race.start_time)
+const diff=(now()-start)/1000
+return Math.floor(diff/race.interval_seconds)+1
+}
+
+function roundClosed(){
+if(!race.start_time) return false
+const start=new Date(race.start_time)
+const diff=(now()-start)/1000
+return diff>race.interval_seconds*(currentRound())
+}
+
+function runnerLap(rid,round){
+return laps.find(l=>l.participant_id==rid && l.lap_number==round)
 }
 
 function draw(){
-  const now=new Date()
-  const hour=Math.floor((now-start)/3600000)+1
-
-  document.getElementById('time').innerText=
-    "Runde "+hour+" "+format((now-start)%3600000)
-
-  const grid=document.getElementById('grid')
-  grid.innerHTML=""
-
-  participants.forEach(p=>{
-    const b=document.createElement('button')
-    b.innerText=p.bib+" "+p.name
-    if(!p.active) b.classList.add('out')
-    if(doneThisHour(p.id,hour)) b.classList.add('done')
-    b.onclick=()=>stamp(p.id)
-    grid.appendChild(b)
-  })
-
-  drawResult()
-  drawLast()
+drawHeader()
+drawGrid()
+drawLive()
+drawAdmin()
 }
 
-function doneThisHour(id,hour){
-  return laps.find(l=>l.participant_id==id && l.lap_number==hour)
+function drawHeader(){
+const r=currentRound()
+const start=new Date(race.start_time||now())
+const diff=(now()-start)% (race.interval_seconds*1000)
+const min=Math.floor(diff/60000)
+const sec=Math.floor(diff/1000)%60
+document.getElementById("header").innerText=
+"Runde "+r+"  "+String(min).padStart(2,"0")+":"+String(sec).padStart(2,"0")
 }
 
-async function stamp(id){
-  const now=new Date()
-  const hour=Math.floor((now-start)/3600000)+1
-  if(doneThisHour(id,hour)) return
+function drawGrid(){
+const grid=document.getElementById("grid")
+grid.innerHTML=""
+const r=currentRound()
 
-  const sec=Math.floor((now-start)%3600000/1000)
+runners.sort((a,b)=>a.status.localeCompare(b.status)||a.bib-b.bib)
 
-  await db.from('laps').insert({
-    participant_id:id,
-    lap_number:hour,
-    lap_seconds:sec
-  })
+runners.forEach(p=>{
+const btn=document.createElement("button")
+btn.className="runner"
+
+let state="white"
+
+if(p.status=="dnf") state="gray"
+else if(runnerLap(p.id,r)) state="green"
+else if(roundClosed()) state="red"
+
+btn.classList.add(state)
+
+const lap=runnerLap(p.id,r)
+btn.innerText=p.bib+" "+p.name+(lap?" "+fmt(lap.lap_seconds):"")
+
+btn.onclick=()=>press(p.id)
+
+grid.appendChild(btn)
+})
 }
 
-function drawResult(){
-  const map={}
-  participants.forEach(p=>map[p.id]={name:p.name,laps:0,time:0})
+async function press(id){
+const r=currentRound()
+const existing=runnerLap(id,r)
 
-  laps.forEach(l=>{
-    map[l.participant_id].laps++
-    map[l.participant_id].time+=l.lap_seconds
-  })
-
-  const arr=Object.values(map)
-  arr.sort((a,b)=>b.laps-a.laps || a.time-b.time)
-
-  document.getElementById('result').innerHTML=
-    arr.map(r=>`${r.name} ${r.laps} ${format(r.time*1000)}`).join("<br>")
+if(existing){
+if(confirm("Slette registrering?")){
+await db.from("laps").delete().eq("id",existing.id)
+}
+return
 }
 
-function drawLast(){
-  const last=laps.slice(-5).reverse()
-  document.getElementById('last').innerHTML=
-    last.map(l=>{
-      const p=participants.find(p=>p.id==l.participant_id)
-      return `${p.name} ${format(l.lap_seconds*1000)}
-      <button onclick="del(${l.id})">x</button>`
-    }).join("<br>")
+const start=new Date(race.start_time)
+const sec=Math.floor(((now()-start)% (race.interval_seconds*1000))/1000)
+
+await db.from("laps").insert({
+race_id:race.id,
+participant_id:id,
+lap_number:r,
+lap_seconds:sec
+})
 }
 
-async function del(id){
-  await db.from('laps').delete().eq('id',id)
+function drawLive(){
+const t=document.getElementById("liveTable")
+
+let map={}
+runners.forEach(r=>map[r.id]={...r,laps:0,time:0,last:0})
+
+laps.forEach(l=>{
+const m=map[l.participant_id]
+if(!m) return
+m.laps++
+m.time+=l.lap_seconds
+m.last=l.lap_seconds
+})
+
+const arr=Object.values(map)
+
+arr.sort((a,b)=>b.laps-a.laps || a.time-b.time)
+
+let html="<tr><th>#</th><th>Navn</th><th>Runder</th><th>Siste</th><th>Snitt</th><th>Total</th><th>Status</th></tr>"
+
+arr.forEach((r,i)=>{
+html+=`<tr>
+<td>${i+1}</td>
+<td>${r.name}</td>
+<td>${r.laps}</td>
+<td>${fmt(r.last)}</td>
+<td>${fmt(r.laps? r.time/r.laps:0)}</td>
+<td>${fmt(r.time)}</td>
+<td>${r.status}</td>
+</tr>`
+})
+
+t.innerHTML=html
 }
 
-async function add(){
-  const name=prompt("Navn")
-  const bib=prompt("Nr")
-  await db.from('participants').insert({name,bib})
+function drawAdmin(){
+const t=document.getElementById("adminTable")
+let rounds=Math.max(10,...laps.map(l=>l.lap_number||0))
+
+let html="<tr><th>BIB</th><th>Navn</th>"
+for(let i=1;i<=rounds;i++) html+="<th>"+i+"</th>"
+html+="</tr>"
+
+runners.forEach(p=>{
+html+=`<tr>
+<td>${p.bib}</td>
+<td>${p.name}</td>`
+
+for(let i=1;i<=rounds;i++){
+const lap=laps.find(l=>l.participant_id==p.id && l.lap_number==i)
+html+=`<td onclick="edit(${p.id},${i})">${lap?fmt(lap.lap_seconds):""}</td>`
 }
 
-function format(ms){
-  const s=Math.floor(ms/1000)
-  return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")
+html+="</tr>"
+})
+
+t.innerHTML=html
 }
 
-db.channel('realtime')
-  .on('postgres_changes',{event:'*',schema:'public'},load)
-  .subscribe()
+async function edit(pid,round){
+const v=prompt("mm:ss")
+if(!v) return
+const [m,s]=v.split(":")
+const sec=parseInt(m)*60+parseInt(s)
+
+const existing=laps.find(l=>l.participant_id==pid && l.lap_number==round)
+
+if(existing){
+await db.from("laps").update({lap_seconds:sec,manual:true}).eq("id",existing.id)
+}else{
+await db.from("laps").insert({
+race_id:race.id,
+participant_id:pid,
+lap_number:round,
+lap_seconds:sec,
+manual:true
+})
+}
+}
+
+async function addRunner(){
+const bib=prompt("BIB")
+const name=prompt("Navn")
+await db.from("participants").insert({bib,name})
+}
+
+async function startRace(){
+const t=document.getElementById("startTime").value
+const i=parseInt(document.getElementById("interval").value)*60
+const km=parseFloat(document.getElementById("km").value)
+
+await db.from("race").upsert({
+id:1,
+start_time:t,
+interval_seconds:i,
+lap_distance_km:km,
+running:true
+})
+}
+
+async function stopRace(){
+await db.from("race").update({running:false}).eq("id",race.id)
+}
+
+function fmt(sec){
+sec=Math.floor(sec||0)
+return Math.floor(sec/60)+":"+String(sec%60).padStart(2,"0")
+}
 
 setInterval(draw,1000)
+
+db.channel("realtime")
+.on("postgres_changes",{event:"*",schema:"public"},load)
+.subscribe()
+
 load()
+
+async function keepAwake(){
+try{await navigator.wakeLock.request("screen")}catch(e){}
+}
+keepAwake()
+
 </script>
 
 </body>

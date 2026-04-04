@@ -37,6 +37,9 @@ return race.interval_seconds
 function currentRound(){
 if(!race.start_time) return 1
 let start=new Date(race.start_time)
+
+if(now()<start) return 1
+
 let diff=(now()-start)/1000
 let r=1
 let acc=0
@@ -53,6 +56,11 @@ return r
 function timeToNext(){
 if(!race.start_time) return 0
 let start=new Date(race.start_time)
+
+if(now()<start){
+return (start-now())/1000
+}
+
 let diff=(now()-start)/1000
 let r=1
 let acc=0
@@ -79,8 +87,12 @@ let grid=document.getElementById("runnerGrid")
 if(!grid) return
 grid.innerHTML=""
 
+let start=new Date(race.start_time||now())
+let beforeStart=now()<start
+
 let r=currentRound()
-let closed=timeToNext()<=0
+let remaining=timeToNext()
+let closed=remaining<=0
 
 participants.forEach(p=>{
 let btn=document.createElement("button")
@@ -89,7 +101,8 @@ btn.className="runner"
 let lap=laps.find(l=>l.participant_id==p.id && l.lap_number==r)
 
 let state="white"
-if(p.status==="dnf") state="gray"
+if(beforeStart) state="white"
+else if(p.status==="dnf") state="gray"
 else if(lap) state="green"
 else if(closed) state="red"
 
@@ -97,13 +110,18 @@ btn.classList.add(state)
 
 btn.innerText=p.bib+" "+p.name+(lap?" "+fmt(lap.lap_seconds):"")
 
+if(!beforeStart){
 btn.onclick=()=>press(p)
+}
 
 grid.appendChild(btn)
 })
 
-document.getElementById("roundHeader").innerText="Runde "+r
-document.getElementById("countdownHeader").innerText="Tid igjen "+fmt(timeToNext())
+document.getElementById("roundHeader").innerText=
+beforeStart ? "Start om" : "Runde "+r
+
+document.getElementById("countdownHeader").innerText=
+fmt(remaining)
 }
 
 async function press(p){
@@ -126,7 +144,6 @@ participant_id:p.id,
 lap_number:r,
 lap_seconds:sec
 })
-
 }
 
 // LIVE
@@ -164,14 +181,36 @@ html+=`<tr>
 
 t.innerHTML=html
 
-document.getElementById("liveRound").innerText="Runde "+currentRound()
-document.getElementById("liveCountdown").innerText="Tid igjen "+fmt(timeToNext())
+let start=new Date(race.start_time||now())
+let elapsed=(now()-start)/1000
+
+document.getElementById("liveRound").innerText=
+"Klokke "+now().toLocaleTimeString()+
+" | Start "+start.toLocaleTimeString()
+
+document.getElementById("liveCountdown").innerText=
+"Påløpt "+fmt(elapsed)+
+" | Neste "+fmt(timeToNext())
 }
 
 // ADMIN
 function drawAdmin(){
 let t=document.getElementById("adminTable")
 if(!t) return
+
+let panel=document.querySelector("#admin .panel")
+if(panel){
+let start=new Date(race.start_time||now())
+let diff=(start-now())/1000
+
+let info=document.createElement("div")
+info.innerHTML=
+diff>0
+? "Starter om: "+fmt(diff)
+: "Løp startet"
+
+panel.prepend(info)
+}
 
 let rounds=Math.max(10,...laps.map(l=>l.lap_number||0))
 
@@ -260,16 +299,30 @@ await db.from("participants").delete().neq("id",0)
 await db.from("race").delete().neq("id",0)
 }
 
+// LOG
 function drawLog(){
 let t=document.getElementById("logTable")
 if(!t) return
 
-let html="<tr><th>Start</th><th>Slutt</th></tr>"
+let html="<tr><th>Start</th><th>Slutt</th><th></th></tr>"
+
 logs.forEach(l=>{
-html+=`<tr><td>${l.start_time}</td><td>${l.end_time}</td></tr>`
+html+=`<tr>
+<td>${l.start_time}</td>
+<td>${l.end_time}</td>
+<td><button onclick="loadLog(${l.id})">Last inn</button></td>
+</tr>`
 })
 
 t.innerHTML=html
+}
+
+function loadLog(id){
+let l=logs.find(x=>x.id==id)
+participants=l.data.participants
+laps=l.data.laps
+race.start_time=l.start_time
+draw()
 }
 
 function fmt(sec){

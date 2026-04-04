@@ -1,1 +1,294 @@
-placeholder
+// SUPABASE
+const db = supabase.createClient(
+"https://wjmucbavcslivuzofayi.supabase.co",
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqbXVjYmF2Y3NsaXZ1em9mYXlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNjQxNDMsImV4cCI6MjA5MDc0MDE0M30.Tr6_K5_DIoW0wafZiOjKhPxjtmlw6k-mqVmSrSrKfus"
+)
+
+let race={}
+let participants=[]
+let laps=[]
+let logs=[]
+
+// PAGE NAV
+function showPage(id){
+document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"))
+document.getElementById(id).classList.add("active")
+}
+
+// LOAD
+async function load(){
+race=(await db.from("race").select("*").limit(1)).data[0]||{}
+participants=(await db.from("participants").select("*")).data||[]
+laps=(await db.from("laps").select("*")).data||[]
+logs=(await db.from("race_log").select("*")).data||[]
+draw()
+}
+
+// TIME
+function now(){return new Date()}
+
+function getInterval(round){
+if(race.type==="frontyard"){
+return (race.interval_seconds - (round-1)*60)
+}
+return race.interval_seconds
+}
+
+function currentRound(){
+if(!race.start_time) return 1
+let start=new Date(race.start_time)
+let diff=(now()-start)/1000
+let r=1
+let acc=0
+
+while(true){
+let i=getInterval(r)
+if(diff<acc+i) break
+acc+=i
+r++
+}
+return r
+}
+
+function timeToNext(){
+if(!race.start_time) return 0
+let start=new Date(race.start_time)
+let diff=(now()-start)/1000
+let r=1
+let acc=0
+
+while(true){
+let i=getInterval(r)
+if(diff<acc+i) return acc+i-diff
+acc+=i
+r++
+}
+}
+
+// DRAW
+function draw(){
+drawRegister()
+drawLive()
+drawAdmin()
+drawLog()
+}
+
+// REGISTER
+function drawRegister(){
+let grid=document.getElementById("runnerGrid")
+if(!grid) return
+grid.innerHTML=""
+
+let r=currentRound()
+let closed=timeToNext()<=0
+
+participants.forEach(p=>{
+let btn=document.createElement("button")
+btn.className="runner"
+
+let lap=laps.find(l=>l.participant_id==p.id && l.lap_number==r)
+
+let state="white"
+if(p.status==="dnf") state="gray"
+else if(lap) state="green"
+else if(closed) state="red"
+
+btn.classList.add(state)
+
+btn.innerText=p.bib+" "+p.name+(lap?" "+fmt(lap.lap_seconds):"")
+
+btn.onclick=()=>press(p)
+
+grid.appendChild(btn)
+})
+
+document.getElementById("roundHeader").innerText="Runde "+r
+document.getElementById("countdownHeader").innerText="Tid igjen "+fmt(timeToNext())
+}
+
+async function press(p){
+let r=currentRound()
+let existing=laps.find(l=>l.participant_id==p.id && l.lap_number==r)
+
+if(existing){
+if(confirm("Slette registrering?")){
+await db.from("laps").delete().eq("id",existing.id)
+}
+return
+}
+
+let start=new Date(race.start_time)
+let sec=Math.floor((now()-start)/1000)
+
+await db.from("laps").insert({
+race_id:race.id,
+participant_id:p.id,
+lap_number:r,
+lap_seconds:sec
+})
+
+}
+
+// LIVE
+function drawLive(){
+let t=document.getElementById("liveTable")
+if(!t) return
+
+let map={}
+participants.forEach(p=>map[p.id]={...p,laps:0,time:0,last:0})
+
+laps.forEach(l=>{
+let m=map[l.participant_id]
+if(!m) return
+m.laps++
+m.time+=l.lap_seconds
+m.last=l.lap_seconds
+})
+
+let arr=Object.values(map)
+arr.sort((a,b)=>b.laps-a.laps || a.time-b.time)
+
+let html="<tr><th>#</th><th>Navn</th><th>Runder</th><th>Siste</th><th>Snitt</th><th>Total</th><th>Status</th></tr>"
+
+arr.forEach((r,i)=>{
+html+=`<tr>
+<td>${i+1}</td>
+<td>${r.name}</td>
+<td>${r.laps}</td>
+<td>${fmt(r.last)}</td>
+<td>${fmt(r.laps? r.time/r.laps:0)}</td>
+<td>${fmt(r.time)}</td>
+<td>${r.status||"active"}</td>
+</tr>`
+})
+
+t.innerHTML=html
+
+document.getElementById("liveRound").innerText="Runde "+currentRound()
+document.getElementById("liveCountdown").innerText="Tid igjen "+fmt(timeToNext())
+}
+
+// ADMIN
+function drawAdmin(){
+let t=document.getElementById("adminTable")
+if(!t) return
+
+let rounds=Math.max(10,...laps.map(l=>l.lap_number||0))
+
+let html="<tr><th>BIB</th><th>Navn</th>"
+for(let i=1;i<=rounds;i++) html+="<th>"+i+"</th>"
+html+="</tr>"
+
+participants.forEach(p=>{
+html+=`<tr>
+<td>${p.bib}</td>
+<td>${p.name}</td>`
+
+for(let i=1;i<=rounds;i++){
+let lap=laps.find(l=>l.participant_id==p.id && l.lap_number==i)
+html+=`<td onclick="editLap(${p.id},${i})">${lap?fmt(lap.lap_seconds):""}</td>`
+}
+
+html+="</tr>"
+})
+
+t.innerHTML=html
+}
+
+async function editLap(pid,round){
+let v=prompt("mm:ss")
+if(!v) return
+let [m,s]=v.split(":")
+let sec=parseInt(m)*60+parseInt(s)
+
+let existing=laps.find(l=>l.participant_id==pid && l.lap_number==round)
+
+if(existing){
+await db.from("laps").update({lap_seconds:sec}).eq("id",existing.id)
+}else{
+await db.from("laps").insert({
+race_id:race.id,
+participant_id:pid,
+lap_number:round,
+lap_seconds:sec,
+manual:true
+})
+}
+}
+
+async function addParticipant(){
+let bib=prompt("BIB")
+let name=prompt("Navn")
+await db.from("participants").insert({bib,name,status:"active"})
+}
+
+async function startRace(){
+let type=document.getElementById("raceType").value
+let start=document.getElementById("startTime").value
+let interval=parseInt(document.getElementById("interval").value)*60
+let dist=parseFloat(document.getElementById("distance").value)
+
+await db.from("race").upsert({
+id:1,
+type,
+start_time:start,
+interval_seconds:interval,
+lap_distance_km:dist,
+running:true
+})
+}
+
+async function stopRace(){
+if(!confirm("Stoppe løpet?")) return
+if(!confirm("Er du sikker?")) return
+
+await db.from("race").update({running:false,finished:true}).eq("id",race.id)
+
+await db.from("race_log").insert({
+name:"Løp",
+start_time:race.start_time,
+end_time:new Date(),
+data:{participants,laps}
+})
+}
+
+async function resetRace(){
+if(!confirm("Reset?")) return
+
+await db.from("laps").delete().neq("id",0)
+await db.from("participants").delete().neq("id",0)
+await db.from("race").delete().neq("id",0)
+}
+
+function drawLog(){
+let t=document.getElementById("logTable")
+if(!t) return
+
+let html="<tr><th>Start</th><th>Slutt</th></tr>"
+logs.forEach(l=>{
+html+=`<tr><td>${l.start_time}</td><td>${l.end_time}</td></tr>`
+})
+
+t.innerHTML=html
+}
+
+function fmt(sec){
+sec=Math.max(0,Math.floor(sec||0))
+return Math.floor(sec/60)+":"+String(sec%60).padStart(2,"0")
+}
+
+// REALTIME
+db.channel("realtime")
+.on("postgres_changes",{event:"*",schema:"public"},load)
+.subscribe()
+
+setInterval(draw,1000)
+load()
+
+// WAKELOCK
+async function keepAwake(){
+try{
+await navigator.wakeLock.request("screen")
+}catch(e){}
+}
+keepAwake()

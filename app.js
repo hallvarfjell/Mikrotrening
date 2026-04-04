@@ -203,13 +203,17 @@ if(panel){
 let start=new Date(race.start_time||now())
 let diff=(start-now())/1000
 
-let info=document.createElement("div")
-info.innerHTML=
+let info=document.getElementById("adminInfo")
+if(!info){
+info=document.createElement("div")
+info.id="adminInfo"
+panel.prepend(info)
+}
+
+info.innerHTML =
 diff>0
 ? "Starter om: "+fmt(diff)
 : "Løp startet"
-
-panel.prepend(info)
 }
 
 let rounds=Math.max(10,...laps.map(l=>l.lap_number||0))
@@ -263,14 +267,18 @@ await db.from("participants").insert({bib,name,status:"active"})
 
 async function startRace(){
 let type=document.getElementById("raceType").value
-let start=document.getElementById("startTime").value
+let startLocal=document.getElementById("startTime").value
+
+// KONVERTER LOKAL TID TIL ISO
+let startISO = new Date(startLocal).toISOString()
+
 let interval=parseInt(document.getElementById("interval").value)*60
 let dist=parseFloat(document.getElementById("distance").value)
 
 await db.from("race").upsert({
 id:1,
 type,
-start_time:start,
+start_time:startISO,
 interval_seconds:interval,
 lap_distance_km:dist,
 running:true
@@ -308,8 +316,8 @@ let html="<tr><th>Start</th><th>Slutt</th><th></th></tr>"
 
 logs.forEach(l=>{
 html+=`<tr>
-<td>${l.start_time}</td>
-<td>${l.end_time}</td>
+<td>${new Date(l.start_time).toLocaleString()}</td>
+<td>${new Date(l.end_time).toLocaleString()}</td>
 <td><button onclick="loadLog(${l.id})">Last inn</button></td>
 </tr>`
 })

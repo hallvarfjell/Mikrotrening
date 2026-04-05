@@ -1,37 +1,20 @@
 <!DOCTYPE html>
 <html lang="no">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
 <title>Backyard Timer</title>
 
-<!-- ✅ Supabase -->
-<script src="https://cdn.jsdelivr.net/npm/@base-js@2
+<!-- ✅ Manifest -->
+manifest.json
+<meta name="theme-color" content="#222" />
 
-<!-- ✅ XLS/XLSX-import (SheetJS) -->
-https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js
+<!-- ✅ Icons -->
+<link rel="icon" sizes="192le-touch-icon" sizes="192x1922" href="icon-512.png"pt src="https://cdn.jsdelivr.net/npm/@supabase/supabase XLSX (SheetJS) -->
+<script src=".cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js
 
-<!-- ✅ PWA manifest -->
-/manifest.json
-<meta name="theme-color" content="#222">
-
-<!-- ✅ App icons -->
-<link rel="icon" type="image/png" sizes="ce worker registrering -->
-<script>
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    // Fjern gammel SW (som var ødelagt)
-    navigator.serviceWorker.getRegistrations()
-      .then(regs => regs.forEach(r => r.unregister()));
-
-    navigator.serviceWorker.register("/service-worker.js")
-      .then(() => console.log("✅ Service worker registret"))
-      .catch(err => console.error("❌ SW error:", err));
-  });
-}
-</script>
-
+<!-- ✅ CSS -->
 <style>
 body { margin:0; font-family:Arial, sans-serif; background:#f2f2f2; }
 
@@ -46,9 +29,9 @@ nav button.active { background:#444; }
 .subheader { font-size:clamp(16px,3vw,24px); text-align:center; margin-bottom:12px; }
 
 .grid { display:grid; gap:8px; margin-top:10px; }
-@media(min-width:1000px){.grid{grid-template-columns:repeat(4,1fr);}}
-@media(max-width:999px){.grid{grid-template-columns:repeat(3,1fr);}}
-@media(max-width:600px){.grid{grid-template-columns:repeat(2,1fr);}}
+@media(min-width:1000px){.grid{grid-template-columns:repeat(4,1fr);} }
+@media(max-width:999px){.grid{grid-template-columns:repeat(3,1fr);} }
+@media(max-width:600px){.grid{grid-template-columns:repeat(2,1fr);} }
 
 .runner { padding:16px; border-radius:6px; border:1px solid #999; font-size:clamp(16px,3vw,28px); }
 .white{background:white;}
@@ -58,17 +41,14 @@ nav button.active { background:#444; }
 
 .panel { background:white; padding:12px; border-radius:8px; margin-bottom:12px; }
 
-table {
-  width:100%; border-collapse:collapse; background:white;
-}
-th,td { border:1px solid #ccc; padding:4px; font-size:14px; text-align:center; }
+table { width:100%; border-collapse:collapse; background:white; }
+th,td { border:1px solid #ccc; padding:4px; text-align:center; }
 th { background:#eee; }
 
-/* ✅ Modal styling */
 .modal {
-  position:fixed; top:0;left:0;right:0;bottom:0;
-  background:rgba(0,0,0,0.6);
+  position:fixed; top:0; left:0; right:0; bottom:0;
   display:flex; align-items:center; justify-content:center;
+  background:rgba(0,0,0,0.6);
   visibility:hidden; opacity:0; transition:0.2s;
 }
 .modal.active { visibility:visible; opacity:1; }
@@ -77,9 +57,24 @@ th { background:#eee; }
   background:white; padding:20px; border-radius:10px;
   width:90%; max-width:400px;
 }
+
 .modal-buttons { text-align:right; margin-top:15px; }
 .modal-buttons button { margin-left:8px; }
 </style>
+
+<!-- ✅ Service Worker REG -->
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", async () => {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    regs.forEach(r => r.unregister()); // fjerner gamle ødelagte SWs
+
+    navigator.serviceWorker.register("service-worker.js")
+      .then(() => console.log("✅ Service worker registered"))
+      .catch(err => console.error("SW error:", err));
+  });
+}
+</script>
 
 </head>
 
@@ -110,7 +105,6 @@ th { background:#eee; }
 
 <!-- ✅ ADMIN -->
 <div id="admin" class="page">
-
  <div class="panel">
   <h3>Løpsinnstillinger</h3>
 
@@ -119,17 +113,13 @@ th { background:#eee; }
     <option value="backyard">Backyard</option>
     <option value="frontyard">Frontyard</option>
     <option value="custom">Custom</option>
-  </select>
-
-  <br>
+  </select><br>
 
   Starttid:
-  <input type="datetime-local" id="startTime">
-
-  <br>
+  <input type="datetime-local" id="startTime"><br>
 
   Intervall (min):
-  <input type="number" id="interval" value="60">
+  <input type="number" id="interval" value="60"><br>
 
   Rundelengde (km):
   <input type="number" id="distance" value="6.7" step="0.01">
@@ -156,16 +146,16 @@ th { background:#eee; }
  <table id="logTable"></table>
 </div>
 
-<!-- ✅ MODAL: ADD PARTICIPANT -->
+<!-- ✅ MODAL -->
 <div class="modal" id="modalAdd">
  <div class="modal-box">
   <h3>Legg til deltaker</h3>
 
-  BIB:
-  <input type="text" id="modalBib" style="width:100%;">
+  BIB:<br>
+  <input id="modalBib" style="width:100%;"><br>
 
-  Navn:
-  <input type="text" id="modalName" style="width:100%;">
+  Navn:<br>
+  <input id="modalName" style="width:100%;">
 
   <div class="modal-buttons">
     <button onclick="closeAddModal()">Avbryt</button>
@@ -174,8 +164,8 @@ th { background:#eee; }
  </div>
 </div>
 
-<!-- ✅ LAST APP.JS NEDERST (MÅ være sist) -->
-<script src="/app.js"></script>
+<!-- ✅ LAST APP.JS TIL SLUTT -->
+<script src="app.js"></script>
 
 </body>
 </html>

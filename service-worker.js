@@ -1,24 +1,66 @@
-const CACHE = "backyard-cache-v1";
+// -------------------------------
+// BACKYARD TIMER SERVICE WORKER
+// Fjernes all CDN-caching for å hindre addAll-feil
+// -------------------------------
+
+const CACHE_NAME = "backyard-cache-v3";
+
+// Lokale filer som garantert finnes på samme origin
 const ASSETS = [
   "/",
   "/index.html",
   "/app.js",
   "/manifest.json",
   "/icon-192.png",
-  "/icon-512.png",
-  "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",
-  "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"
+  "/icon-512.png"
 ];
 
+// INSTALL — cache alt lokalt
 self.addEventListener("install", event => {
   event.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS))
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(ASSETS))
+      .catch(err => console.error("[SW] Cache addAll error:", err))
   );
+  self.skipWaiting();
 });
 
-self.addEventListener("fetch", event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(res => res || fetch(event.request))
+// ACTIVATE — slett gammel cache
+self.addEventListener("activate", event => {
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(
+        keys
+          .filter(key => key !== CACHE_NAME)
+          .map(key => caches.delete(key))
+      )
+    )
   );
+  self.clients.claim();
+});
+
+// FETCH — cache-first for lokale filer
+self.addEventListener("fetch", event => {
+  const url = new URL(event.request.url);
+
+  // Kun cache lokale filer. Aldri cache CDN/content fra andre domener.
+  if (url.origin === self.location.origin) {
+    event.respondWith(
+      caches.match(event.request)
+        .then(cached => {
+          if (cached) {
+            // stale-while-revalidate
+            event.waitUntil(
+              fetch(event.request).then(response => {
+                caches.open(CACHE_NAME).then(cache => {
+                  cache.put(event.request, response.clone());
+                });
+              })
+            );
+            return cached;
+          }
+          return fetch(event.request);
+        })
+    );
+  }
 });

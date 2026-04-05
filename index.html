@@ -1,25 +1,29 @@
 <!DOCTYPE html>
 <html lang="no">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>Backyard Timer</title>
 
 <!-- ✅ Manifest -->
-manifest.json
-<meta name="theme-color" content="#222" />
+<link rel="manifest"name="theme-color" content="#222">
 
-<!-- ✅ Icons -->
-<link rel="icon" sizes="192le-touch-icon" sizes="192x1922" href="icon-512.png"pt src="https://cdn.jsdelivr.net/npm/@supabase/supabase XLSX (SheetJS) -->
-<script src=".cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js
+<!-- ✅ Ikoner -->
+<link rel="icon" type=""icon" type="image/png" sizes="512x512" href.net/npm/@supabase/supabase-js@2
 
-<!-- ✅ CSS -->
+<!-- ✅ XLSX (import av Excel-filer) -->
+<script src="https://are.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js
+
+<!-- ✅ Styling -->
 <style>
 body { margin:0; font-family:Arial, sans-serif; background:#f2f2f2; }
 
 nav { display:flex; background:#222; }
-nav button { flex:1; padding:12px; border:none; background:#222; color:white; font-size:16px; }
+nav button {
+  flex:1; padding:12px; border:none; background:#222;
+  color:white; font-size:16px; cursor:pointer;
+}
 nav button.active { background:#444; }
 
 .page { display:none; padding:10px; }
@@ -29,17 +33,23 @@ nav button.active { background:#444; }
 .subheader { font-size:clamp(16px,3vw,24px); text-align:center; margin-bottom:12px; }
 
 .grid { display:grid; gap:8px; margin-top:10px; }
-@media(min-width:1000px){.grid{grid-template-columns:repeat(4,1fr);} }
-@media(max-width:999px){.grid{grid-template-columns:repeat(3,1fr);} }
-@media(max-width:600px){.grid{grid-template-columns:repeat(2,1fr);} }
+@media(min-width:1000px){ .grid{grid-template-columns:repeat(4,1fr);} }
+@media(max-width:999px){ .grid{grid-template-columns:repeat(3,1fr);} }
+@media(max-width:600px){ .grid{grid-template-columns:repeat(2,1fr);} }
 
-.runner { padding:16px; border-radius:6px; border:1px solid #999; font-size:clamp(16px,3vw,28px); }
+.runner {
+  padding:16px; border-radius:6px; border:1px solid #999;
+  font-size:clamp(16px,3vw,28px); cursor:pointer;
+}
 .white{background:white;}
 .green{background:#4caf50;color:white;}
 .red{background:#f44336;color:white;}
 .gray{background:#777;color:white;}
 
-.panel { background:white; padding:12px; border-radius:8px; margin-bottom:12px; }
+.panel {
+  background:white; padding:12px; border-radius:8px; margin-bottom:12px;
+  box-shadow:0 0 4px rgba(0,0,0,0.1);
+}
 
 table { width:100%; border-collapse:collapse; background:white; }
 th,td { border:1px solid #ccc; padding:4px; text-align:center; }
@@ -47,9 +57,10 @@ th { background:#eee; }
 
 .modal {
   position:fixed; top:0; left:0; right:0; bottom:0;
-  display:flex; align-items:center; justify-content:center;
   background:rgba(0,0,0,0.6);
-  visibility:hidden; opacity:0; transition:0.2s;
+  display:flex; align-items:center; justify-content:center;
+  visibility:hidden; opacity:0;
+  transition:0.2s; z-index:1000;
 }
 .modal.active { visibility:visible; opacity:1; }
 
@@ -57,21 +68,21 @@ th { background:#eee; }
   background:white; padding:20px; border-radius:10px;
   width:90%; max-width:400px;
 }
-
 .modal-buttons { text-align:right; margin-top:15px; }
 .modal-buttons button { margin-left:8px; }
 </style>
 
-<!-- ✅ Service Worker REG -->
+<!-- ✅ Service Worker -->
 <script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
+    // Fjern eventuelle gamle SW-er
     const regs = await navigator.serviceWorker.getRegistrations();
-    regs.forEach(r => r.unregister()); // fjerner gamle ødelagte SWs
+    regs.forEach(r => r.unregister());
 
     navigator.serviceWorker.register("service-worker.js")
-      .then(() => console.log("✅ Service worker registered"))
-      .catch(err => console.error("SW error:", err));
+      .then(() => console.log("✅ Service worker aktivert"))
+      .catch(err => console.error("SW-feil:", err));
   });
 }
 </script>
@@ -81,10 +92,10 @@ if ("serviceWorker" in navigator) {
 <body>
 
 <nav>
- <button onclick="showPage('register')" id="navRegister">Registrering</button>
- <button onclick="showPage('live')" id="navLive">Live</button>
- <button onclick="showPage('admin')" id="navAdmin">Admin</button>
- <button onclick="showPage('log')" id="navLog">Logg</button>
+ <button onclick="showPage('register')" id="btnRegister">Registrering</button>
+ <button onclick="showPage('live')" id="btnLive">Live</button>
+ <button onclick="showPage('admin')" id="btnAdmin">Admin</button>
+ <button onclick="showPage('log')" id="btnLog">Logg</button>
 </nav>
 
 <!-- ✅ REGISTRERING -->
@@ -105,6 +116,7 @@ if ("serviceWorker" in navigator) {
 
 <!-- ✅ ADMIN -->
 <div id="admin" class="page">
+
  <div class="panel">
   <h3>Løpsinnstillinger</h3>
 
@@ -113,20 +125,19 @@ if ("serviceWorker" in navigator) {
     <option value="backyard">Backyard</option>
     <option value="frontyard">Frontyard</option>
     <option value="custom">Custom</option>
-  </select><br>
+  </select><br><br>
 
   Starttid:
-  <input type="datetime-local" id="startTime"><br>
+  <input type="datetime-local" id="startTime"><br><br>
 
   Intervall (min):
-  <input type="number" id="interval" value="60"><br>
+  <input type="number" id="interval" value="60"><br><br>
 
   Rundelengde (km):
-  <input type="number" id="distance" value="6.7" step="0.01">
+  <input type="number" id="distance" value="6.7" step="0.01"><br><br>
 
-  <div id="adminCountdown" style="margin-top:8px;font-weight:bold;"></div>
+  <div id="adminCountdown" style="font-weight:bold;"></div>
 
-  <br>
   <button onclick="startRace()">Start</button>
   <button onclick="stopRace()">Stopp</button>
   <button onclick="resetRace()">Reset</button>
@@ -135,9 +146,10 @@ if ("serviceWorker" in navigator) {
  <div class="panel">
   <h3>Deltakere</h3>
   <button onclick="openAddModal()">Legg til deltaker</button>
-  <input type="file" id="csvInput" onchange="importParticipants(event)">
+  <input type="file" id="csvInput" onchange="importParticipants(event)" />
   <table id="adminTable"></table>
  </div>
+
 </div>
 
 <!-- ✅ LOG -->
@@ -146,15 +158,15 @@ if ("serviceWorker" in navigator) {
  <table id="logTable"></table>
 </div>
 
-<!-- ✅ MODAL -->
+<!-- ✅ MODAL FOR DELTAKER -->
 <div class="modal" id="modalAdd">
  <div class="modal-box">
   <h3>Legg til deltaker</h3>
 
-  BIB:<br>
-  <input id="modalBib" style="width:100%;"><br>
+  <label>BIB:</label>
+  <input id="modalBib" style="width:100%;"><br><br>
 
-  Navn:<br>
+  <label>Navn:</label>
   <input id="modalName" style="width:100%;">
 
   <div class="modal-buttons">
@@ -164,7 +176,7 @@ if ("serviceWorker" in navigator) {
  </div>
 </div>
 
-<!-- ✅ LAST APP.JS TIL SLUTT -->
+<!-- ✅ Load application logic -->
 <script src="app.js"></script>
 
 </body>

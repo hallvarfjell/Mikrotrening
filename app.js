@@ -7,7 +7,6 @@ const db = supabase.createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqbXVjYmF2Y3NsaXZ1em9mYXlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNjQxNDMsImV4cCI6MjA5MDc0MDE0M30.Tr6_K5_DIoW0wafZiOjKhPxjtmlw6k-mqVmSrSrKfus"
 );
 
-
 /******************************************************************************
  * GLOBAL STATE
  ******************************************************************************/
@@ -18,7 +17,6 @@ const state = {
   laps: [],
   logs: []
 };
-
 
 /******************************************************************************
  * UTILITIES
@@ -31,42 +29,40 @@ function fmt(sec) {
   return Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0");
 }
 
-function sortRegistrationGrid(items) {
-  const rank = p => {
-    if (p.uiState === "green") return 1;
-    if (p.uiState === "red")   return 2;
-    if (p.uiState === "white") return 3;
-    if (p.uiState === "gray")  return 4;
-    return 5;
-  };
-  return items.sort((a, b) => rank(a) - rank(b));
+function sortRegistrationGrid(arr) {
+  const order = p =>
+    p.uiState === "green" ? 1 :
+    p.uiState === "red"   ? 2 :
+    p.uiState === "white" ? 3 :
+    p.uiState === "gray"  ? 4 : 5;
+
+  return arr.sort((a,b)=> order(a) - order(b));
 }
 
-
 /******************************************************************************
- * PAGE NAVIGATION
+ * PAGE NAV
  ******************************************************************************/
 
-function showPage(id) {
-  document.querySelectorAll(".page").forEach(x => x.classList.remove("active"));
+function showPage(id){
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
   document.getElementById(id).classList.add("active");
 }
 
-
 /******************************************************************************
- * CORE TIME LOGIC
+ * TIME CALCULATIONS
  ******************************************************************************/
 
-function getInterval(round) {
+function getInterval(round){
   const r = state.race;
   if (!r) return 3600;
+
   if (r.type === "frontyard") {
     return r.interval_seconds - (round - 1) * 60;
   }
   return r.interval_seconds;
 }
 
-function currentRound() {
+function currentRound(){
   const r = state.race;
   if (!r?.start_time) return 1;
 
@@ -74,11 +70,11 @@ function currentRound() {
   if (now() < start) return 1;
 
   let diff = (now() - start) / 1000;
-  let round = 1;
   let acc = 0;
+  let round = 1;
 
   while (true) {
-    const dur = getInterval(round);
+    let dur = getInterval(round);
     if (diff < acc + dur) break;
     acc += dur;
     round++;
@@ -86,16 +82,16 @@ function currentRound() {
   return round;
 }
 
-function timeToNext() {
+function timeToNext(){
   const r = state.race;
   if (!r?.start_time) return 0;
 
   const start = new Date(r.start_time);
-  if (now() < start) return (start - now()) / 1000;
+  if (now() < start) return (start - now())/1000;
 
   let diff = (now() - start) / 1000;
-  let round = 1;
   let acc = 0;
+  let round = 1;
 
   while (true) {
     let dur = getInterval(round);
@@ -105,56 +101,48 @@ function timeToNext() {
   }
 }
 
-
 /******************************************************************************
- * RENDERING
+ * RENDER
  ******************************************************************************/
 
-function draw() {
+function draw(){
   drawRegister();
   drawLive();
   drawAdmin();
   drawLog();
 }
 
-
 /******************************************************************************
- * REGISTER PAGE
+ * REGISTRATION PAGE
  ******************************************************************************/
 
-function drawRegister() {
+function drawRegister(){
   const grid = document.getElementById("runnerGrid");
   if (!grid || !state.race) return;
 
   const r = currentRound();
-  const start = new Date(state.race.start_time || now());
-  const beforeStart = now() < start;
+  const beforeStart = now() < new Date(state.race.start_time);
   const remaining = timeToNext();
   const cutoff = remaining <= 0;
 
-  const participantsView = state.participants.map(p => {
+  // Build participant states
+  const view = state.participants.map(p => {
     const lap = state.laps.find(
-      l => l.participant_id === p.id && l.lap_number === r
+      l => l.participant_id == p.id && l.lap_number == r
     );
 
     let uiState = "white";
 
-    if (beforeStart) {
-      uiState = "white";
-    } else if (p.status === "dnf") {
-      uiState = "gray";
-    } else if (lap) {
-      uiState = "green";
-    } else if (cutoff) {
-      uiState = "red";
-    } else {
-      uiState = "white";
-    }
+    if (beforeStart) uiState = "white";
+    else if (p.status === "dnf") uiState = "gray";
+    else if (lap) uiState = "green";
+    else if (cutoff) uiState = "red";
+    else uiState = "white";
 
     return { ...p, uiState };
   });
 
-  const sorted = sortRegistrationGrid(participantsView);
+  const sorted = sortRegistrationGrid(view);
   grid.innerHTML = "";
 
   sorted.forEach(p => {
@@ -162,8 +150,9 @@ function drawRegister() {
     btn.className = "runner " + p.uiState;
 
     const rLap = state.laps.find(
-      l => l.participant_id === p.id && l.lap_number === r
+      l => l.participant_id == p.id && l.lap_number == r
     );
+
     btn.textContent =
       p.bib + " " + p.name + (rLap ? " " + fmt(rLap.lap_seconds) : "");
 
@@ -177,23 +166,19 @@ function drawRegister() {
   document.getElementById("countdownHeader").innerText = fmt(remaining);
 }
 
-
 /******************************************************************************
- * PRESS HANDLING
+ * PRESS HANDLING (Backyard‑korrekt)
  ******************************************************************************/
 
-async function press(p, uiState) {
+async function press(p, uiState){
   const r = currentRound();
-  const start = new Date(state.race.start_time);
+  const cutoff = timeToNext() <= 0;
+
   const existing = state.laps.find(
     l => l.participant_id === p.id && l.lap_number === r
   );
 
-  const cutoff = timeToNext() <= 0;
-
-  // -----------------------------
-  // CASE 1 — GREEN → click again → remove
-  // -----------------------------
+  /************ CASE 1 — Remove existing lap (green → white) ************/
   if (existing) {
     if (confirm("Slette registrering?")) {
       await db.from("laps").delete().eq("id", existing.id);
@@ -201,26 +186,20 @@ async function press(p, uiState) {
     return;
   }
 
-  // -----------------------------
-  // CASE 2 — RED (timed out) → mark DNF
-  // -----------------------------
+  /************ CASE 2 — Timed‑out (red) → DNF ************/
   if (uiState === "red" && cutoff) {
     const lastRound = r - 1;
-    const lastLap = state.laps.find(
-      l => l.participant_id === p.id && l.lap_number === lastRound
-    );
 
-    const sec = lastLap ? lastLap.lap_seconds : null;
+    await db.from("participants")
+      .update({ status: "dnf" })
+      .eq("id", p.id);
 
-    // Set DNF
-    await db.from("participants").update({ status: "dnf" }).eq("id", p.id);
     return;
   }
 
-  // -----------------------------
-  // CASE 3 — NORMAL registration
-  // -----------------------------
-  const sec = Math.floor((now() - start) / 1000);
+  /************ CASE 3 — Normal registration ************/
+  const start = new Date(state.race.start_time);
+  const sec = Math.floor((now() - start)/1000);
 
   // Optimistic
   state.laps.push({
@@ -241,26 +220,25 @@ async function press(p, uiState) {
   });
 }
 
-
 /******************************************************************************
  * LIVE PAGE
  ******************************************************************************/
 
-function drawLive() {
+function drawLive(){
   const box = document.getElementById("liveTable");
   if (!box || !state.race) return;
 
   const r = currentRound();
-  const start = new Date(state.race.start_time);
+  const start = new Date(state.race.start_time || now());
   const elapsed = (now() - start) / 1000;
 
-  // HEADER PANEL
-  document.getElementById("liveRound").innerHTML =
+  document.getElementById("liveRound").innerText =
     `Klokke ${now().toLocaleTimeString()} — Runde ${r}`;
-  document.getElementById("liveCountdown").innerHTML =
+
+  document.getElementById("liveCountdown").innerText =
     `Påløpt ${fmt(elapsed)} — Neste start om ${fmt(timeToNext())}`;
 
-  // BUILD RESULT TABLE
+  // Build standings
   const map = {};
   state.participants.forEach(
     p => (map[p.id] = { ...p, rounds: 0, total: 0, last: 0 })
@@ -275,15 +253,15 @@ function drawLive() {
   });
 
   const arr = Object.values(map);
-  arr.sort((a, b) => b.rounds - a.rounds || a.total - b.total);
+  arr.sort((a,b)=> b.rounds - a.rounds || a.total - b.total);
 
   let html =
     "<tr><th>#</th><th>Navn</th><th>Runder</th><th>Siste</th><th>Totaltid</th><th>Status</th></tr>";
 
-  arr.forEach((r, i) => {
+  arr.forEach((r,i)=>{
     html += `
       <tr>
-        <td>${i + 1}</td>
+        <td>${i+1}</td>
         <td>${r.name}</td>
         <td>${r.rounds}</td>
         <td>${fmt(r.last)}</td>
@@ -295,31 +273,27 @@ function drawLive() {
   box.innerHTML = html;
 }
 
-
 /******************************************************************************
  * ADMIN PAGE
  ******************************************************************************/
 
-function drawAdmin() {
+function drawAdmin(){
   const t = document.getElementById("adminTable");
   if (!t || !state.race) return;
 
-  const rounds = Math.max(
-    1,
-    ...state.laps.map(l => l.lap_number || 0)
-  );
+  let rounds = Math.max(1,...state.laps.map(l=>l.lap_number||0));
 
   let html = "<tr><th>BIB</th><th>Navn</th>";
-  for (let i = 1; i <= rounds; i++) html += `<th>${i}</th>`;
+  for (let i=1;i<=rounds;i++) html += `<th>${i}</th>`;
   html += "</tr>";
 
-  state.participants.forEach(p => {
+  state.participants.forEach(p=>{
     html += `<tr><td>${p.bib}</td><td>${p.name}</td>`;
-    for (let i = 1; i <= rounds; i++) {
+    for (let i=1;i<=rounds;i++){
       const lap = state.laps.find(
-        l => l.participant_id == p.id && l.lap_number == i
+        l => l.participant_id==p.id && l.lap_number==i
       );
-      html += `<td>${lap ? fmt(lap.lap_seconds) : ""}</td>`;
+      html += `<td>${lap?fmt(lap.lap_seconds):""}</td>`;
     }
     html += "</tr>";
   });
@@ -333,61 +307,110 @@ function drawAdmin() {
   const start = new Date(state.race.start_time);
   const diff = start - now();
 
-  if (diff > 0) {
-    info.innerText = "Starter om: " + fmt(diff / 1000);
-  } else {
-    info.innerText = "Løpet er i gang!";
+  if (diff > 0) info.innerText = "Starter om: " + fmt(diff/1000);
+  else info.innerText = "Løpet er i gang!";
+}
+
+/******************************************************************************
+ * ADMIN ACTIONS
+ ******************************************************************************/
+
+function openAddModal(){
+  document.getElementById("modalAdd").classList.add("active");
+}
+function closeAddModal(){
+  document.getElementById("modalAdd").classList.remove("active");
+}
+
+async function confirmAddParticipant(){
+  const bib = document.getElementById("modalBib").value.trim();
+  const name = document.getElementById("modalName").value.trim();
+
+  if (!bib || !name) {
+    alert("BIB og navn må fylles ut.");
+    return;
   }
+
+  await db.from("participants").insert({
+    bib,
+    name,
+    status:"active"
+  });
+
+  document.getElementById("modalBib").value="";
+  document.getElementById("modalName").value="";
+  closeAddModal();
 }
 
-async function addParticipant() {
-  const bib = prompt("BIB");
-  const name = prompt("Navn");
-  await db.from("participants").insert({ bib, name, status: "active" });
+async function importParticipants(event){
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const data = new Uint8Array(e.target.result);
+    const wb = XLSX.read(data, { type:"array" });
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet);
+
+    rows.forEach(r => {
+      const bib  = r.BIB  || r.bib;
+      const name = r.Navn || r.NAVN || r.navn || r.name;
+      if (bib && name) {
+        db.from("participants").insert({
+          bib,
+          name,
+          status:"active"
+        });
+      }
+    });
+  };
+  reader.readAsArrayBuffer(file);
 }
 
-async function startRace() {
+async function startRace(){
   const type = document.getElementById("raceType").value;
   const startLocal = document.getElementById("startTime").value;
   const startISO = new Date(startLocal).toISOString();
-  const interval = parseInt(document.getElementById("interval").value) * 60;
+  const interval = parseInt(document.getElementById("interval").value)*60;
   const dist = parseFloat(document.getElementById("distance").value);
 
   await db.from("race").upsert({
-    id: 1,
+    id:1,
     type,
-    start_time: startISO,
-    interval_seconds: interval,
-    lap_distance_km: dist,
-    running: true
+    start_time:startISO,
+    interval_seconds:interval,
+    lap_distance_km:dist,
+    running:true
   });
 }
 
-async function stopRace() {
+async function stopRace(){
   if (!confirm("Stoppe løpet?")) return;
-  await db.from("race").update({ running: false }).eq("id", state.race.id);
+  await db.from("race")
+    .update({ running:false })
+    .eq("id", state.race.id);
 }
 
-async function resetRace() {
+async function resetRace(){
   if (!confirm("Slette alt?")) return;
 
-  await db.from("laps").delete().neq("id", 0);
-  await db.from("participants").delete().neq("id", 0);
-  await db.from("race").delete().neq("id", 0);
+  await db.from("laps").delete().neq("id",0);
+  await db.from("participants").delete().neq("id",0);
+  await db.from("race").delete().neq("id",0);
 }
 
-
 /******************************************************************************
- * LOG PAGE
+ * LOG
  ******************************************************************************/
 
-function drawLog() {
-  const t = document.getElementById("logTable");
-  if (!t) return;
+function drawLog(){
+  const t=document.getElementById("logTable");
+  if(!t) return;
 
-  let html = "<tr><th>Start</th><th>Slutt</th></tr>";
+  let html="<tr><th>Start</th><th>Slutt</th></tr>";
 
-  state.logs.forEach(l => {
+  state.logs.forEach(l=>{
     html += `
       <tr>
         <td>${new Date(l.start_time).toLocaleString()}</td>
@@ -395,59 +418,54 @@ function drawLog() {
       </tr>`;
   });
 
-  t.innerHTML = html;
+  t.innerHTML=html;
 }
 
-
 /******************************************************************************
- * REALTIME LISTENERS (PATCH‑BASED)
+ * REALTIME SUBSCRIPTIONS
  ******************************************************************************/
 
 db.channel("race_changes")
-  .on("postgres_changes", { schema: "public", table: "race" }, payload => {
+  .on("postgres_changes", {schema:"public", table:"race"}, payload=>{
     state.race = payload.new || null;
     draw();
   })
   .subscribe();
 
 db.channel("participants_changes")
-  .on("postgres_changes", { schema: "public", table: "participants" }, payload => {
-    if (payload.eventType === "INSERT") {
-      state.participants.push(payload.new);
+  .on("postgres_changes", {schema:"public", table:"participants"}, payload=>{
+    if (payload.eventType==="INSERT") state.participants.push(payload.new);
+    if (payload.eventType==="UPDATE"){
+      const i=state.participants.findIndex(p=>p.id===payload.new.id);
+      if(i>=0) state.participants[i]=payload.new;
     }
-    if (payload.eventType === "UPDATE") {
-      const i = state.participants.findIndex(p => p.id === payload.new.id);
-      if (i >= 0) state.participants[i] = payload.new;
-    }
-    if (payload.eventType === "DELETE") {
-      state.participants = state.participants.filter(p => p.id !== payload.old.id);
+    if (payload.eventType==="DELETE"){
+      state.participants =
+        state.participants.filter(p=>p.id!==payload.old.id);
     }
     draw();
   })
   .subscribe();
 
 db.channel("laps_changes")
-  .on("postgres_changes", { schema: "public", table: "laps" }, payload => {
-    if (payload.eventType === "INSERT") {
-      state.laps.push(payload.new);
+  .on("postgres_changes", {schema:"public", table:"laps"}, payload=>{
+    if (payload.eventType==="INSERT") state.laps.push(payload.new);
+    if (payload.eventType==="UPDATE"){
+      const i=state.laps.findIndex(p=>p.id===payload.new.id);
+      if(i>=0) state.laps[i]=payload.new;
     }
-    if (payload.eventType === "UPDATE") {
-      const i = state.laps.findIndex(l => l.id === payload.new.id);
-      if (i >= 0) state.laps[i] = payload.new;
-    }
-    if (payload.eventType === "DELETE") {
-      state.laps = state.laps.filter(l => l.id !== payload.old.id);
+    if (payload.eventType==="DELETE"){
+      state.laps = state.laps.filter(l=>l.id!==payload.old.id);
     }
     draw();
   })
   .subscribe();
 
-
 /******************************************************************************
- * INITIAL LOAD + CLOCK TICK
+ * INITIAL LOAD
  ******************************************************************************/
 
-async function initialLoad() {
+async function initialLoad(){
   const r = await db.from("race").select("*").limit(1);
   state.race = r.data?.[0] || null;
 
@@ -462,21 +480,17 @@ async function initialLoad() {
 
   draw();
 }
-
 initialLoad();
 
-setInterval(() => {
-  if (state.race) drawRegister();
-}, 1000);
-
+// Keep countdown ticking
+setInterval(()=> drawRegister(), 1000);
 
 /******************************************************************************
  * WAKELOCK
  ******************************************************************************/
 
-async function keepAwake() {
-  try {
-    await navigator.wakeLock.request("screen");
-  } catch {}
+async function keepAwake(){
+  try { await navigator.wakeLock.request("screen"); }
+  catch {}
 }
 keepAwake();

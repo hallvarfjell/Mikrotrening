@@ -174,3 +174,163 @@ function fmt(sec){
 
 // ✅ Auto update countdown
 setInterval(()=>drawCountdown(),1000);
+
+/* -----------------------------------------------------------
+   ✅ REGISTRERING – HOVEDMODUL
+----------------------------------------------------------- */
+
+function drawRegister() {
+  if (!state.participants.length || !state.race) return;
+
+  const grid = document.getElementById("runnerGrid");
+  const r = currentRound();
+  const remaining = timeToNext();
+  const cutoff = remaining <= 0;
+  const beforeStart = now() < new Date(state.race.start_time);
+
+  // Oppdater header
+  document.getElementById("regRoundHeader").innerText =
+    beforeStart ? "Start om" : "Runde " + r;
+
+  document.getElementById("regCountdown").innerText = fmt(remaining);
+
+  // BESTEM FARGER FOR HVERT KNAPP
+  let list = state.participants.map(p => {
+    const lap = state.laps.find(
+      l => l.participant_id === p.id && l.lap_number === r
+    );
+
+    let ui = "white";
+
+    if (beforeStart) ui = "white";
+    else if (p.status === "dnf") ui = "gray";
+    else if (lap) ui = "green";
+    else if (cutoff) ui = "red";
+    else ui = "white";
+
+    return { ...p, uiState: ui };
+  });
+
+  // SORTER (grønn > rød > hvit > grå)
+  const sortOrder = { green:1, red:2, white:3, gray:4 };
+  list.sort((a,b)=>sortOrder[a.uiState] - sortOrder[b.uiState]);
+
+  // RENDER
+  grid.innerHTML = "";
+  list.forEach(p => {
+    const btn = document.createElement("button");
+    btn.className = "runner " + p.uiState;
+
+    const lap = state.laps.find(
+      l => l.participant_id === p.id && l.lap_number === r
+    );
+
+    btn.textContent =
+      p.bib + " " + p.name + (lap ? " " + fmt(lap.lap_seconds) : "");
+
+    // TRYKKHÅNDTERING
+    btn.onclick = () => pressRunner(p, p.uiState);
+
+    grid.appendChild(btn);
+  });
+}
+
+/* -----------------------------------------------------------
+   ✅ TRYKK PÅ EN DELTAKER-KNAPP
+----------------------------------------------------------- */
+async function pressRunner(p, uiState) {
+  const r = currentRound();
+  const cutoff = timeToNext() <= 0;
+
+  const existing = state.laps.find(
+    l => l.participant_id === p.id && l.lap_number === r
+  );
+
+  // ✅ CASE 1: FJERNE REGISTRERING (GREEN → WHITE)
+  if (existing) {
+    if (!confirm("Slette registrering?")) return;
+    await db.from("laps").delete().eq("id", existing.id);
+    return;
+  }
+
+  // ✅ CASE 2: TIDSAVBRUDD (RED) → DNF
+  if (uiState === "red" && cutoff) {
+    await db.from("participants").update({ status:"dnf" }).eq("id", p.id);
+    return;
+  }
+
+  // ✅ CASE 3: NORMAL REGISTRERING
+  const start = new Date(state.race.start_time);
+  const sec = Math.floor((now() - start) / 1000);
+
+  // Optimistic update
+  state.laps.push({
+    id: "local-" + Math.random(),
+    race_id: state.race.id,
+    participant_id: p.id,
+    lap_number: r,
+    lap_seconds: sec
+  });
+  drawRegister();
+
+  // Write to DB
+  await db.from("laps").insert({
+    race_id: state.race.id,
+    participant_id: p.id,
+    lap_number: r,
+    lap_seconds: sec
+  });
+}
+
+/* -----------------------------------------------------------
+   ✅ HJELPEFUNKSJONER (SAME AS ADMIN USES)
+----------------------------------------------------------- */
+
+function now() { return new Date(); }
+
+function currentRound() {
+  if (!state.race?.start_time) return 1;
+
+  const start = new Date(state.race.start_time);
+  if (now() < start) return 1;
+
+  let diff = (now() - start) / 1000;
+  let acc = 0;
+  let r = 1;
+
+  while (true) {
+    const dur = state.race.interval_seconds;
+    if (diff < acc + dur) break;
+    acc += dur;
+    r++;
+  }
+  return r;
+}
+
+function timeToNext() {
+  if (!state.race?.start_time) return 0;
+
+  const start = new Date(state.race.start_time);
+  if (now() < start) return (start - now()) / 1000;
+
+  let diff = (now() - start) / 1000;
+  let acc = 0;
+  let r = 1;
+
+  while (true) {
+    const dur = state.race.interval_seconds;
+    if (diff < acc + dur) return acc + dur - diff;
+    acc += dur;
+    r++;
+  }
+}
+
+function fmt(sec) {
+  sec = Math.max(0, Math.floor(sec));
+  return Math.floor(sec/60) + ":" + String(sec%60).padStart(2,"0");
+}
+
+/* -----------------------------------------------------------
+   ✅ AUTOOPPDATERING (1s)
+----------------------------------------------------------- */
+setInterval(drawRegister, 1000);

@@ -63,3 +63,32 @@ th { background:#eee; }
 
 .modal-buttons button { margin-left:8px; }
 ``
+/* ---------- REGISTRERINGSFUNKSJON ---------- */
+
+#regRoundHeader {
+  font-size: 2rem;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 10px;
+}
+
+#regCountdown {
+  font-size: 1.4rem;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.runner {
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #777;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+/* STATES */
+.white { background: #fff; color:#000; }
+.green { background: #4caf50; color:white; }
+.red   { background: #f44336; color:white; }
+.gray  { background: #888; color:white; }

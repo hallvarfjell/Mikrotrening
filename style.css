@@ -3,92 +3,60 @@ body {
 }
 
 nav {
-  display:flex; background:#222;
+  display:flex;
+  background:#222;
 }
-
 nav button {
-  flex:1; padding:12px; border:none;
-  background:#222; color:white; cursor:pointer;
+  flex:1; padding:12px; border:none; background:#222;
+  color:white; cursor:pointer; font-size:16px;
 }
-
 nav button.active { background:#444; }
 
 .page { display:none; padding:15px; }
 .page.active { display:block; }
+
+.header { font-size:2rem; text-align:center; font-weight:bold; }
+.subheader { font-size:1.4rem; text-align:center; margin-bottom:12px; }
+
+.grid {
+  display:grid; gap:8px;
+}
+@media(min-width:1000px){ .grid{grid-template-columns:repeat(4,1fr);} }
+@media(max-width:999px){ .grid{grid-template-columns:repeat(3,1fr);} }
+@media(max-width:600px){ .grid{grid-template-columns:repeat(2,1fr);} }
+
+.runner {
+  padding:16px; border-radius:8px; border:1px solid #999;
+  font-size:1.2rem; cursor:pointer; transition:0.2s;
+}
+.white{background:white;}
+.green{background:#4caf50;color:white;}
+.red{background:#f44336;color:white;}
+.gray{background:#666;color:white;}
 
 .panel {
   background:white; padding:15px; border-radius:10px;
   margin-bottom:15px; box-shadow:0 0 5px rgba(0,0,0,0.15);
 }
 
-label { display:block; margin-top:10px; font-weight:bold; }
-
-input, select {
-  width:100%; padding:8px; margin-top:4px;
-  border-radius:5px; border:1px solid #aaa;
-}
-
-.admin-buttons button {
-  margin-top:12px; margin-right:6px;
-}
-
-.countdown {
-  margin-top:10px;
-  font-size:18px;
-  font-weight:bold;
-}
+label { display:block; font-weight:bold; margin-top:10px; }
+input, select { width:100%; padding:8px; margin-top:4px; }
 
 table { width:100%; border-collapse:collapse; margin-top:10px; }
-th, td {
-  border:1px solid #ccc;
-  padding:6px; text-align:center;
-}
+th,td { border:1px solid #ccc; padding:6px; }
 th { background:#eee; }
 
 .modal {
-  position:fixed; inset:0;
-  background:rgba(0,0,0,0.6);
+  position:fixed; inset:0; background:rgba(0,0,0,0.6);
   display:flex; justify-content:center; align-items:center;
   visibility:hidden; opacity:0; transition:0.2s;
 }
-
 .modal.active { visibility:visible; opacity:1; }
 
 .modal-box {
   background:white; padding:20px; border-radius:10px;
   width:90%; max-width:400px;
 }
-
 .modal-buttons { text-align:right; margin-top:12px; }
-
 .modal-buttons button { margin-left:8px; }
 ``
-/* ---------- REGISTRERINGSFUNKSJON ---------- */
-
-#regRoundHeader {
-  font-size: 2rem;
-  font-weight: bold;
-  text-align: center;
-  margin-top: 10px;
-}
-
-#regCountdown {
-  font-size: 1.4rem;
-  text-align: center;
-  margin-bottom: 10px;
-}
-
-.runner {
-  padding: 16px;
-  border-radius: 8px;
-  border: 1px solid #777;
-  font-size: 1.2rem;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-/* STATES */
-.white { background: #fff; color:#000; }
-.green { background: #4caf50; color:white; }
-.red   { background: #f44336; color:white; }
-.gray  { background: #888; color:white; }

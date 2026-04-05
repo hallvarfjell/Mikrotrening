@@ -4,111 +4,90 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Backyard Timer</title>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script defer src="app.js"></script>
-
 <style>
 body {
-    margin:0;
-    font-family:Arial, sans-serif;
+ margin:0;
+ font-family:Arial, sans-serif;
 }
-
 nav {
-    display:flex;
-    background:#222;
+ display:flex;
+ background:#222;
 }
-
 nav button {
-    flex:1;
-    padding:12px;
-    border:none;
-    background:#222;
-    color:white;
-    font-size:16px;
+ flex:1;
+ padding:12px;
+ border:none;
+ background:#222;
+ color:white;
+ font-size:16px;
 }
-
 nav button.active {
-    background:#444;
+ background:#444;
 }
-
 .page {
-    display:none;
-    padding:10px;
+ display:none;
+ padding:10px;
 }
-
 .page.active {
-    display:block;
+ display:block;
 }
-
 .header {
-    text-align:center;
-    font-weight:bold;
-    font-size:clamp(22px,5vw,40px);
+ text-align:center;
+ font-weight:bold;
+ font-size:clamp(22px,5vw,40px);
 }
-
 .subheader {
-    text-align:center;
-    font-size:clamp(16px,3vw,24px);
+ text-align:center;
+ font-size:clamp(16px,3vw,24px);
 }
-
 .grid {
-    display:grid;
-    gap:8px;
-    margin-top:10px;
+ display:grid;
+ gap:8px;
+ margin-top:10px;
 }
-
 @media (min-width:1000px){
 .grid{grid-template-columns:repeat(4,1fr);}
 }
-
 @media (max-width:999px){
 .grid{grid-template-columns:repeat(3,1fr);}
 }
-
 @media (max-width:600px){
 .grid{grid-template-columns:repeat(2,1fr);}
 }
-
 .runner {
-    padding:16px;
-    border-radius:6px;
-    border:1px solid #999;
-    font-size:clamp(16px,3vw,28px);
+ padding:16px;
+ border-radius:6px;
+ border:1px solid #999;
+ font-size:clamp(16px,3vw,28px);
 }
-
 .white { background:white; }
 .green { background:#4caf50; color:white; }
 .red { background:#f44336; color:white; }
 .gray { background:#999; color:white; }
-
 table {
-    width:100%;
-    border-collapse:collapse;
+ width:100%;
+ border-collapse:collapse;
 }
-
 th,td {
-    border:1px solid #ccc;
-    padding:4px;
-    font-size:14px;
-    text-align:center;
+ border:1px solid #ccc;
+ padding:4px;
+ font-size:14px;
+ text-align:center;
 }
-
 .panel {
-    border:1px solid #ccc;
-    padding:10px;
-    margin-bottom:10px;
+ border:1px solid #ccc;
+ padding:10px;
+ margin-bottom:10px;
 }
-
 button {
-    cursor:pointer;
+ cursor:pointer;
 }
-
 input,select {
-    padding:6px;
-    margin:4px;
+ padding:6px;
+ margin:4px;
 }
-
 </style>
 </head>
 
@@ -132,49 +111,37 @@ input,select {
 <div id="live" class="page">
 <div class="header" id="liveRound"></div>
 <div class="subheader" id="liveCountdown"></div>
-
 <table id="liveTable"></table>
 </div>
 
 <!-- ADMIN -->
 <div id="admin" class="page">
-
 <div class="panel">
 <h3>Løpspanel</h3>
-
 Type:
 <select id="raceType">
 <option value="backyard">Backyard</option>
 <option value="frontyard">Frontyard</option>
 <option value="custom">Custom</option>
 </select>
-
 Starttid:
 <input type="datetime-local" id="startTime">
-
 Intervall (min):
 <input type="number" id="interval" value="60">
-
 Rundelengde km:
 <input type="number" id="distance" value="6.7">
-
 <br>
-
 <button onclick="startRace()">Start</button>
 <button onclick="stopRace()">Stopp</button>
 <button onclick="resetRace()">Reset</button>
-
 </div>
 
 <div class="panel">
 <h3>Deltakere</h3>
-
 <button onclick="addParticipant()">Legg til</button>
 <input type="file" id="csvImport">
-
 <table id="adminTable"></table>
 </div>
-
 </div>
 
 <!-- LOGG -->

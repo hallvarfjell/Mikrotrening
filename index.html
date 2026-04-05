@@ -29,8 +29,20 @@ if ("serviceWorker" in navigator) {
 <body>
 
 <nav>
- <button onclick="showPage('admin')" class="active">Admin</button>
+  <button onclick="showPage('register')" id="nav-register">Registrering</button>
+  <button onclick="showPage('live')" id="nav-live">Live</button>
+  <button onclick="showPage('admin')" id="nav-admin">Admin</button>
+  <button onclick="showPage('log')" id="nav-log">Logg</button>
 </nav>
+
+<!-- ✅ REGISTRERINGSSIDE -->
+<div id="register" class="page">
+    <div class="header" id="regRoundHeader"></div>
+    <div class="subheader" id="regCountdown"></div>
+
+    <div id="runnerGrid" class="grid"></div>
+</div>
+``
 
 <!-- ✅ ADMIN -->
 <div id="admin" class="page active">

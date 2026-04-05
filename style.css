@@ -1,1 +1,65 @@
-body{font-family:Arial;} .page{display:none;} .page.active{display:block;} .modal{display:none;} .modal.active{display:block;}
+body {
+  margin:0; background:#f2f2f2; font-family:Arial;
+}
+
+nav {
+  display:flex; background:#222;
+}
+
+nav button {
+  flex:1; padding:12px; border:none;
+  background:#222; color:white; cursor:pointer;
+}
+
+nav button.active { background:#444; }
+
+.page { display:none; padding:15px; }
+.page.active { display:block; }
+
+.panel {
+  background:white; padding:15px; border-radius:10px;
+  margin-bottom:15px; box-shadow:0 0 5px rgba(0,0,0,0.15);
+}
+
+label { display:block; margin-top:10px; font-weight:bold; }
+
+input, select {
+  width:100%; padding:8px; margin-top:4px;
+  border-radius:5px; border:1px solid #aaa;
+}
+
+.admin-buttons button {
+  margin-top:12px; margin-right:6px;
+}
+
+.countdown {
+  margin-top:10px;
+  font-size:18px;
+  font-weight:bold;
+}
+
+table { width:100%; border-collapse:collapse; margin-top:10px; }
+th, td {
+  border:1px solid #ccc;
+  padding:6px; text-align:center;
+}
+th { background:#eee; }
+
+.modal {
+  position:fixed; inset:0;
+  background:rgba(0,0,0,0.6);
+  display:flex; justify-content:center; align-items:center;
+  visibility:hidden; opacity:0; transition:0.2s;
+}
+
+.modal.active { visibility:visible; opacity:1; }
+
+.modal-box {
+  background:white; padding:20px; border-radius:10px;
+  width:90%; max-width:400px;
+}
+
+.modal-buttons { text-align:right; margin-top:12px; }
+
+.modal-buttons button { margin-left:8px; }
+``

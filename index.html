@@ -6,146 +6,79 @@
 
 <title>Backyard Timer</title>
 
-<!-- SUPABASE -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2
+https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js
+app.js
 
-<!-- XLS/XLSX support -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
-<!-- APP SCRIPTS -->
-<script defer src="app.js"></script>
-
-<!-- PWA -->
-<link rel="manifest" href="manifest.json">
+/manifest.json
 <meta name="theme-color" content="#222">
+icon-192.png
+
 <script>
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js');
-    });
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.getRegistrations()
+      .then(regs => regs.forEach(r => r.unregister()));
+
+    navigator.serviceWorker.register("/service-worker.js");
+  });
 }
 </script>
 
 <style>
-body {
- margin:0;
- font-family:Arial, sans-serif;
- background:#f2f2f2;
-}
+body { margin:0; font-family:Arial, sans-serif; background:#f2f2f2; }
 
-/* NAV */
-nav {
- display:flex;
- background:#222;
-}
+nav { display:flex; background:#222; }
 nav button {
- flex:1;
- padding:12px;
- border:none;
- background:#222;
- color:white;
- font-size:16px;
+  flex:1; padding:12px; border:none;
+  background:#222; color:white; font-size:16px;
 }
-nav button.active {
- background:#444;
-}
+nav button.active { background:#444; }
 
-/* PAGES */
 .page { display:none; padding:10px; }
 .page.active { display:block; }
 
-/* HEADERS */
-.header {
- text-align:center;
- font-weight:bold;
- font-size:clamp(22px,5vw,40px);
-}
-.subheader {
- text-align:center;
- font-size:clamp(16px,3vw,24px);
- margin-bottom:12px;
-}
+.header { font-size:clamp(22px,5vw,40px); text-align:center; font-weight:bold; }
+.subheader { font-size:clamp(16px,3vw,24px); text-align:center; margin-bottom:12px; }
 
-/* GRID */
-.grid {
- display:grid;
- gap:8px;
- margin-top:10px;
-}
-@media (min-width:1000px){ .grid{grid-template-columns:repeat(4,1fr);} }
-@media (max-width:999px){ .grid{grid-template-columns:repeat(3,1fr);} }
-@media (max-width:600px){ .grid{grid-template-columns:repeat(2,1fr);} }
+.grid { display:grid; gap:8px; margin-top:10px; }
+@media(min-width:1000px){.grid{grid-template-columns:repeat(4,1fr);}}
+@media(max-width:999px){.grid{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:600px){.grid{grid-template-columns:repeat(2,1fr);}}
 
 .runner {
- padding:16px;
- border-radius:6px;
- border:1px solid #999;
- font-size:clamp(16px,3vw,28px);
+  padding:16px; border-radius:6px;
+  border:1px solid #999;
+  font-size:clamp(16px,3vw,28px);
 }
+.white{background:white;}
+.green{background:#4caf50;color:white;}
+.red{background:#f44336;color:white;}
+.gray{background:#777;color:white;}
 
-.white { background:white; }
-.green { background:#4caf50; color:white; }
-.red   { background:#f44336; color:white; }
-.gray  { background:#777;   color:white; }
+.panel { background:white; padding:12px; border-radius:8px; margin-bottom:12px; }
 
-/* TABLES */
-table {
- width:100%;
- border-collapse:collapse;
- background:white;
+table{
+  width:100%; border-collapse:collapse; background:white;
 }
-th,td {
- border:1px solid #ccc;
- padding:4px;
- font-size:14px;
- text-align:center;
-}
-th { background:#eee; }
+th,td{ border:1px solid #ccc; padding:4px; font-size:14px; text-align:center;}
+th{background:#eee;}
 
-/* PANELS */
-.panel {
- border:1px solid #ccc;
- padding:12px;
- background:white;
- margin-bottom:12px;
- border-radius:8px;
+.modal{
+  position:fixed; top:0;left:0;right:0;bottom:0;
+  background:rgba(0,0,0,0.6);
+  display:flex; align-items:center; justify-content:center;
+  visibility:hidden; opacity:0;
+  transition:0.2s;
 }
+.modal.active{visibility:visible;opacity:1;}
 
-/* MODALS */
-.modal {
- position:fixed;
- top:0; left:0; right:0; bottom:0;
- background:rgba(0,0,0,0.6);
- display:flex;
- align-items:center;
- justify-content:center;
- visibility:hidden;
- opacity:0;
- transition:0.2s;
- z-index:20;
+.modal-box{
+  background:white; padding:20px; border-radius:10px;
+  width:90%; max-width:400px;
 }
-.modal.active {
- visibility:visible;
- opacity:1;
-}
-.modal-box {
- background:white;
- padding:20px;
- border-radius:10px;
- width:90%;
- max-width:400px;
-}
-.modal-box h3 {
- margin-top:0;
-}
-.modal-buttons {
- text-align:right;
- margin-top:15px;
-}
-.modal-buttons button {
- margin-left:8px;
-}
-
+.modal-buttons{text-align:right;margin-top:15px;}
+.modal-buttons button{margin-left:8px;}
 </style>
 </head>
 
@@ -158,14 +91,14 @@ th { background:#eee; }
  <button onclick="showPage('log')" id="navLog">Logg</button>
 </nav>
 
-<!-- ✅ REGISTRERING -->
+<!-- REGISTRATION -->
 <div id="register" class="page active">
  <div class="header" id="roundHeader"></div>
  <div class="subheader" id="countdownHeader"></div>
  <div class="grid" id="runnerGrid"></div>
 </div>
 
-<!-- ✅ LIVE -->
+<!-- LIVE -->
 <div id="live" class="page">
  <div class="panel">
   <div class="header" id="liveRound"></div>
@@ -174,9 +107,8 @@ th { background:#eee; }
  <table id="liveTable"></table>
 </div>
 
-<!-- ✅ ADMIN -->
+<!-- ADMIN -->
 <div id="admin" class="page">
-
  <div class="panel">
   <h3>Løpsinnstillinger</h3>
 
@@ -195,15 +127,14 @@ th { background:#eee; }
   <br>
 
   Intervall (min):
-  <input type="number" id="interval" value="60" min="1">
+  <input type="number" id="interval" value="60">
 
   Rundelengde (km):
   <input type="number" id="distance" value="6.7" step="0.01">
 
-  <div id="adminCountdown" style="margin-top:8px; font-weight:bold;"></div>
+  <div id="adminCountdown" style="margin-top:8px;font-weight:bold;"></div>
 
   <br>
-
   <button onclick="startRace()">Start</button>
   <button onclick="stopRace()">Stopp</button>
   <button onclick="resetRace()">Reset</button>
@@ -217,21 +148,21 @@ th { background:#eee; }
  </div>
 </div>
 
-<!-- ✅ LOG -->
+<!-- LOG -->
 <div id="log" class="page">
  <h3>Løpslogg</h3>
  <table id="logTable"></table>
 </div>
 
-
-<!-- ✅ MODAL: ADD PARTICIPANT -->
+<!-- MODAL -->
 <div class="modal" id="modalAdd">
  <div class="modal-box">
   <h3>Legg til deltaker</h3>
-  <label>BIB</label>
+
+  BIB:
   <input type="text" id="modalBib" style="width:100%;">
 
-  <label>Navn</label>
+  Navn:
   <input type="text" id="modalName" style="width:100%;">
 
   <div class="modal-buttons">
@@ -241,7 +172,5 @@ th { background:#eee; }
  </div>
 </div>
 
-
 </body>
 </html>
-``

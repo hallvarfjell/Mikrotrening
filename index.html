@@ -1,34 +1,97 @@
 <!DOCTYPE html>
-<html lang='no'>
+<html lang="no">
 <head>
-<meta charset='UTF-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1.0'>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Backyard Timer</title>
-<link rel='manifest' href='manifest.json'>
-<meta name='theme-color' content='#222'>
-<link rel='icon' sizes='192x192' href='icon-192.png'>
-<link rel='icon' sizes='512x512' href='icon-512.png'>
-<script src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'></script>
-<script src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'></script>
-<link rel='stylesheet' href='style.css'>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#222">
+
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<link rel="stylesheet" href="style.css">
+
 <script>
-if ('serviceWorker' in navigator) {
- window.addEventListener('load',()=>navigator.serviceWorker.register('service-worker.js'));
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("service-worker.js");
+  });
 }
 </script>
 </head>
+
 <body>
+
 <nav>
-<button onclick="showPage('register')">Registrering</button>
-<button onclick="showPage('live')">Live</button>
-<button onclick="showPage('admin')">Admin</button>
-<button onclick="showPage('log')">Logg</button>
+ <button onclick="showPage('admin')" class="active">Admin</button>
 </nav>
-<div id='register' class='page active'><h2>Registrering</h2><div id='runnerGrid'></div></div>
-<div id='live' class='page'><h2>Live</h2><div id='liveData'></div><table id='liveTable'></table></div>
-<div id='admin' class='page'><h2>Admin</h2><button onclick='openAddModal()'>Legg til deltaker</button><input type='file' id='csvInput' onchange='importParticipants(event)'><table id='adminTable'></table></div>
-<div id='log' class='page'><h2>Logg</h2><table id='logTable'></table></div>
-<div class='modal' id='modalAdd'><div class='modal-box'><h3>Legg til deltaker</h3>BIB:<input id='modalBib'><br>Navn:<input id='modalName'><br><button onclick='confirmAddParticipant()'>Lagre</button><button onclick='closeAddModal()'>Avbryt</button></div></div>
-<script src='app.js'></script>
+
+<!-- ✅ ADMIN -->
+<div id="admin" class="page active">
+
+ <div class="panel">
+  <h3>Løpsinnstillinger</h3>
+
+  <label>Format:</label>
+  <select id="raceType">
+    <option value="backyard">Backyard</option>
+    <option value="frontyard">Frontyard</option>
+    <option value="custom">Custom</option>
+  </select>
+
+  <label>Starttid:</label>
+  <input type="datetime-local" id="startTime">
+
+  <label>Intervall (min):</label>
+  <input type="number" id="interval" value="60">
+
+  <label>Rundelengde (km):</label>
+  <input type="number" id="distance" value="6.7" step="0.01">
+
+  <div id="adminCountdown" class="countdown"></div>
+
+  <div class="admin-buttons">
+    <button onclick="startRace()">Start</button>
+    <button onclick="stopRace()">Stopp</button>
+    <button onclick="resetRace()">Reset</button>
+  </div>
+ </div>
+
+ <div class="panel">
+  <h3>Deltakere</h3>
+  <button onclick="openAddModal()">Legg til deltaker</button>
+  <input type="file" id="csvInput" onchange="importParticipants(event)">
+  <table id="adminTable"></table>
+ </div>
+
+</div>
+
+<!-- ✅ MODAL -->
+<div class="modal" id="modalAdd">
+ <div class="modal-box">
+  <h3>Legg til deltaker</h3>
+
+  <label>BIB:</label>
+  <input id="modalBib">
+
+  <label>Navn:</label>
+  <input id="modalName">
+
+  <div class="modal-buttons">
+    <button onclick="closeAddModal()">Avbryt</button>
+    <button onclick="confirmAddParticipant()">Lagre</button>
+  </div>
+ </div>
+</div>
+
+<script src="app.js"></script>
+
 </body>
 </html>
+``

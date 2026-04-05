@@ -1,183 +1,34 @@
 <!DOCTYPE html>
-<html lang="no">
+<html lang='no'>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+<meta charset='UTF-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0'>
 <title>Backyard Timer</title>
-
-<!-- ✅ Manifest -->
-<link rel="manifest"name="theme-color" content="#222">
-
-<!-- ✅ Ikoner -->
-<link rel="icon" type=""icon" type="image/png" sizes="512x512" href.net/npm/@supabase/supabase-js@2
-
-<!-- ✅ XLSX (import av Excel-filer) -->
-<script src="https://are.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js
-
-<!-- ✅ Styling -->
-<style>
-body { margin:0; font-family:Arial, sans-serif; background:#f2f2f2; }
-
-nav { display:flex; background:#222; }
-nav button {
-  flex:1; padding:12px; border:none; background:#222;
-  color:white; font-size:16px; cursor:pointer;
-}
-nav button.active { background:#444; }
-
-.page { display:none; padding:10px; }
-.page.active { display:block; }
-
-.header { font-size:clamp(22px,5vw,40px); text-align:center; font-weight:bold; }
-.subheader { font-size:clamp(16px,3vw,24px); text-align:center; margin-bottom:12px; }
-
-.grid { display:grid; gap:8px; margin-top:10px; }
-@media(min-width:1000px){ .grid{grid-template-columns:repeat(4,1fr);} }
-@media(max-width:999px){ .grid{grid-template-columns:repeat(3,1fr);} }
-@media(max-width:600px){ .grid{grid-template-columns:repeat(2,1fr);} }
-
-.runner {
-  padding:16px; border-radius:6px; border:1px solid #999;
-  font-size:clamp(16px,3vw,28px); cursor:pointer;
-}
-.white{background:white;}
-.green{background:#4caf50;color:white;}
-.red{background:#f44336;color:white;}
-.gray{background:#777;color:white;}
-
-.panel {
-  background:white; padding:12px; border-radius:8px; margin-bottom:12px;
-  box-shadow:0 0 4px rgba(0,0,0,0.1);
-}
-
-table { width:100%; border-collapse:collapse; background:white; }
-th,td { border:1px solid #ccc; padding:4px; text-align:center; }
-th { background:#eee; }
-
-.modal {
-  position:fixed; top:0; left:0; right:0; bottom:0;
-  background:rgba(0,0,0,0.6);
-  display:flex; align-items:center; justify-content:center;
-  visibility:hidden; opacity:0;
-  transition:0.2s; z-index:1000;
-}
-.modal.active { visibility:visible; opacity:1; }
-
-.modal-box {
-  background:white; padding:20px; border-radius:10px;
-  width:90%; max-width:400px;
-}
-.modal-buttons { text-align:right; margin-top:15px; }
-.modal-buttons button { margin-left:8px; }
-</style>
-
-<!-- ✅ Service Worker -->
+<link rel='manifest' href='manifest.json'>
+<meta name='theme-color' content='#222'>
+<link rel='icon' sizes='192x192' href='icon-192.png'>
+<link rel='icon' sizes='512x512' href='icon-512.png'>
+<script src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'></script>
+<link rel='stylesheet' href='style.css'>
 <script>
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", async () => {
-    // Fjern eventuelle gamle SW-er
-    const regs = await navigator.serviceWorker.getRegistrations();
-    regs.forEach(r => r.unregister());
-
-    navigator.serviceWorker.register("service-worker.js")
-      .then(() => console.log("✅ Service worker aktivert"))
-      .catch(err => console.error("SW-feil:", err));
-  });
+if ('serviceWorker' in navigator) {
+ window.addEventListener('load',()=>navigator.serviceWorker.register('service-worker.js'));
 }
 </script>
-
 </head>
-
 <body>
-
 <nav>
- <button onclick="showPage('register')" id="btnRegister">Registrering</button>
- <button onclick="showPage('live')" id="btnLive">Live</button>
- <button onclick="showPage('admin')" id="btnAdmin">Admin</button>
- <button onclick="showPage('log')" id="btnLog">Logg</button>
+<button onclick="showPage('register')">Registrering</button>
+<button onclick="showPage('live')">Live</button>
+<button onclick="showPage('admin')">Admin</button>
+<button onclick="showPage('log')">Logg</button>
 </nav>
-
-<!-- ✅ REGISTRERING -->
-<div id="register" class="page active">
- <div class="header" id="roundHeader"></div>
- <div class="subheader" id="countdownHeader"></div>
- <div class="grid" id="runnerGrid"></div>
-</div>
-
-<!-- ✅ LIVE -->
-<div id="live" class="page">
- <div class="panel">
-  <div class="header" id="liveRound"></div>
-  <div class="subheader" id="liveCountdown"></div>
- </div>
- <table id="liveTable"></table>
-</div>
-
-<!-- ✅ ADMIN -->
-<div id="admin" class="page">
-
- <div class="panel">
-  <h3>Løpsinnstillinger</h3>
-
-  Format:
-  <select id="raceType">
-    <option value="backyard">Backyard</option>
-    <option value="frontyard">Frontyard</option>
-    <option value="custom">Custom</option>
-  </select><br><br>
-
-  Starttid:
-  <input type="datetime-local" id="startTime"><br><br>
-
-  Intervall (min):
-  <input type="number" id="interval" value="60"><br><br>
-
-  Rundelengde (km):
-  <input type="number" id="distance" value="6.7" step="0.01"><br><br>
-
-  <div id="adminCountdown" style="font-weight:bold;"></div>
-
-  <button onclick="startRace()">Start</button>
-  <button onclick="stopRace()">Stopp</button>
-  <button onclick="resetRace()">Reset</button>
- </div>
-
- <div class="panel">
-  <h3>Deltakere</h3>
-  <button onclick="openAddModal()">Legg til deltaker</button>
-  <input type="file" id="csvInput" onchange="importParticipants(event)" />
-  <table id="adminTable"></table>
- </div>
-
-</div>
-
-<!-- ✅ LOG -->
-<div id="log" class="page">
- <h3>Løpslogg</h3>
- <table id="logTable"></table>
-</div>
-
-<!-- ✅ MODAL FOR DELTAKER -->
-<div class="modal" id="modalAdd">
- <div class="modal-box">
-  <h3>Legg til deltaker</h3>
-
-  <label>BIB:</label>
-  <input id="modalBib" style="width:100%;"><br><br>
-
-  <label>Navn:</label>
-  <input id="modalName" style="width:100%;">
-
-  <div class="modal-buttons">
-    <button onclick="closeAddModal()">Avbryt</button>
-    <button onclick="confirmAddParticipant()">Lagre</button>
-  </div>
- </div>
-</div>
-
-<!-- ✅ Load application logic -->
-<script src="app.js"></script>
-
+<div id='register' class='page active'><h2>Registrering</h2><div id='runnerGrid'></div></div>
+<div id='live' class='page'><h2>Live</h2><div id='liveData'></div><table id='liveTable'></table></div>
+<div id='admin' class='page'><h2>Admin</h2><button onclick='openAddModal()'>Legg til deltaker</button><input type='file' id='csvInput' onchange='importParticipants(event)'><table id='adminTable'></table></div>
+<div id='log' class='page'><h2>Logg</h2><table id='logTable'></table></div>
+<div class='modal' id='modalAdd'><div class='modal-box'><h3>Legg til deltaker</h3>BIB:<input id='modalBib'><br>Navn:<input id='modalName'><br><button onclick='confirmAddParticipant()'>Lagre</button><button onclick='closeAddModal()'>Avbryt</button></div></div>
+<script src='app.js'></script>
 </body>
 </html>

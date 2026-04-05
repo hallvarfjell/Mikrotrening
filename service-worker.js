@@ -1,11 +1,4 @@
-// -------------------------------
-// BACKYARD TIMER SERVICE WORKER
-// Fjernes all CDN-caching for å hindre addAll-feil
-// -------------------------------
-
-const CACHE_NAME = "backyard-cache-v3";
-
-// Lokale filer som garantert finnes på samme origin
+const CACHE = "backyard-v3";
 const ASSETS = [
   "/",
   "/index.html",
@@ -15,52 +8,34 @@ const ASSETS = [
   "/icon-512.png"
 ];
 
-// INSTALL — cache alt lokalt
-self.addEventListener("install", event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(ASSETS))
-      .catch(err => console.error("[SW] Cache addAll error:", err))
+self.addEventListener("install", e => {
+  e.waitUntil(
+    caches.open(CACHE).then(c => c.addAll(ASSETS))
   );
   self.skipWaiting();
 });
 
-// ACTIVATE — slett gammel cache
-self.addEventListener("activate", event => {
-  event.waitUntil(
+self.addEventListener("activate", e => {
+  e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(
-        keys
-          .filter(key => key !== CACHE_NAME)
-          .map(key => caches.delete(key))
-      )
+      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
     )
   );
   self.clients.claim();
 });
 
-// FETCH — cache-first for lokale filer
-self.addEventListener("fetch", event => {
-  const url = new URL(event.request.url);
+self.addEventListener("fetch", e => {
+  const url = new URL(e.request.url);
 
-  // Kun cache lokale filer. Aldri cache CDN/content fra andre domener.
-  if (url.origin === self.location.origin) {
-    event.respondWith(
-      caches.match(event.request)
-        .then(cached => {
-          if (cached) {
-            // stale-while-revalidate
-            event.waitUntil(
-              fetch(event.request).then(response => {
-                caches.open(CACHE_NAME).then(cache => {
-                  cache.put(event.request, response.clone());
-                });
-              })
-            );
-            return cached;
-          }
-          return fetch(event.request);
-        })
+  if (url.origin === location.origin) {
+    e.respondWith(
+      caches.match(e.request)
+        .then(cached => cached ||
+          fetch(e.request).then(resp => {
+            caches.open(CACHE).then(c => c.put(e.request, resp.clone()));
+            return resp;
+          })
+        )
     );
   }
 });

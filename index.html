@@ -6,21 +6,28 @@
 
 <title>Backyard Timer</title>
 
-https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2
-https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js
-app.js
+<!-- ✅ Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@base-js@2
 
+<!-- ✅ XLS/XLSX-import (SheetJS) -->
+https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js
+
+<!-- ✅ PWA manifest -->
 /manifest.json
 <meta name="theme-color" content="#222">
-icon-192.png
 
+<!-- ✅ App icons -->
+<link rel="icon" type="image/png" sizes="ce worker registrering -->
 <script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
+    // Fjern gammel SW (som var ødelagt)
     navigator.serviceWorker.getRegistrations()
       .then(regs => regs.forEach(r => r.unregister()));
 
-    navigator.serviceWorker.register("/service-worker.js");
+    navigator.serviceWorker.register("/service-worker.js")
+      .then(() => console.log("✅ Service worker registret"))
+      .catch(err => console.error("❌ SW error:", err));
   });
 }
 </script>
@@ -29,10 +36,7 @@ if ("serviceWorker" in navigator) {
 body { margin:0; font-family:Arial, sans-serif; background:#f2f2f2; }
 
 nav { display:flex; background:#222; }
-nav button {
-  flex:1; padding:12px; border:none;
-  background:#222; color:white; font-size:16px;
-}
+nav button { flex:1; padding:12px; border:none; background:#222; color:white; font-size:16px; }
 nav button.active { background:#444; }
 
 .page { display:none; padding:10px; }
@@ -46,11 +50,7 @@ nav button.active { background:#444; }
 @media(max-width:999px){.grid{grid-template-columns:repeat(3,1fr);}}
 @media(max-width:600px){.grid{grid-template-columns:repeat(2,1fr);}}
 
-.runner {
-  padding:16px; border-radius:6px;
-  border:1px solid #999;
-  font-size:clamp(16px,3vw,28px);
-}
+.runner { padding:16px; border-radius:6px; border:1px solid #999; font-size:clamp(16px,3vw,28px); }
 .white{background:white;}
 .green{background:#4caf50;color:white;}
 .red{background:#f44336;color:white;}
@@ -58,28 +58,29 @@ nav button.active { background:#444; }
 
 .panel { background:white; padding:12px; border-radius:8px; margin-bottom:12px; }
 
-table{
+table {
   width:100%; border-collapse:collapse; background:white;
 }
-th,td{ border:1px solid #ccc; padding:4px; font-size:14px; text-align:center;}
-th{background:#eee;}
+th,td { border:1px solid #ccc; padding:4px; font-size:14px; text-align:center; }
+th { background:#eee; }
 
-.modal{
+/* ✅ Modal styling */
+.modal {
   position:fixed; top:0;left:0;right:0;bottom:0;
   background:rgba(0,0,0,0.6);
   display:flex; align-items:center; justify-content:center;
-  visibility:hidden; opacity:0;
-  transition:0.2s;
+  visibility:hidden; opacity:0; transition:0.2s;
 }
-.modal.active{visibility:visible;opacity:1;}
+.modal.active { visibility:visible; opacity:1; }
 
-.modal-box{
+.modal-box {
   background:white; padding:20px; border-radius:10px;
   width:90%; max-width:400px;
 }
-.modal-buttons{text-align:right;margin-top:15px;}
-.modal-buttons button{margin-left:8px;}
+.modal-buttons { text-align:right; margin-top:15px; }
+.modal-buttons button { margin-left:8px; }
 </style>
+
 </head>
 
 <body>
@@ -91,14 +92,14 @@ th{background:#eee;}
  <button onclick="showPage('log')" id="navLog">Logg</button>
 </nav>
 
-<!-- REGISTRATION -->
+<!-- ✅ REGISTRERING -->
 <div id="register" class="page active">
  <div class="header" id="roundHeader"></div>
  <div class="subheader" id="countdownHeader"></div>
  <div class="grid" id="runnerGrid"></div>
 </div>
 
-<!-- LIVE -->
+<!-- ✅ LIVE -->
 <div id="live" class="page">
  <div class="panel">
   <div class="header" id="liveRound"></div>
@@ -107,8 +108,9 @@ th{background:#eee;}
  <table id="liveTable"></table>
 </div>
 
-<!-- ADMIN -->
+<!-- ✅ ADMIN -->
 <div id="admin" class="page">
+
  <div class="panel">
   <h3>Løpsinnstillinger</h3>
 
@@ -148,13 +150,13 @@ th{background:#eee;}
  </div>
 </div>
 
-<!-- LOG -->
+<!-- ✅ LOG -->
 <div id="log" class="page">
  <h3>Løpslogg</h3>
  <table id="logTable"></table>
 </div>
 
-<!-- MODAL -->
+<!-- ✅ MODAL: ADD PARTICIPANT -->
 <div class="modal" id="modalAdd">
  <div class="modal-box">
   <h3>Legg til deltaker</h3>
@@ -171,6 +173,9 @@ th{background:#eee;}
   </div>
  </div>
 </div>
+
+<!-- ✅ LAST APP.JS NEDERST (MÅ være sist) -->
+<script src="/app.js"></script>
 
 </body>
 </html>

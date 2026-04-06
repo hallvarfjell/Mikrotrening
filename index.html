@@ -32,66 +32,10 @@
     }
     .app {
       display: grid;
-      grid-template-rows: auto auto 1fr;
+      grid-template-rows: auto 1fr;
       min-height: 100vh;
       gap: 12px;
       padding: 12px;
-    }
-    .topbar {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 12px;
-      align-items: center;
-      padding: 14px 18px;
-      background: rgba(17, 24, 39, .92);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      position: sticky;
-      top: 12px;
-      z-index: 10;
-      backdrop-filter: blur(10px);
-    }
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      min-width: 0;
-    }
-    .brand h1 {
-      margin: 0;
-      font-size: clamp(1.05rem, 2.2vw, 1.45rem);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .brand .subtitle {
-      color: var(--muted);
-      font-size: .92rem;
-      margin-top: 2px;
-    }
-    .status-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      border-radius: 999px;
-      background: #0b1220;
-      border: 1px solid var(--border);
-      color: var(--muted);
-      font-size: .92rem;
-      white-space: nowrap;
-    }
-    .status-dot {
-      width: 10px; height: 10px; border-radius: 999px; background: var(--orange);
-      box-shadow: 0 0 12px rgba(234,88,12,.65);
-    }
-    .status-dot.online { background: var(--green); box-shadow: 0 0 12px rgba(22,163,74,.75); }
-    .status-dot.offline { background: var(--red); box-shadow: 0 0 12px rgba(220,38,38,.75); }
-    .nav {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 10px;
     }
     .nav button {
       padding: 14px 12px;
@@ -385,14 +329,107 @@
       border: 1px dashed var(--border);
       background: rgba(15,23,42,.45);
     }
+
+    .collapse {
+      overflow: hidden;
+    }
+    .collapse summary {
+      list-style: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: -14px -14px 0 -14px;
+      padding: 14px;
+      border-radius: 18px 18px 0 0;
+      user-select: none;
+    }
+    .collapse summary::-webkit-details-marker { display: none; }
+    .collapse summary::after {
+      content: '▾';
+      color: var(--muted);
+      font-size: 1rem;
+      transition: transform .16s ease;
+      margin-left: auto;
+    }
+    .collapse:not([open]) summary::after { transform: rotate(-90deg); }
+    .collapse-body {
+      padding-top: 12px;
+    }
+    .admin-info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 4px 0 12px;
+    }
+    .admin-info-card {
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: #0f172a;
+      padding: 12px;
+      min-width: 0;
+    }
+    .admin-info-card .label {
+      color: var(--muted);
+      font-size: .82rem;
+      margin-bottom: 4px;
+    }
+    .admin-info-card .value {
+      font-weight: 800;
+      line-height: 1.25;
+      word-break: break-word;
+    }
+    .inline-help {
+      margin-top: 10px;
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px dashed var(--border);
+      background: rgba(15,23,42,.55);
+    }
+    .import-example {
+      margin-top: 8px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: #0b1220;
+      border: 1px solid var(--border);
+      overflow: auto;
+      white-space: pre;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .82rem;
+      color: #cbd5e1;
+    }
+    .editable-cell {
+      min-width: 88px;
+      width: 100%;
+      background: #111827;
+      color: var(--text);
+      border: 1px solid #475569;
+      border-radius: 10px;
+      padding: 8px 10px;
+      outline: none;
+    }
+    .editable-cell:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,.16);
+    }
+    .editable-cell[data-invalid='true'] {
+      border-color: #ef4444;
+      box-shadow: 0 0 0 3px rgba(239,68,68,.16);
+    }
+    .cell-hint {
+      display: block;
+      color: var(--muted);
+      font-size: .72rem;
+      margin-top: 6px;
+    }
     @media (max-width: 1160px) {
       .grid-2 { grid-template-columns: 1fr; }
-      .registration-header, .kpi-grid, .big-live { grid-template-columns: 1fr 1fr; }
+      .registration-header, .kpi-grid, .big-live, .admin-info-grid { grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 760px) {
-      .topbar { grid-template-columns: 1fr; }
       .nav { grid-template-columns: repeat(2, minmax(0,1fr)); }
-      .registration-header, .kpi-grid, .big-live { grid-template-columns: 1fr; }
+      .registration-header, .kpi-grid, .big-live, .admin-info-grid { grid-template-columns: 1fr; }
       .row { grid-template-columns: 1fr; }
     }
   </style>
@@ -400,18 +437,6 @@
 </head>
 <body>
   <div class="app">
-    <header class="topbar">
-      <div class="brand">
-        <div>
-          <h1 id="appTitle">Backyard / Frontyard Ultra</h1>
-          <div class="subtitle" id="appSubtitle">Konfigurer løp på Adminsiden og start når du er klar.</div>
-        </div>
-      </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
-        <div class="status-pill"><span class="status-dot" id="dbDot"></span><span id="dbStatus">Kobler til Supabase…</span></div>
-        <div class="status-pill"><span class="status-dot online"></span><span id="localClock">--:--:--</span></div>
-      </div>
-    </header>
 
     <nav class="nav">
       <button class="active" data-screen="registrering">1. Registrering</button>
@@ -490,58 +515,82 @@
     <section class="screen" id="screen-admin">
       <div class="grid-2">
         <div class="stack">
-          <div class="panel">
-            <div class="section-title"><h2>Løpsoppsett</h2><span class="pill" id="currentRacePill">Uten aktivt løp</span></div>
-            <div class="row">
-              <div class="field" style="grid-column: span 6;"><label>Løpsmal</label><select id="templateSelect"></select></div>
-              <div class="field" style="grid-column: span 6;"><label>Løpsnavn</label><input id="raceName" placeholder="F.eks. Bergen Backyard 2026" /></div>
+          <details class="panel collapse" open id="raceSetupCollapse">
+            <summary>
+              <h2>Løpsoppsett</h2>
+              <span class="pill" id="currentRacePill">Uten aktivt løp</span>
+            </summary>
+            <div class="collapse-body">
+              <div class="admin-info-grid">
+                <div class="admin-info-card"><div class="label">Løp / status</div><div class="value" id="adminRaceInfo">Ingen aktivt løp</div></div>
+                <div class="admin-info-card"><div class="label">Lokal klokke</div><div class="value" id="adminLocalClock">--:--:--</div></div>
+                <div class="admin-info-card"><div class="label">Supabase</div><div class="value" id="adminDbStatus">Kobler til…</div></div>
+                <div class="admin-info-card"><div class="label">Neste start / aktuell frist</div><div class="value" id="adminNextInfo">—</div></div>
+              </div>
+              <div class="row">
+                <div class="field" style="grid-column: span 6;"><label>Løpsmal</label><select id="templateSelect"></select></div>
+                <div class="field" style="grid-column: span 6;"><label>Løpsnavn</label><input id="raceName" placeholder="F.eks. Bergen Backyard 2026" /></div>
+              </div>
+              <div class="row">
+                <div class="field" style="grid-column: span 4;"><label>Rundelengde (km)</label><input id="distanceKm" type="number" min="0.1" step="0.001" /></div>
+                <div class="field" style="grid-column: span 4;"><label>Tilgjengelig tid (min)</label><input id="roundMinutes" type="number" min="1" step="1" /></div>
+                <div class="field" style="grid-column: span 4;"><label>Starttid (lokal tid)</label><input id="startTime" type="datetime-local" /></div>
+              </div>
+              <div class="row">
+                <div class="field" style="grid-column: span 6;"><label>Reduser tilgjengelig tid hver runde</label><div class="checkbox"><input id="reductionEnabled" type="checkbox" /><span>Frontyard-modus</span></div></div>
+                <div class="field" style="grid-column: span 6;"><label>Reduksjon per runde (min)</label><input id="reductionPerRound" type="number" min="0" step="1" /></div>
+              </div>
+              <div class="actions">
+                <button class="btn primary" id="saveTemplateBtn">Lagre løpsmal</button>
+                <button class="btn green" id="startRaceBtn">Start løp</button>
+                <button class="btn red" id="stopRaceBtn">Stopp løp</button>
+                <button class="btn ghost" id="newDraftBtn">Nytt utkast</button>
+                <button class="btn ghost" id="reloadBtn">Oppdater data</button>
+              </div>
+              <div class="pill-row" style="margin-top:12px;">
+                <span class="pill">Backyard = 6.706 km / 60 min</span>
+                <span class="pill">Frontyard = 3.0 km / 30 min, -1 min/runde</span>
+                <span class="pill">Alle verdier kan redigeres</span>
+              </div>
             </div>
-            <div class="row">
-              <div class="field" style="grid-column: span 4;"><label>Rundelengde (km)</label><input id="distanceKm" type="number" min="0.1" step="0.1" /></div>
-              <div class="field" style="grid-column: span 4;"><label>Tilgjengelig tid (min)</label><input id="roundMinutes" type="number" min="1" step="1" /></div>
-              <div class="field" style="grid-column: span 4;"><label>Starttid (lokal tid)</label><input id="startTime" type="datetime-local" /></div>
+          </details>
+          <details class="panel collapse" open id="participantsCollapse">
+            <summary>
+              <h2>Deltakere</h2>
+              <span class="pill" id="draftCountPill">0 deltakere</span>
+            </summary>
+            <div class="collapse-body">
+              <div class="row">
+                <div class="field" style="grid-column: span 8;"><label>Legg til deltaker</label><input id="manualName" placeholder="Navn" /></div>
+                <div class="field" style="grid-column: span 4;"><label>&nbsp;</label><button class="btn primary" id="addParticipantBtn">Legg til</button></div>
+              </div>
+              <div class="row">
+                <div class="field" style="grid-column: span 8;"><label>Importer CSV / XLS / XLSX</label><input id="importFile" type="file" accept=".csv,.xls,.xlsx" /></div>
+                <div class="field" style="grid-column: span 4;"><label>&nbsp;</label><button class="btn ghost" id="clearDraftBtn">Tøm utkast</button></div>
+              </div>
+              <div class="inline-help tiny muted">
+                <div><b>Støttet importformat:</b> første ark i Excel eller CSV-fil med kolonner for <b>bib</b> og <b>navn</b> / <b>name</b>.</div>
+                <div>Følgende kolonnenavn godtas også: <b>startnr</b>, <b>startnummer</b>, <b>deltaker</b>, <b>runner</b>.</div>
+                <div>Hvis BIB mangler, er tom eller finnes fra før, får deltakeren neste ledige BIB automatisk.</div>
+                <div class="import-example">Eksempel CSV
+bib;navn
+1;Hallvar Fjell
+2;Kari Nordmann</div>
+              </div>
+              <div class="admin-table-wrap" style="margin-top:12px; max-height: 280px;">
+                <table id="draftTable">
+                  <thead><tr><th>BIB</th><th>Navn</th><th>Handling</th></tr></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
             </div>
-            <div class="row">
-              <div class="field" style="grid-column: span 6;"><label>Reduser tilgjengelig tid hver runde</label><div class="checkbox"><input id="reductionEnabled" type="checkbox" /><span>Frontyard-modus</span></div></div>
-              <div class="field" style="grid-column: span 6;"><label>Reduksjon per runde (min)</label><input id="reductionPerRound" type="number" min="0" step="1" /></div>
-            </div>
-            <div class="actions">
-              <button class="btn primary" id="saveTemplateBtn">Lagre løpsmal</button>
-              <button class="btn green" id="startRaceBtn">Start løp</button>
-              <button class="btn red" id="stopRaceBtn">Stopp løp</button>
-              <button class="btn ghost" id="newDraftBtn">Nytt utkast</button>
-              <button class="btn ghost" id="reloadBtn">Oppdater data</button>
-            </div>
-            <div class="pill-row" style="margin-top:12px;">
-              <span class="pill">Backyard = 6.706 km / 60 min</span>
-              <span class="pill">Frontyard = 3.0 km / 30 min, -1 min/runde</span>
-              <span class="pill">Alle verdier kan redigeres</span>
-            </div>
-          </div>
-
-          <div class="panel">
-            <div class="section-title"><h2>Deltakere</h2><span class="pill" id="draftCountPill">0 deltakere</span></div>
-            <div class="row">
-              <div class="field" style="grid-column: span 8;"><label>Legg til deltaker</label><input id="manualName" placeholder="Navn" /></div>
-              <div class="field" style="grid-column: span 4;"><label>&nbsp;</label><button class="btn primary" id="addParticipantBtn">Legg til</button></div>
-            </div>
-            <div class="row">
-              <div class="field" style="grid-column: span 8;"><label>Importer CSV/XLS/XLSX</label><input id="importFile" type="file" accept=".csv,.xls,.xlsx" /></div>
-              <div class="field" style="grid-column: span 4;"><label>&nbsp;</label><button class="btn ghost" id="clearDraftBtn">Tøm utkast</button></div>
-            </div>
-            <div class="tiny muted">Import støtter kolonner som heter <b>bib</b> og <b>name</b> / <b>navn</b>. Hvis BIB mangler, opprettes løpende nummer automatisk.</div>
-            <div class="admin-table-wrap" style="margin-top:12px; max-height: 280px;">
-              <table id="draftTable">
-                <thead><tr><th>BIB</th><th>Navn</th><th>Handling</th></tr></thead>
-                <tbody></tbody>
-              </table>
-            </div>
-          </div>
+          </details>
         </div>
 
         <div class="stack">
-          <div class="panel">
+          <div class="panel"><div class="panel">
             <div class="section-title"><h2>Rundetider</h2><span class="pill" id="roundTablePill">Ingen data</span></div>
+            <div class="tiny muted" style="margin-bottom:10px;">Alle tider kan redigeres direkte i tabellen. Bruk <b>mm:ss</b> eller <b>hh:mm:ss</b>. Skriv <b>DNF</b> for brutt, eller tøm feltet for å slette oppføringen.</div>
             <div class="admin-table-wrap" style="max-height: calc(100vh - 220px);">
               <table id="roundTable"></table>
             </div>
@@ -598,14 +647,14 @@
       confirmAction: null,
       lastDigest: '',
       syncLock: false,
+      dbStatusText: 'Kobler til Supabase…',
+      dbStatusMode: 'loading',
     };
 
     const el = (id) => document.getElementById(id);
     const q = (sel, root = document) => root.querySelector(sel);
     const qa = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
-    const dbDot = el('dbDot');
-    const dbStatus = el('dbStatus');
 
     function showToast(message, tone = 'info', timeout = 3600) {
       const wrap = el('toastWrap');
@@ -623,10 +672,10 @@
     }
 
     function setDbStatus(text, mode = 'loading') {
-      dbStatus.textContent = text;
-      dbDot.classList.remove('online', 'offline');
-      if (mode === 'online') dbDot.classList.add('online');
-      else if (mode === 'offline') dbDot.classList.add('offline');
+      state.dbStatusText = text;
+      state.dbStatusMode = mode;
+      const adminDb = el('adminDbStatus');
+      if (adminDb) adminDb.textContent = text;
     }
 
     function pad(v) { return String(v).padStart(2, '0'); }
@@ -659,12 +708,31 @@
       const hh = Math.floor(totalSec / 3600);
       const mm = Math.floor((totalSec % 3600) / 60);
       const ss = totalSec % 60;
-      if (compact) return `${sign}${pad(hh)}:${pad(mm)}:${pad(ss)}`;
-      const parts = [];
-      if (hh) parts.push(`${hh}t`);
-      if (mm || hh) parts.push(`${mm}m`);
-      parts.push(`${ss}s`);
-      return sign + parts.join(' ');
+      if (hh > 0) return `${sign}${pad(hh)}:${pad(mm)}:${pad(ss)}`;
+      return `${sign}${pad(mm)}:${pad(ss)}`;
+    }
+    function formatAbsoluteTime(ms) {
+      if (ms == null || !isFinite(ms)) return '—';
+      const d = new Date(ms);
+      return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+    function parseDurationInput(value) {
+      const raw = String(value || '').trim();
+      if (!raw) return { kind: 'empty' };
+      if (/^dnf$/i.test(raw)) return { kind: 'dnf' };
+      const normalized = raw.replace(',', '.');
+      const parts = normalized.split(':').map(p => p.trim()).filter(Boolean);
+      if (parts.length === 2 && parts.every(p => /^\d+$/.test(p))) {
+        const [mm, ss] = parts.map(Number);
+        if (ss >= 60) return { kind: 'invalid', reason: 'Sekunder må være under 60.' };
+        return { kind: 'time', ms: (mm * 60 + ss) * 1000 };
+      }
+      if (parts.length === 3 && parts.every(p => /^\d+$/.test(p))) {
+        const [hh, mm, ss] = parts.map(Number);
+        if (mm >= 60 || ss >= 60) return { kind: 'invalid', reason: 'Minutter og sekunder må være under 60.' };
+        return { kind: 'time', ms: (hh * 3600 + mm * 60 + ss) * 1000 };
+      }
+      return { kind: 'invalid', reason: 'Bruk mm:ss, hh:mm:ss, DNF eller tomt felt.' };
     }
     function formatDistance(km) {
       return `${Number(km || 0).toFixed((km % 1) ? 3 : 0)} km`;
@@ -744,6 +812,31 @@
     function getLap(participantId, roundNumber) {
       return state.laps.find(l => l.participant_id === participantId && Number(l.round_number) === Number(roundNumber));
     }
+
+    function getClosedRoundNumbers(racePhase) {
+      if (!state.activeRace || !racePhase || racePhase.state === 'none' || racePhase.state === 'planned') return [];
+      const closed = [];
+      for (let r = 1; r < racePhase.currentRound; r++) closed.push(r);
+      if (racePhase.state === 'stopped') {
+        const maxLapRound = Math.max(0, ...state.laps.map(l => Number(l.round_number || 0)));
+        for (let r = 1; r <= maxLapRound; r++) if (!closed.includes(r)) closed.push(r);
+      }
+      return closed.sort((a, b) => a - b);
+    }
+    function getFirstMissingClosedRound(participant, racePhase) {
+      const closedRounds = getClosedRoundNumbers(racePhase);
+      for (const roundNumber of closedRounds) {
+        const lap = getLap(participant.id, roundNumber);
+        if (!lap) return roundNumber;
+        if (lap.status === 'dnf') return roundNumber;
+      }
+      return null;
+    }
+    function isParticipantEffectivelyDnf(participant, racePhase) {
+      if (!state.activeRace) return false;
+      if (participant.status === 'finished') return true;
+      return getFirstMissingClosedRound(participant, racePhase) != null;
+    }
     function getParticipantCompletedRounds(participantId) {
       return state.laps.filter(l => l.participant_id === participantId && l.status === 'finished').length;
     }
@@ -759,7 +852,7 @@
     }
     function computeParticipantStatus(participant, racePhase) {
       if (!state.activeRace) return { code: 'none', label: '—' };
-      if (participant.status === 'finished') return { code: 'dnf', label: 'DNF' };
+      if (isParticipantEffectivelyDnf(participant, racePhase)) return { code: 'dnf', label: 'DNF' };
       if (racePhase.state === 'planned') return { code: 'planned', label: 'Klar' };
       const currentLap = getLap(participant.id, racePhase.currentRound);
       if (currentLap?.status === 'finished') return { code: 'complete', label: 'Fullført runde' };
@@ -787,15 +880,24 @@
 
     function renderTopBar() {
       const race = state.activeRace;
+      const adminRaceInfo = el('adminRaceInfo');
+      const adminLocalClock = el('adminLocalClock');
+      const adminDbStatus = el('adminDbStatus');
+      const adminNextInfo = el('adminNextInfo');
+      if (adminLocalClock) adminLocalClock.textContent = formatLocalClock(new Date());
+      if (adminDbStatus) adminDbStatus.textContent = state.dbStatusText || '—';
       if (!race) {
-        el('appTitle').textContent = 'Backyard / Frontyard Ultra';
-        el('appSubtitle').textContent = 'Konfigurer løp på Adminsiden og start når du er klar.';
+        if (adminRaceInfo) adminRaceInfo.textContent = 'Ingen aktivt løp';
+        if (adminNextInfo) adminNextInfo.textContent = '—';
         return;
       }
       const phase = getRacePhase(race);
       const raceType = race.config?.reduction_enabled ? 'Frontyard' : 'Backyard/Egendefinert';
-      el('appTitle').textContent = race.name || 'Uten navn';
-      el('appSubtitle').textContent = `${raceType} · ${formatDistance(race.config?.distance_km || 0)} · ${race.config?.round_minutes || 0} min${race.config?.reduction_enabled ? ` · -${race.config?.reduction_per_round || 0} min/runde` : ''} · Start ${formatDateTimeLocal(race.start_time)} · ${phase.state === 'planned' ? 'Planlagt' : race.status === 'stopped' ? 'Stoppet' : 'Aktiv'}`;
+      if (adminRaceInfo) adminRaceInfo.textContent = `${race.name || 'Uten navn'} · ${raceType} · ${phase.state === 'planned' ? 'Planlagt' : race.status === 'stopped' ? 'Stoppet' : 'Aktiv'}`;
+      if (adminNextInfo) {
+        if (phase.state === 'planned') adminNextInfo.textContent = `Start ${formatDateTimeLocal(race.start_time)}`;
+        else adminNextInfo.textContent = `R${phase.currentRound} frist ${formatAbsoluteTime(phase.currentWindow.endMs)} · neste start ${formatAbsoluteTime(phase.nextStartMs)}`;
+      }
     }
 
     function renderRegistration() {
@@ -817,9 +919,9 @@
       const phase = getRacePhase(race);
       const now = Date.now();
       const window = phase.currentWindow;
-      const totalEligible = state.participants.filter(p => p.status !== 'finished').length;
+      const effectiveDnfCount = state.participants.filter(p => isParticipantEffectivelyDnf(p, phase)).length;
+      const totalEligible = state.participants.length - effectiveDnfCount;
       const doneThisRound = state.participants.filter(p => getLap(p.id, phase.currentRound)?.status === 'finished').length;
-      const dnfCount = state.participants.filter(p => p.status === 'finished').length;
       const stillRunning = Math.max(0, totalEligible - doneThisRound);
       el('regRaceName').textContent = race.name || 'Uten navn';
       el('regRaceMeta').textContent = `${formatDistance(race.config?.distance_km)} · ${state.participants.length} deltakere`;
@@ -832,9 +934,9 @@
         el('regSummarySub').textContent = 'Planlagt start';
       } else {
         el('regCountdown').textContent = formatDuration(window.endMs - now, true);
-        el('regStartEnd').textContent = `${formatLocalClock(new Date(window.startMs))}–${formatLocalClock(new Date(window.endMs))}`;
-        el('regSummary').textContent = `${doneThisRound} / ${totalEligible}`;
-        el('regSummarySub').textContent = `${stillRunning} i løypa · ${dnfCount} DNF`;
+        el('regStartEnd').textContent = `${formatAbsoluteTime(window.startMs)}–${formatAbsoluteTime(window.endMs)}`;
+        el('regSummary').textContent = `${doneThisRound} / ${Math.max(totalEligible, 0)}`;
+        el('regSummarySub').textContent = `${stillRunning} i løypa · ${effectiveDnfCount} DNF`;
       }
 
       const participants = getSortedParticipantsForRegistration(phase);
@@ -844,18 +946,19 @@
         btn.className = 'runner-btn';
         let meta = 'Ikke registrert';
         let disabled = false;
+        const effectiveDnf = isParticipantEffectivelyDnf(p, phase);
 
         if (phase.state === 'planned') {
           meta = 'Venter på start';
           disabled = true;
           btn.classList.add('disabled');
-        } else if (currentLap?.status === 'finished') {
-          btn.classList.add('done');
-          meta = formatDuration(currentLap.elapsed_ms);
-        } else if (p.status === 'finished' || currentLap?.status === 'dnf') {
+        } else if (effectiveDnf) {
           btn.classList.add('dnf');
           meta = 'DNF';
           disabled = true;
+        } else if (currentLap?.status === 'finished') {
+          btn.classList.add('done');
+          meta = formatDuration(currentLap.elapsed_ms);
         }
         btn.innerHTML = `<div class="runner-bib">BIB ${p.bib}</div><div class="runner-name">${escapeHtml(p.name)}</div><div class="runner-meta">${meta}</div>`;
         if (disabled) btn.classList.add('disabled');
@@ -880,10 +983,10 @@
       const phase = getRacePhase(race);
       const now = Date.now();
       el('liveRaceMeta').textContent = `${race.name || 'Uten navn'} · ${formatDistance(race.config?.distance_km)} · ${state.participants.length} deltakere`;
-      const activeCount = state.participants.filter(p => p.status !== 'finished').length;
-      const dnfCount = state.participants.filter(p => p.status === 'finished').length;
+      const activeCount = state.participants.filter(p => !isParticipantEffectivelyDnf(p, phase)).length;
+      const dnfCount = state.participants.filter(p => isParticipantEffectivelyDnf(p, phase)).length;
       el('liveTotals').textContent = `${activeCount} aktive · ${dnfCount} DNF`;
-      el('liveSinceStart').textContent = phase.state === 'planned' ? '00:00:00' : formatDuration(now - new Date(race.start_time).getTime(), true);
+      el('liveSinceStart').textContent = phase.state === 'planned' ? '00:00' : formatDuration(now - new Date(race.start_time).getTime(), true);
       el('liveRoundCountdownLabel').textContent = `Tid til start runde ${phase.nextRound}`;
       el('liveToNextStart').textContent = formatDuration(phase.nextStartMs - now, true);
 
@@ -959,18 +1062,32 @@
       const headers = ['BIB', 'Navn', 'Status'];
       for (let r = 1; r <= maxRound; r++) headers.push(`R${r}`);
       let html = '<thead><tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr></thead><tbody>';
+      const phase = getRacePhase(race);
       const rows = [...state.participants].sort(compareBib);
       rows.forEach(p => {
-        html += `<tr><td>${p.bib}</td><td>${escapeHtml(p.name)}</td><td>${p.status === 'finished' ? 'Ferdig' : 'Aktiv'}</td>`;
+        const status = computeParticipantStatus(p, phase).label;
+        html += `<tr><td>${p.bib}</td><td>${escapeHtml(p.name)}</td><td>${status}</td>`;
         for (let r = 1; r <= maxRound; r++) {
           const lap = getLap(p.id, r);
-          html += `<td>${lap ? (lap.status === 'dnf' ? 'DNF' : formatDuration(lap.elapsed_ms, true)) : ''}</td>`;
+          const value = lap ? (lap.status === 'dnf' ? 'DNF' : formatDuration(lap.elapsed_ms, true)) : '';
+          html += `<td><input class="editable-cell" data-participant-id="${p.id}" data-round="${r}" value="${escapeHtmlAttr(value)}" placeholder="mm:ss / DNF" /><span class="cell-hint">${r === phase.currentRound ? 'Aktuell' : ''}</span></td>`;
         }
         html += '</tr>';
       });
       html += '</tbody>';
       table.innerHTML = html;
       el('roundTablePill').textContent = `${rows.length} deltakere · ${maxRound} runder`;
+      qa('.editable-cell', table).forEach(input => {
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            input.blur();
+          }
+        });
+        input.addEventListener('blur', async () => {
+          await handleRoundCellEdit(input);
+        });
+      });
     }
 
     function renderAdmin() {
@@ -985,6 +1102,7 @@
       const race = state.activeRace;
       el('currentRacePill').textContent = race ? `${race.name || 'Uten navn'} · ${race.status === 'stopped' ? 'Stoppet' : getRacePhase(race).state === 'planned' ? 'Planlagt' : 'Aktiv'}` : 'Uten aktivt løp';
       el('stopRaceBtn').disabled = !race || race.status === 'stopped';
+      renderTopBar();
     }
 
     function renderLogs() {
@@ -1029,12 +1147,78 @@
       renderLive();
       renderAdmin();
       renderLogs();
-      el('localClock').textContent = formatLocalClock(new Date());
       el('liveLocalClock').textContent = formatLocalClock(new Date());
     }
 
     function escapeHtml(value) {
       return String(value ?? '').replace(/[&<>"']/g, s => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[s]));
+    }
+    function escapeHtmlAttr(value) { return escapeHtml(value); }
+    function getParticipantById(participantId) {
+      return state.participants.find(p => p.id === participantId) || null;
+    }
+    async function updateParticipantStatusFromLaps(participantId) {
+      const participant = getParticipantById(participantId);
+      if (!participant) return;
+      const hasDnf = state.laps.some(l => l.participant_id === participantId && l.status === 'dnf');
+      const nextStatus = hasDnf ? 'finished' : 'active';
+      if (participant.status === nextStatus) return;
+      const { data, error } = await supabase.from('participants').update({ status: nextStatus }).eq('id', participantId).select().single();
+      if (!error && data) {
+        state.participants = state.participants.map(p => p.id === participantId ? data : p);
+      }
+    }
+    async function handleRoundCellEdit(input) {
+      const participantId = input.dataset.participantId;
+      const roundNumber = Number(input.dataset.round);
+      const participant = getParticipantById(participantId);
+      if (!participant || !state.activeRace) return;
+      const parsed = parseDurationInput(input.value);
+      input.dataset.invalid = parsed.kind === 'invalid' ? 'true' : 'false';
+      if (parsed.kind === 'invalid') {
+        showToast(parsed.reason, 'error');
+        return;
+      }
+      const existingLap = getLap(participantId, roundNumber);
+      if (parsed.kind === 'empty') {
+        if (!existingLap) {
+          input.value = '';
+          return;
+        }
+        const previousLaps = [...state.laps];
+        state.laps = state.laps.filter(l => l.id !== existingLap.id);
+        renderAll();
+        const { error } = await supabase.from('lap_records').delete().eq('id', existingLap.id);
+        if (error) {
+          state.laps = previousLaps;
+          renderAll();
+          showToast(`Kunne ikke slette rundetid: ${error.message}`, 'error');
+          input.value = existingLap.status === 'dnf' ? 'DNF' : formatDuration(existingLap.elapsed_ms, true);
+          return;
+        }
+        await updateParticipantStatusFromLaps(participantId);
+        input.value = '';
+        renderAll();
+        return;
+      }
+      const payload = {
+        race_id: state.activeRace.id,
+        participant_id: participantId,
+        round_number: roundNumber,
+        registered_at: new Date().toISOString(),
+        elapsed_ms: parsed.kind === 'time' ? parsed.ms : null,
+        status: parsed.kind === 'dnf' ? 'dnf' : 'finished',
+      };
+      const { data, error } = await supabase.from('lap_records').upsert(payload, { onConflict: 'race_id,participant_id,round_number' }).select().single();
+      if (error) {
+        showToast(`Kunne ikke lagre rundetid: ${error.message}`, 'error');
+        input.value = existingLap ? (existingLap.status === 'dnf' ? 'DNF' : formatDuration(existingLap.elapsed_ms, true)) : '';
+        return;
+      }
+      state.laps = [...state.laps.filter(l => !(l.participant_id === participantId && Number(l.round_number) === Number(roundNumber))), data];
+      await updateParticipantStatusFromLaps(participantId);
+      input.value = data.status === 'dnf' ? 'DNF' : formatDuration(data.elapsed_ms, true);
+      renderAll();
     }
     function escapeHtmlAttr(value) { return escapeHtml(value); }
 
@@ -1053,7 +1237,7 @@
       if (!state.activeRace) return;
       if (phase.state === 'planned' || state.activeRace.status === 'stopped') return;
       const currentLap = getLap(participant.id, phase.currentRound);
-      if (participant.status === 'finished' || currentLap?.status === 'dnf') return;
+      if (isParticipantEffectivelyDnf(participant, phase) || currentLap?.status === 'dnf') return;
       if (currentLap?.status === 'finished') {
         openConfirm('Slette oppføring?', `Fjerne registrert rundetid for ${participant.name} i runde ${phase.currentRound}?`, async () => {
           await deleteLap(currentLap, participant);
@@ -1116,28 +1300,45 @@
     async function autoMarkDnfs() {
       if (!state.activeRace || state.syncLock || state.activeRace.status === 'stopped') return;
       const phase = getRacePhase(state.activeRace);
-      if (phase.state !== 'running') return;
-      const now = Date.now();
-      if (now <= phase.currentWindow.endMs) return;
-      const missing = state.participants.filter(p => p.status !== 'finished' && !getLap(p.id, phase.currentRound));
-      if (!missing.length) return;
+      if (phase.state === 'planned' || phase.state === 'none') return;
+      const missingRows = [];
+      const participantsToFinish = new Set();
+      const closedRounds = getClosedRoundNumbers(phase);
+      for (const participant of state.participants) {
+        if (participant.status === 'finished') continue;
+        for (const roundNumber of closedRounds) {
+          const lap = getLap(participant.id, roundNumber);
+          if (!lap) {
+            const window = getRoundWindow(state.activeRace.config || {}, state.activeRace.start_time, roundNumber);
+            missingRows.push({
+              race_id: state.activeRace.id,
+              participant_id: participant.id,
+              round_number: roundNumber,
+              registered_at: new Date(window.endMs).toISOString(),
+              elapsed_ms: null,
+              status: 'dnf',
+            });
+            participantsToFinish.add(participant.id);
+            break;
+          }
+          if (lap.status === 'dnf') {
+            participantsToFinish.add(participant.id);
+            break;
+          }
+        }
+      }
+      if (!missingRows.length && !participantsToFinish.size) return;
       state.syncLock = true;
       try {
-        const lapRows = missing.map(p => ({
-          race_id: state.activeRace.id,
-          participant_id: p.id,
-          round_number: phase.currentRound,
-          registered_at: new Date(phase.currentWindow.endMs).toISOString(),
-          elapsed_ms: null,
-          status: 'dnf',
-        }));
-        const participantIds = missing.map(p => p.id);
-        const { error: lapErr } = await supabase.from('lap_records').upsert(lapRows, { onConflict: 'race_id,participant_id,round_number' });
-        if (lapErr) throw lapErr;
-        const { error: pErr } = await supabase.from('participants').update({ status: 'finished' }).in('id', participantIds);
-        if (pErr) throw pErr;
+        if (missingRows.length) {
+          const { error: lapErr } = await supabase.from('lap_records').upsert(missingRows, { onConflict: 'race_id,participant_id,round_number' });
+          if (lapErr) throw lapErr;
+        }
+        if (participantsToFinish.size) {
+          const { error: pErr } = await supabase.from('participants').update({ status: 'finished' }).in('id', Array.from(participantsToFinish));
+          if (pErr) throw pErr;
+        }
         await loadRace(state.activeRace.id, false);
-        showToast(`${missing.length} deltaker(e) markert som DNF i runde ${phase.currentRound}.`, 'warn', 4200);
       } catch (err) {
         showToast(`Feil ved automatisk DNF-merking: ${err.message || err}`, 'error', 4800);
       } finally {
@@ -1304,13 +1505,13 @@
       let rows = [];
       const ext = file.name.split('.').pop().toLowerCase();
       if (ext === 'csv') {
-        const text = await file.text();
-        rows = parseCsv(text);
+        const rawText = await file.text();
+        rows = parseCsv(rawText.replace(/^﻿/, ''));
       } else {
         const buffer = await file.arrayBuffer();
         const wb = XLSX.read(buffer, { type: 'array' });
         const sheet = wb.Sheets[wb.SheetNames[0]];
-        rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+        rows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
       }
       const mapped = normalizeParticipantRows(rows);
       if (!mapped.length) {
@@ -1329,15 +1530,25 @@
     }
 
     function parseCsv(text) {
-      const lines = text.split(/\r?\n/).filter(Boolean);
+      const lines = text.split(/?
+/).map(line => line.trim()).filter(Boolean);
       if (!lines.length) return [];
+      const firstLine = splitCsvLine(lines[0]).map(h => h.trim());
+      const normalizedHeaders = firstLine.map(h => h.toLowerCase());
+      const hasKnownHeaders = normalizedHeaders.some(h => ['bib', 'name', 'navn', 'startnr', 'startnummer', 'deltaker', 'runner'].includes(h));
       const rows = [];
-      const headers = splitCsvLine(lines[0]).map(h => h.trim());
-      for (let i = 1; i < lines.length; i++) {
-        const values = splitCsvLine(lines[i]);
-        const obj = {};
-        headers.forEach((h, idx) => obj[h] = values[idx] ?? '');
-        rows.push(obj);
+      if (hasKnownHeaders) {
+        for (let i = 1; i < lines.length; i++) {
+          const values = splitCsvLine(lines[i]);
+          const obj = {};
+          firstLine.forEach((h, idx) => obj[h] = values[idx] ?? '');
+          rows.push(obj);
+        }
+      } else {
+        for (const line of lines) {
+          const values = splitCsvLine(line);
+          rows.push({ bib: values[0] ?? '', navn: values[1] ?? '' });
+        }
       }
       return rows;
     }
@@ -1363,9 +1574,13 @@
     }
     function normalizeParticipantRows(rows) {
       return rows.map(r => {
-        const lower = Object.fromEntries(Object.entries(r).map(([k, v]) => [String(k).trim().toLowerCase(), v]));
-        const name = sanitizeName(lower.name || lower.navn || lower.runner || lower.deltaker || '');
-        const bib = parseNumber(lower.bib || lower.startnr || lower.startnummer || 0, 0);
+        const entries = Object.entries(r || {}).map(([k, v]) => [String(k).trim().toLowerCase(), v]);
+        const lower = Object.fromEntries(entries);
+        const values = entries.map(([, v]) => String(v ?? '').trim());
+        const fallbackName = sanitizeName(values.find(v => /[A-Za-zÆØÅæøå]/.test(v)) || '');
+        const fallbackBib = parseNumber(values.find(v => /^\d+$/.test(v)) || 0, 0);
+        const name = sanitizeName(lower.name || lower.navn || lower.runner || lower.deltaker || fallbackName || '');
+        const bib = parseNumber(lower.bib || lower.startnr || lower.startnummer || fallbackBib || 0, 0);
         return { name, bib };
       }).filter(r => r.name);
     }
@@ -1454,7 +1669,7 @@
       }
       renderAll();
       setInterval(() => {
-        el('localClock').textContent = formatLocalClock(new Date());
+        renderTopBar();
         el('liveLocalClock').textContent = formatLocalClock(new Date());
         renderRegistration();
         renderLive();

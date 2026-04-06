@@ -1,1 +1,8 @@
-{"name":"Backyard","short_name":"Backyard","start_url":"/","display":"standalone","icons":[{"src":"icon-192.png","sizes":"192x192"},{"src":"icon-512.png","sizes":"512x512"}]}
+{
+  "name": "Laps \u2013 Ein til",
+  "short_name": "Laps",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "description": "Backyard/Frontyard Ultra registrering"
+}

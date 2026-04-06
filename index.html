@@ -3,96 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Backyard Timer</title>
-
-<!-- Supabase -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<!-- XLSX (Excel-import) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
-<!-- Stylesheet -->
-<link rel="stylesheet" href="style.css">
-
+<title>Laps – Ein til</title>
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="styles.css">
 </head>
-  
+<body>
 <nav>
-  <button onclick="showPage('register')">Registrering</button>
-  <button onclick="showPage('live')">Live</button>
-  <button onclick="showPage('admin')">Admin</button>
-  <button onclick="showPage('log')">Logg</button>
+<button onclick="showScreen('register')">Registrering</button>
+<button onclick="showScreen('live')">Live</button>
+<button onclick="showScreen('admin')">Admin</button>
+<button onclick="showScreen('log')">Logg</button>
 </nav>
 
-<!-- REGISTRERING -->
-<div id="register" class="page">
-    <div id="regRoundHeader" class="header"></div>
-    <div id="regCountdown" class="subheader"></div>
-    <div id="runnerGrid" class="grid"></div>
-</div>
+<section id="register" class="screen"></section>
+<section id="live" class="screen"></section>
+<section id="admin" class="screen"></section>
+<section id="log" class="screen"></section>
 
-<!-- LIVE (kommer senere) -->
-<div id="live" class="page">
-    <h2>Live kommer etter registrering</h2>
-</div>
-
-<!-- ADMIN -->
-<div id="admin" class="page active">
-  <div class="panel">
-    <h3>Løpsinnstillinger</h3>
-
-    <label>Format:</label>
-    <select id="raceType">
-      <option value="backyard">Backyard</option>
-      <option value="frontyard">Frontyard</option>
-      <option value="custom">Custom</option>
-    </select>
-
-    <label>Starttid:</label>
-    <input type="datetime-local" id="startTime">
-
-    <label>Intervall (min):</label>
-    <input type="number" id="interval" value="60">
-
-    <label>Rundelengde (km):</label>
-    <input type="number" id="distance" step="0.01" value="6.7">
-
-    <div id="adminCountdown" class="countdown"></div>
-
-    <button onclick="startRace()">Start</button>
-    <button onclick="stopRace()">Stopp</button>
-    <button onclick="resetRace()">Reset</button>
-  </div>
-
-  <div class="panel">
-    <h3>Deltakere</h3>
-    <button onclick="openAddModal()">Legg til deltaker</button>
-    <input type="file" id="csvInput" onchange="importParticipants(event)">
-    <table id="adminTable"></table>
-  </div>
-</div>
-
-<!-- LOG -->
-<div id="log" class="page">
-  <h3>Løpslogg (kommer senere)</h3>
-  <table id="logTable"></table>
-</div>
-
-<!-- MODAL -->
-<div class="modal" id="modalAdd">
- <div class="modal-box">
-  <h3>Legg til deltaker</h3>
-  <label>BIB:</label>
-  <input id="modalBib">
-  <label>Navn:</label>
-  <input id="modalName">
-  <div class="modal-buttons">
-    <button onclick="closeAddModal()">Avbryt</button>
-    <button onclick="confirmAddParticipant()">Lagre</button>
-  </div>
- </div>
-</div>
-
-<script srcipt>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
 </body>
 </html>

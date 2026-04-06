@@ -7,8 +7,9 @@
   <style>
     :root {
       --bg: #0f172a;
-      --panel: #111827;
-      --panel-2: #1f2937;
+      --bg-2: #111827;
+      --panel: rgba(17,24,39,.96);
+      --panel-2: #0f172a;
       --muted: #94a3b8;
       --text: #f8fafc;
       --accent: #2563eb;
@@ -27,9 +28,7 @@
       background: linear-gradient(180deg, #0b1220, #111827);
       color: var(--text);
     }
-    button, input, select, textarea {
-      font: inherit;
-    }
+    button, input, select, textarea { font: inherit; }
     .app {
       display: grid;
       grid-template-rows: auto 1fr;
@@ -37,46 +36,54 @@
       gap: 12px;
       padding: 12px;
     }
+    .nav {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      position: sticky;
+      top: 12px;
+      z-index: 10;
+    }
     .nav button {
       padding: 14px 12px;
       border-radius: 16px;
       border: 1px solid var(--border);
-      background: rgba(15, 23, 42, .9);
+      background: rgba(15, 23, 42, .92);
       color: var(--text);
       cursor: pointer;
       font-weight: 700;
       transition: transform .06s ease, background .15s ease, border-color .15s ease;
+      box-shadow: var(--shadow);
     }
     .nav button.active {
       background: linear-gradient(180deg, #1d4ed8, #1e40af);
       border-color: #3b82f6;
     }
     .nav button:active { transform: translateY(1px) scale(.995); }
-    .screen {
-      display: none;
-      min-height: 0;
-    }
+    .screen { display: none; min-height: 0; }
     .screen.active { display: block; }
-    .grid-2 {
-      display: grid;
-      grid-template-columns: 420px 1fr;
-      gap: 12px;
-      min-height: 0;
-    }
+    .grid-2 { display: grid; grid-template-columns: 430px 1fr; gap: 12px; min-height: 0; }
+    .stack { display: grid; gap: 12px; }
     .panel {
-      background: rgba(17,24,39,.96);
+      background: var(--panel);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
       padding: 14px;
       min-width: 0;
     }
-    .panel h2, .panel h3 {
-      margin: 0 0 12px 0;
-    }
     .muted { color: var(--muted); }
     .small { font-size: .88rem; }
     .tiny { font-size: .78rem; }
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .section-title h2, .section-title h3, .panel h2, .panel h3 { margin: 0; }
     .row {
       display: grid;
       grid-template-columns: repeat(12, minmax(0, 1fr));
@@ -109,12 +116,7 @@
       background: #0f172a;
       min-height: 46px;
     }
-    .actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 8px;
-    }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
     .btn {
       appearance: none;
       border: 1px solid var(--border);
@@ -131,13 +133,33 @@
     .btn.red { background: linear-gradient(180deg, #dc2626, #b91c1c); border-color: #ef4444; }
     .btn.orange { background: linear-gradient(180deg, #ea580c, #c2410c); border-color: #fb923c; }
     .btn.ghost { background: rgba(15, 23, 42, .7); }
+    .btn.small-btn { padding: 8px 10px; min-height: auto; border-radius: 10px; }
     .btn:disabled { opacity: .55; cursor: not-allowed; }
-    .stack { display: grid; gap: 12px; }
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
+    .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .pill {
+      border-radius: 999px;
+      padding: 8px 10px;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: .85rem;
     }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: #0b1220;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: .92rem;
+      white-space: nowrap;
+    }
+    .status-dot { width: 10px; height: 10px; border-radius: 999px; background: var(--orange); box-shadow: 0 0 12px rgba(234,88,12,.65); }
+    .status-dot.online { background: var(--green); box-shadow: 0 0 12px rgba(22,163,74,.75); }
+    .status-dot.offline { background: var(--red); box-shadow: 0 0 12px rgba(220,38,38,.75); }
+    .kpi-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
     .kpi {
       border-radius: 16px;
       border: 1px solid var(--border);
@@ -145,14 +167,9 @@
       padding: 14px;
     }
     .kpi .label { color: var(--muted); font-size: .88rem; }
-    .kpi .value { font-size: clamp(1.5rem, 4vw, 2.7rem); font-weight: 800; margin-top: 6px; }
+    .kpi .value { font-size: clamp(1.4rem, 4vw, 2.6rem); font-weight: 800; margin-top: 6px; line-height: 1.05; }
     .kpi .sub { color: var(--muted); margin-top: 6px; }
-    .registration-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-      gap: 12px;
-      align-content: start;
-    }
+    .registration-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; align-content: start; }
     .runner-btn {
       display: grid;
       gap: 6px;
@@ -169,267 +186,76 @@
     }
     .runner-btn:hover { box-shadow: 0 12px 24px rgba(0,0,0,.16); }
     .runner-btn:active { transform: scale(.992); }
-    .runner-btn.done {
-      background: linear-gradient(180deg, #dcfce7, #bbf7d0);
-      border-color: #22c55e;
-    }
-    .runner-btn.dnf {
-      background: linear-gradient(180deg, #fee2e2, #fecaca);
-      border-color: #ef4444;
-    }
-    .runner-btn.disabled { opacity: .85; cursor: default; }
+    .runner-btn.done { background: linear-gradient(180deg, #dcfce7, #bbf7d0); border-color: #22c55e; }
+    .runner-btn.dnf { background: linear-gradient(180deg, #fee2e2, #fecaca); border-color: #ef4444; }
+    .runner-btn.disabled { opacity: .88; cursor: default; }
     .runner-bib { font-size: 1.3rem; font-weight: 900; }
     .runner-name { font-size: 1rem; font-weight: 700; }
     .runner-meta { font-size: 1.15rem; font-weight: 900; }
-    .registration-header {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0,1fr));
-      gap: 12px;
-      margin-bottom: 12px;
-    }
+    .registration-header { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; margin-bottom: 12px; }
     .result-table-wrap, .admin-table-wrap, .log-table-wrap {
-      width: 100%;
-      overflow: auto;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      background: #0f172a;
+      width: 100%; overflow: auto; border: 1px solid var(--border); border-radius: 16px; background: #0f172a;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 840px;
-    }
-    th, td {
-      padding: 11px 12px;
-      border-bottom: 1px solid #1f2937;
-      text-align: left;
-      vertical-align: middle;
-      white-space: nowrap;
-    }
-    th {
-      position: sticky;
-      top: 0;
-      background: #111827;
-      z-index: 2;
-      color: #cbd5e1;
-      font-size: .92rem;
-    }
+    table { width: 100%; border-collapse: collapse; min-width: 840px; }
+    th, td { padding: 11px 12px; border-bottom: 1px solid #1f2937; text-align: left; vertical-align: middle; white-space: nowrap; }
+    th { position: sticky; top: 0; background: #111827; z-index: 2; color: #cbd5e1; font-size: .92rem; }
     tr:nth-child(even) td { background: rgba(255,255,255,.01); }
     .status-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 7px 10px;
-      border-radius: 999px;
-      font-weight: 700;
-      font-size: .85rem;
-      border: 1px solid transparent;
+      display: inline-flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 999px;
+      font-weight: 700; font-size: .85rem; border: 1px solid transparent;
     }
     .chip-running { background: rgba(37,99,235,.14); color: #93c5fd; border-color: rgba(59,130,246,.35); }
     .chip-complete { background: rgba(22,163,74,.14); color: #86efac; border-color: rgba(34,197,94,.35); }
     .chip-dnf { background: rgba(220,38,38,.14); color: #fca5a5; border-color: rgba(239,68,68,.35); }
     .chip-planned { background: rgba(234,88,12,.14); color: #fdba74; border-color: rgba(249,115,22,.35); }
-    .big-live {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-    .big-card {
-      border-radius: 20px;
-      padding: 18px;
-      background: radial-gradient(circle at top right, rgba(37,99,235,.18), transparent 35%), #0f172a;
-      border: 1px solid var(--border);
-    }
+    .big-live { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .big-card { border-radius: 20px; padding: 18px; background: radial-gradient(circle at top right, rgba(37,99,235,.18), transparent 35%), #0f172a; border: 1px solid var(--border); }
     .big-card .title { color: var(--muted); font-weight: 700; }
-    .big-card .number {
-      font-size: clamp(2rem, 6vw, 4.25rem);
-      font-weight: 900;
-      margin-top: 6px;
-      letter-spacing: .02em;
-      line-height: 1;
-    }
-    .section-title {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-    .list {
-      display: grid;
-      gap: 10px;
-    }
+    .big-card .number { font-size: clamp(2rem, 6vw, 4.25rem); font-weight: 900; margin-top: 6px; letter-spacing: .02em; line-height: 1; }
+    .list { display: grid; gap: 10px; }
     .list-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 12px;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      background: #0f172a;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px;
+      border: 1px solid var(--border); border-radius: 14px; background: #0f172a; flex-wrap: wrap;
     }
-    .toast-wrap {
-      position: fixed;
-      right: 12px;
-      bottom: 12px;
-      display: grid;
-      gap: 8px;
-      z-index: 50;
-    }
+    .toast-wrap { position: fixed; right: 12px; bottom: 12px; display: grid; gap: 8px; z-index: 50; }
     .toast {
-      background: rgba(15,23,42,.96);
-      border: 1px solid var(--border);
-      padding: 12px 14px;
-      border-radius: 14px;
-      box-shadow: var(--shadow);
-      max-width: min(90vw, 460px);
+      background: rgba(15,23,42,.96); border: 1px solid var(--border); padding: 12px 14px;
+      border-radius: 14px; box-shadow: var(--shadow); max-width: min(90vw, 460px);
     }
     .modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.55);
-      display: none;
-      place-items: center;
-      z-index: 60;
-      padding: 14px;
+      position: fixed; inset: 0; background: rgba(0,0,0,.55); display: none; place-items: center; z-index: 60; padding: 14px;
     }
     .modal.open { display: grid; }
-    .modal-card {
-      width: min(94vw, 420px);
-      background: #111827;
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 18px;
-      box-shadow: var(--shadow);
-    }
-    .pill-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 8px;
-    }
-    .pill {
-      border-radius: 999px;
-      padding: 8px 10px;
-      background: #0f172a;
-      border: 1px solid var(--border);
-      color: var(--muted);
-      font-size: .85rem;
-    }
+    .modal-card { width: min(94vw, 420px); background: #111827; border: 1px solid var(--border); border-radius: 20px; padding: 18px; box-shadow: var(--shadow); }
     .center-empty {
-      min-height: 40vh;
-      display: grid;
-      place-items: center;
-      text-align: center;
-      color: var(--muted);
-      padding: 22px;
-      border-radius: 18px;
-      border: 1px dashed var(--border);
-      background: rgba(15,23,42,.45);
+      min-height: 40vh; display: grid; place-items: center; text-align: center; color: var(--muted); padding: 22px;
+      border-radius: 18px; border: 1px dashed var(--border); background: rgba(15,23,42,.45);
     }
+    .admin-edit {
+      min-width: 102px; width: 100%; background: #111827; color: var(--text);
+      border: 1px solid #334155; border-radius: 10px; padding: 8px 10px;
+    }
+    .admin-edit.cell-dnf { border-color: rgba(239,68,68,.6); color: #fecaca; }
+    .admin-edit.cell-finished { border-color: rgba(34,197,94,.6); color: #dcfce7; }
+    .admin-edit.cell-empty { opacity: .92; }
+    .inline-note { color: var(--muted); font-size: .83rem; margin-top: 6px; }
+    .collapse-btn { min-height: auto; padding: 8px 10px; border-radius: 999px; }
+    .collapsible .collapse-body { display: block; }
+    .collapsible.collapsed .collapse-body { display: none; }
+    .info-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin-bottom: 12px; }
+    .info-box { background: #0f172a; border: 1px solid var(--border); border-radius: 14px; padding: 12px; min-height: 78px; }
+    .info-box .title { font-size: .82rem; color: var(--muted); }
+    .info-box .value { font-weight: 800; margin-top: 4px; line-height: 1.3; }
+    .success-outline { border-color: rgba(34,197,94,.55); }
+    .danger-outline { border-color: rgba(239,68,68,.55); }
 
-    .collapse {
-      overflow: hidden;
-    }
-    .collapse summary {
-      list-style: none;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin: -14px -14px 0 -14px;
-      padding: 14px;
-      border-radius: 18px 18px 0 0;
-      user-select: none;
-    }
-    .collapse summary::-webkit-details-marker { display: none; }
-    .collapse summary::after {
-      content: '▾';
-      color: var(--muted);
-      font-size: 1rem;
-      transition: transform .16s ease;
-      margin-left: auto;
-    }
-    .collapse:not([open]) summary::after { transform: rotate(-90deg); }
-    .collapse-body {
-      padding-top: 12px;
-    }
-    .admin-info-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
-      margin: 4px 0 12px;
-    }
-    .admin-info-card {
-      border-radius: 14px;
-      border: 1px solid var(--border);
-      background: #0f172a;
-      padding: 12px;
-      min-width: 0;
-    }
-    .admin-info-card .label {
-      color: var(--muted);
-      font-size: .82rem;
-      margin-bottom: 4px;
-    }
-    .admin-info-card .value {
-      font-weight: 800;
-      line-height: 1.25;
-      word-break: break-word;
-    }
-    .inline-help {
-      margin-top: 10px;
-      padding: 12px;
-      border-radius: 14px;
-      border: 1px dashed var(--border);
-      background: rgba(15,23,42,.55);
-    }
-    .import-example {
-      margin-top: 8px;
-      padding: 10px 12px;
-      border-radius: 12px;
-      background: #0b1220;
-      border: 1px solid var(--border);
-      overflow: auto;
-      white-space: pre;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: .82rem;
-      color: #cbd5e1;
-    }
-    .editable-cell {
-      min-width: 88px;
-      width: 100%;
-      background: #111827;
-      color: var(--text);
-      border: 1px solid #475569;
-      border-radius: 10px;
-      padding: 8px 10px;
-      outline: none;
-    }
-    .editable-cell:focus {
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgba(59,130,246,.16);
-    }
-    .editable-cell[data-invalid='true'] {
-      border-color: #ef4444;
-      box-shadow: 0 0 0 3px rgba(239,68,68,.16);
-    }
-    .cell-hint {
-      display: block;
-      color: var(--muted);
-      font-size: .72rem;
-      margin-top: 6px;
-    }
     @media (max-width: 1160px) {
       .grid-2 { grid-template-columns: 1fr; }
-      .registration-header, .kpi-grid, .big-live, .admin-info-grid { grid-template-columns: 1fr 1fr; }
+      .registration-header, .kpi-grid, .big-live, .info-grid { grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 760px) {
       .nav { grid-template-columns: repeat(2, minmax(0,1fr)); }
-      .registration-header, .kpi-grid, .big-live, .admin-info-grid { grid-template-columns: 1fr; }
+      .registration-header, .kpi-grid, .big-live, .info-grid { grid-template-columns: 1fr; }
       .row { grid-template-columns: 1fr; }
     }
   </style>
@@ -437,7 +263,6 @@
 </head>
 <body>
   <div class="app">
-
     <nav class="nav">
       <button class="active" data-screen="registrering">1. Registrering</button>
       <button data-screen="live">2. Live</button>
@@ -476,11 +301,11 @@
           </div>
           <div class="big-card">
             <div class="title">Tid siden start</div>
-            <div class="number" id="liveSinceStart">--:--:--</div>
+            <div class="number" id="liveSinceStart">--:--</div>
           </div>
           <div class="big-card">
             <div class="title" id="liveRoundCountdownLabel">Tid til start runde —</div>
-            <div class="number" id="liveToNextStart">--:--:--</div>
+            <div class="number" id="liveToNextStart">--:--</div>
           </div>
         </div>
         <div class="panel">
@@ -515,18 +340,30 @@
     <section class="screen" id="screen-admin">
       <div class="grid-2">
         <div class="stack">
-          <details class="panel collapse" open id="raceSetupCollapse">
-            <summary>
+          <div class="panel collapsible" id="setupPanel">
+            <div class="section-title">
               <h2>Løpsoppsett</h2>
-              <span class="pill" id="currentRacePill">Uten aktivt løp</span>
-            </summary>
-            <div class="collapse-body">
-              <div class="admin-info-grid">
-                <div class="admin-info-card"><div class="label">Løp / status</div><div class="value" id="adminRaceInfo">Ingen aktivt løp</div></div>
-                <div class="admin-info-card"><div class="label">Lokal klokke</div><div class="value" id="adminLocalClock">--:--:--</div></div>
-                <div class="admin-info-card"><div class="label">Supabase</div><div class="value" id="adminDbStatus">Kobler til…</div></div>
-                <div class="admin-info-card"><div class="label">Neste start / aktuell frist</div><div class="value" id="adminNextInfo">—</div></div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                <span class="pill" id="currentRacePill">Uten aktivt løp</span>
+                <button class="btn ghost collapse-btn" type="button" data-collapse="setupPanel">Skjul</button>
               </div>
+            </div>
+            <div class="collapse-body">
+              <div class="info-grid">
+                <div class="info-box">
+                  <div class="title">App / aktivt løp</div>
+                  <div class="value" id="appTitle">Backyard / Frontyard Ultra</div>
+                  <div class="inline-note" id="appSubtitle">Konfigurer løp og start når du er klar.</div>
+                </div>
+                <div class="info-box">
+                  <div class="title">Status</div>
+                  <div style="display:grid;gap:8px;margin-top:6px;">
+                    <div class="status-pill"><span class="status-dot" id="dbDot"></span><span id="dbStatus">Kobler til Supabase…</span></div>
+                    <div class="status-pill"><span class="status-dot online"></span><span id="localClock">--:--:--</span></div>
+                  </div>
+                </div>
+              </div>
+
               <div class="row">
                 <div class="field" style="grid-column: span 6;"><label>Løpsmal</label><select id="templateSelect"></select></div>
                 <div class="field" style="grid-column: span 6;"><label>Løpsnavn</label><input id="raceName" placeholder="F.eks. Bergen Backyard 2026" /></div>
@@ -553,30 +390,26 @@
                 <span class="pill">Alle verdier kan redigeres</span>
               </div>
             </div>
-          </details>
-          <details class="panel collapse" open id="participantsCollapse">
-            <summary>
+          </div>
+
+          <div class="panel collapsible" id="participantsPanel">
+            <div class="section-title">
               <h2>Deltakere</h2>
-              <span class="pill" id="draftCountPill">0 deltakere</span>
-            </summary>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                <span class="pill" id="draftCountPill">0 deltakere</span>
+                <button class="btn ghost collapse-btn" type="button" data-collapse="participantsPanel">Skjul</button>
+              </div>
+            </div>
             <div class="collapse-body">
               <div class="row">
                 <div class="field" style="grid-column: span 8;"><label>Legg til deltaker</label><input id="manualName" placeholder="Navn" /></div>
                 <div class="field" style="grid-column: span 4;"><label>&nbsp;</label><button class="btn primary" id="addParticipantBtn">Legg til</button></div>
               </div>
               <div class="row">
-                <div class="field" style="grid-column: span 8;"><label>Importer CSV / XLS / XLSX</label><input id="importFile" type="file" accept=".csv,.xls,.xlsx" /></div>
+                <div class="field" style="grid-column: span 8;"><label>Importer CSV/XLS/XLSX</label><input id="importFile" type="file" accept=".csv,.xls,.xlsx" /></div>
                 <div class="field" style="grid-column: span 4;"><label>&nbsp;</label><button class="btn ghost" id="clearDraftBtn">Tøm utkast</button></div>
               </div>
-              <div class="inline-help tiny muted">
-                <div><b>Støttet importformat:</b> første ark i Excel eller CSV-fil med kolonner for <b>bib</b> og <b>navn</b> / <b>name</b>.</div>
-                <div>Følgende kolonnenavn godtas også: <b>startnr</b>, <b>startnummer</b>, <b>deltaker</b>, <b>runner</b>.</div>
-                <div>Hvis BIB mangler, er tom eller finnes fra før, får deltakeren neste ledige BIB automatisk.</div>
-                <div class="import-example">Eksempel CSV
-bib;navn
-1;Hallvar Fjell
-2;Kari Nordmann</div>
-              </div>
+              <div class="tiny muted">Import støtter <b>.csv</b>, <b>.xls</b> og <b>.xlsx</b>. Første ark / første tabell brukes. Med overskrift kan du bruke kolonner som <b>bib</b>, <b>startnr</b>, <b>startnummer</b> og <b>name</b> / <b>navn</b>. Uten overskrift tolkes <b>kolonne A = BIB (valgfri)</b> og <b>kolonne B = navn</b>, eller bare <b>kolonne A = navn</b>.</div>
               <div class="admin-table-wrap" style="margin-top:12px; max-height: 280px;">
                 <table id="draftTable">
                   <thead><tr><th>BIB</th><th>Navn</th><th>Handling</th></tr></thead>
@@ -584,13 +417,13 @@ bib;navn
                 </table>
               </div>
             </div>
-          </details>
+          </div>
         </div>
 
         <div class="stack">
-          <div class="panel"><div class="panel">
+          <div class="panel">
             <div class="section-title"><h2>Rundetider</h2><span class="pill" id="roundTablePill">Ingen data</span></div>
-            <div class="tiny muted" style="margin-bottom:10px;">Alle tider kan redigeres direkte i tabellen. Bruk <b>mm:ss</b> eller <b>hh:mm:ss</b>. Skriv <b>DNF</b> for brutt, eller tøm feltet for å slette oppføringen.</div>
+            <div class="tiny muted" style="margin-bottom:10px;">Alle celler kan redigeres. Bruk <b>mm:ss</b> for tider under én time, <b>hh:mm:ss</b> for tider over én time, eller skriv <b>DNF</b>. Tøm cellen og trykk Enter / forlat feltet for å slette oppføring.</div>
             <div class="admin-table-wrap" style="max-height: calc(100vh - 220px);">
               <table id="roundTable"></table>
             </div>
@@ -647,14 +480,14 @@ bib;navn
       confirmAction: null,
       lastDigest: '',
       syncLock: false,
-      dbStatusText: 'Kobler til Supabase…',
-      dbStatusMode: 'loading',
+      collapse: { setupPanel: false, participantsPanel: false },
     };
 
     const el = (id) => document.getElementById(id);
     const q = (sel, root = document) => root.querySelector(sel);
     const qa = (sel, root = document) => Array.from(root.querySelectorAll(sel));
-
+    const dbDot = el('dbDot');
+    const dbStatus = el('dbStatus');
 
     function showToast(message, tone = 'info', timeout = 3600) {
       const wrap = el('toastWrap');
@@ -668,38 +501,37 @@ bib;navn
       div.style.cssText = toneMap[tone] || 'border-color:#3b82f6;';
       div.textContent = message;
       wrap.appendChild(div);
-      setTimeout(() => { div.remove(); }, timeout);
+      setTimeout(() => div.remove(), timeout);
     }
 
     function setDbStatus(text, mode = 'loading') {
-      state.dbStatusText = text;
-      state.dbStatusMode = mode;
-      const adminDb = el('adminDbStatus');
-      if (adminDb) adminDb.textContent = text;
+      dbStatus.textContent = text;
+      dbDot.classList.remove('online', 'offline');
+      if (mode === 'online') dbDot.classList.add('online');
+      else if (mode === 'offline') dbDot.classList.add('offline');
     }
 
     function pad(v) { return String(v).padStart(2, '0'); }
-    function formatLocalClock(d = new Date()) {
-      return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-    }
+    function formatLocalClock(d = new Date()) { return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; }
     function formatDateTimeLocal(ts) {
       if (!ts) return '—';
       const d = new Date(ts);
       if (Number.isNaN(d.getTime())) return '—';
-      return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
     }
     function toLocalInputValue(ts) {
       if (!ts) return '';
       const d = new Date(ts);
       if (Number.isNaN(d.getTime())) return '';
-      const local = new Date(d.getTime() - d.getTimezoneOffset()*60000);
-      return local.toISOString().slice(0,16);
+      const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+      return local.toISOString().slice(0, 16);
     }
     function localInputToIso(value) {
       if (!value) return null;
       const d = new Date(value);
       return Number.isNaN(d.getTime()) ? null : d.toISOString();
     }
+
     function formatDuration(ms, compact = false) {
       if (ms == null || !isFinite(ms)) return '—';
       const sign = ms < 0 ? '-' : '';
@@ -708,49 +540,52 @@ bib;navn
       const hh = Math.floor(totalSec / 3600);
       const mm = Math.floor((totalSec % 3600) / 60);
       const ss = totalSec % 60;
-      if (hh > 0) return `${sign}${pad(hh)}:${pad(mm)}:${pad(ss)}`;
-      return `${sign}${pad(mm)}:${pad(ss)}`;
+      if (compact) {
+        return totalSec < 3600
+          ? `${sign}${pad(Math.floor(totalSec / 60))}:${pad(ss)}`
+          : `${sign}${pad(hh)}:${pad(mm)}:${pad(ss)}`;
+      }
+      const parts = [];
+      if (hh) parts.push(`${hh}t`);
+      if (mm || hh) parts.push(`${mm}m`);
+      parts.push(`${ss}s`);
+      return sign + parts.join(' ');
     }
-    function formatAbsoluteTime(ms) {
-      if (ms == null || !isFinite(ms)) return '—';
-      const d = new Date(ms);
-      return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-    }
-    function parseDurationInput(value) {
+
+    function parseDisplayDurationToMs(value) {
       const raw = String(value || '').trim();
-      if (!raw) return { kind: 'empty' };
-      if (/^dnf$/i.test(raw)) return { kind: 'dnf' };
-      const normalized = raw.replace(',', '.');
-      const parts = normalized.split(':').map(p => p.trim()).filter(Boolean);
-      if (parts.length === 2 && parts.every(p => /^\d+$/.test(p))) {
-        const [mm, ss] = parts.map(Number);
-        if (ss >= 60) return { kind: 'invalid', reason: 'Sekunder må være under 60.' };
-        return { kind: 'time', ms: (mm * 60 + ss) * 1000 };
+      if (!raw) return { type: 'empty' };
+      if (raw.toUpperCase() === 'DNF') return { type: 'dnf' };
+      const parts = raw.split(':').map(s => s.trim());
+      if (![2, 3].includes(parts.length) || parts.some(p => p === '' || !/^\d+$/.test(p))) {
+        return { type: 'invalid' };
       }
-      if (parts.length === 3 && parts.every(p => /^\d+$/.test(p))) {
-        const [hh, mm, ss] = parts.map(Number);
-        if (mm >= 60 || ss >= 60) return { kind: 'invalid', reason: 'Minutter og sekunder må være under 60.' };
-        return { kind: 'time', ms: (hh * 3600 + mm * 60 + ss) * 1000 };
-      }
-      return { kind: 'invalid', reason: 'Bruk mm:ss, hh:mm:ss, DNF eller tomt felt.' };
+      const nums = parts.map(Number);
+      let h = 0, m = 0, s = 0;
+      if (parts.length === 2) [m, s] = nums;
+      else [h, m, s] = nums;
+      if (m > 59 && parts.length === 3) return { type: 'invalid' };
+      if (s > 59) return { type: 'invalid' };
+      return { type: 'finished', ms: ((h * 3600) + (m * 60) + s) * 1000 };
     }
+
     function formatDistance(km) {
-      return `${Number(km || 0).toFixed((km % 1) ? 3 : 0)} km`;
+      return `${Number(km || 0).toFixed((Number(km || 0) % 1) ? 3 : 0)} km`;
     }
     function formatPace(ms, distanceKm) {
       if (!ms || !distanceKm) return '—';
       const minPerKm = (ms / 60000) / distanceKm;
       const minutes = Math.floor(minPerKm);
-      const seconds = Math.round((minPerKm - minutes) * 60);
-      return `${minutes}:${pad(seconds === 60 ? 0 : seconds)} min/km`;
+      let seconds = Math.round((minPerKm - minutes) * 60);
+      let mins = minutes;
+      if (seconds === 60) { seconds = 0; mins += 1; }
+      return `${mins}:${pad(seconds)} min/km`;
     }
     function parseNumber(v, fallback = 0) {
       const n = Number(v);
       return Number.isFinite(n) ? n : fallback;
     }
-    function sanitizeName(name) {
-      return String(name || '').trim().replace(/\s+/g, ' ');
-    }
+    function sanitizeName(name) { return String(name || '').trim().replace(/\s+/g, ' '); }
     function nextBibFrom(list) {
       const max = list.reduce((m, r) => Math.max(m, Number(r.bib || 0)), 0);
       return max + 1;
@@ -771,7 +606,6 @@ bib;navn
       el('reductionEnabled').checked = !!config.reduction_enabled;
       el('reductionPerRound').value = config.reduction_per_round ?? 0;
     }
-
     function getRoundDurationMinutes(config, roundNumber) {
       const base = Math.max(1, parseNumber(config.round_minutes, 60));
       if (!config.reduction_enabled) return base;
@@ -812,30 +646,10 @@ bib;navn
     function getLap(participantId, roundNumber) {
       return state.laps.find(l => l.participant_id === participantId && Number(l.round_number) === Number(roundNumber));
     }
-
-    function getClosedRoundNumbers(racePhase) {
-      if (!state.activeRace || !racePhase || racePhase.state === 'none' || racePhase.state === 'planned') return [];
-      const closed = [];
-      for (let r = 1; r < racePhase.currentRound; r++) closed.push(r);
-      if (racePhase.state === 'stopped') {
-        const maxLapRound = Math.max(0, ...state.laps.map(l => Number(l.round_number || 0)));
-        for (let r = 1; r <= maxLapRound; r++) if (!closed.includes(r)) closed.push(r);
-      }
-      return closed.sort((a, b) => a - b);
-    }
-    function getFirstMissingClosedRound(participant, racePhase) {
-      const closedRounds = getClosedRoundNumbers(racePhase);
-      for (const roundNumber of closedRounds) {
-        const lap = getLap(participant.id, roundNumber);
-        if (!lap) return roundNumber;
-        if (lap.status === 'dnf') return roundNumber;
-      }
-      return null;
-    }
-    function isParticipantEffectivelyDnf(participant, racePhase) {
-      if (!state.activeRace) return false;
-      if (participant.status === 'finished') return true;
-      return getFirstMissingClosedRound(participant, racePhase) != null;
+    function getLatestLap(participantId) {
+      return state.laps
+        .filter(l => l.participant_id === participantId)
+        .sort((a, b) => Number(b.round_number) - Number(a.round_number))[0] || null;
     }
     function getParticipantCompletedRounds(participantId) {
       return state.laps.filter(l => l.participant_id === participantId && l.status === 'finished').length;
@@ -850,54 +664,49 @@ bib;navn
         .filter(l => l.participant_id === participantId && l.status === 'finished')
         .reduce((sum, l) => sum + Number(l.elapsed_ms || 0), 0);
     }
+    function participantEligibleForRound(participantId, roundNumber) {
+      if (roundNumber <= 1) return true;
+      for (let r = 1; r < roundNumber; r++) {
+        const lap = getLap(participantId, r);
+        if (!lap || lap.status !== 'finished') return false;
+      }
+      return true;
+    }
     function computeParticipantStatus(participant, racePhase) {
       if (!state.activeRace) return { code: 'none', label: '—' };
-      if (isParticipantEffectivelyDnf(participant, racePhase)) return { code: 'dnf', label: 'DNF' };
+      const latestLap = getLatestLap(participant.id);
+      if (latestLap?.status === 'dnf' || participant.status === 'finished') return { code: 'dnf', label: 'DNF' };
       if (racePhase.state === 'planned') return { code: 'planned', label: 'Klar' };
       const currentLap = getLap(participant.id, racePhase.currentRound);
       if (currentLap?.status === 'finished') return { code: 'complete', label: 'Fullført runde' };
       return { code: 'running', label: 'I løypa' };
     }
-    function getSortedParticipantsForRegistration(racePhase) {
+    function getSortedParticipantsForRegistration() {
       const arr = [...state.participants];
-      if (!state.activeRace) return arr.sort(compareBib);
       return arr.sort((a, b) => {
-        const aDone = a.status === 'finished' ? 1 : 0;
-        const bDone = b.status === 'finished' ? 1 : 0;
-        if (aDone !== bDone) return aDone - bDone;
+        const aDnf = (getLatestLap(a.id)?.status === 'dnf' || a.status === 'finished') ? 1 : 0;
+        const bDnf = (getLatestLap(b.id)?.status === 'dnf' || b.status === 'finished') ? 1 : 0;
+        if (aDnf !== bDnf) return aDnf - bDnf;
         return compareBib(a, b);
       });
     }
 
     function renderNav() {
-      qa('.nav button').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.screen === state.selectedScreen);
-      });
-      qa('.screen').forEach(screen => {
-        screen.classList.toggle('active', screen.id === `screen-${state.selectedScreen}`);
-      });
+      qa('.nav button').forEach(btn => btn.classList.toggle('active', btn.dataset.screen === state.selectedScreen));
+      qa('.screen').forEach(screen => screen.classList.toggle('active', screen.id === `screen-${state.selectedScreen}`));
     }
 
-    function renderTopBar() {
+    function renderTopInfo() {
       const race = state.activeRace;
-      const adminRaceInfo = el('adminRaceInfo');
-      const adminLocalClock = el('adminLocalClock');
-      const adminDbStatus = el('adminDbStatus');
-      const adminNextInfo = el('adminNextInfo');
-      if (adminLocalClock) adminLocalClock.textContent = formatLocalClock(new Date());
-      if (adminDbStatus) adminDbStatus.textContent = state.dbStatusText || '—';
       if (!race) {
-        if (adminRaceInfo) adminRaceInfo.textContent = 'Ingen aktivt løp';
-        if (adminNextInfo) adminNextInfo.textContent = '—';
+        el('appTitle').textContent = 'Backyard / Frontyard Ultra';
+        el('appSubtitle').textContent = 'Konfigurer løp og start når du er klar.';
         return;
       }
       const phase = getRacePhase(race);
       const raceType = race.config?.reduction_enabled ? 'Frontyard' : 'Backyard/Egendefinert';
-      if (adminRaceInfo) adminRaceInfo.textContent = `${race.name || 'Uten navn'} · ${raceType} · ${phase.state === 'planned' ? 'Planlagt' : race.status === 'stopped' ? 'Stoppet' : 'Aktiv'}`;
-      if (adminNextInfo) {
-        if (phase.state === 'planned') adminNextInfo.textContent = `Start ${formatDateTimeLocal(race.start_time)}`;
-        else adminNextInfo.textContent = `R${phase.currentRound} frist ${formatAbsoluteTime(phase.currentWindow.endMs)} · neste start ${formatAbsoluteTime(phase.nextStartMs)}`;
-      }
+      el('appTitle').textContent = race.name || 'Uten navn';
+      el('appSubtitle').textContent = `${raceType} · ${formatDistance(race.config?.distance_km || 0)} · ${race.config?.round_minutes || 0} min${race.config?.reduction_enabled ? ` · -${race.config?.reduction_per_round || 0} min/runde` : ''} · Start ${formatDateTimeLocal(race.start_time)} · ${phase.state === 'planned' ? 'Planlagt' : race.status === 'stopped' ? 'Stoppet' : 'Aktiv'}`;
     }
 
     function renderRegistration() {
@@ -916,17 +725,20 @@ bib;navn
         el('regSummarySub').textContent = '—';
         return;
       }
+
       const phase = getRacePhase(race);
       const now = Date.now();
       const window = phase.currentWindow;
-      const effectiveDnfCount = state.participants.filter(p => isParticipantEffectivelyDnf(p, phase)).length;
-      const totalEligible = state.participants.length - effectiveDnfCount;
-      const doneThisRound = state.participants.filter(p => getLap(p.id, phase.currentRound)?.status === 'finished').length;
-      const stillRunning = Math.max(0, totalEligible - doneThisRound);
+      const activeParticipants = state.participants.filter(p => !(getLatestLap(p.id)?.status === 'dnf' || p.status === 'finished'));
+      const doneThisRound = activeParticipants.filter(p => getLap(p.id, phase.currentRound)?.status === 'finished').length;
+      const dnfCount = state.participants.filter(p => getLatestLap(p.id)?.status === 'dnf' || p.status === 'finished').length;
+      const stillRunning = Math.max(0, activeParticipants.length - doneThisRound);
+
       el('regRaceName').textContent = race.name || 'Uten navn';
       el('regRaceMeta').textContent = `${formatDistance(race.config?.distance_km)} · ${state.participants.length} deltakere`;
       el('regRoundNo').textContent = phase.currentRound;
       el('regRoundWindow').textContent = phase.state === 'planned' ? 'Løpet har ikke startet' : `Frist ${formatDuration(window.durationMs)}`;
+
       if (phase.state === 'planned') {
         el('regCountdown').textContent = formatDuration(phase.nextStartMs - now, true);
         el('regStartEnd').textContent = `Start ${formatDateTimeLocal(race.start_time)}`;
@@ -934,32 +746,32 @@ bib;navn
         el('regSummarySub').textContent = 'Planlagt start';
       } else {
         el('regCountdown').textContent = formatDuration(window.endMs - now, true);
-        el('regStartEnd').textContent = `${formatAbsoluteTime(window.startMs)}–${formatAbsoluteTime(window.endMs)}`;
-        el('regSummary').textContent = `${doneThisRound} / ${Math.max(totalEligible, 0)}`;
-        el('regSummarySub').textContent = `${stillRunning} i løypa · ${effectiveDnfCount} DNF`;
+        el('regStartEnd').textContent = `${formatLocalClock(new Date(window.startMs))}–${formatLocalClock(new Date(window.endMs))}`;
+        el('regSummary').textContent = `${doneThisRound} / ${activeParticipants.length}`;
+        el('regSummarySub').textContent = `${stillRunning} i løypa · ${dnfCount} DNF`;
       }
 
-      const participants = getSortedParticipantsForRegistration(phase);
-      participants.forEach(p => {
+      getSortedParticipantsForRegistration().forEach(p => {
         const currentLap = getLap(p.id, phase.currentRound);
+        const latestLap = getLatestLap(p.id);
         const btn = document.createElement('button');
         btn.className = 'runner-btn';
         let meta = 'Ikke registrert';
         let disabled = false;
-        const effectiveDnf = isParticipantEffectivelyDnf(p, phase);
 
         if (phase.state === 'planned') {
           meta = 'Venter på start';
           disabled = true;
           btn.classList.add('disabled');
-        } else if (effectiveDnf) {
-          btn.classList.add('dnf');
+        } else if (latestLap?.status === 'dnf' || p.status === 'finished') {
+          btn.classList.add('dnf', 'disabled');
           meta = 'DNF';
           disabled = true;
         } else if (currentLap?.status === 'finished') {
           btn.classList.add('done');
-          meta = formatDuration(currentLap.elapsed_ms);
+          meta = formatDuration(currentLap.elapsed_ms, true);
         }
+
         btn.innerHTML = `<div class="runner-bib">BIB ${p.bib}</div><div class="runner-name">${escapeHtml(p.name)}</div><div class="runner-meta">${meta}</div>`;
         if (disabled) btn.classList.add('disabled');
         btn.addEventListener('click', () => onRunnerTap(p, phase));
@@ -983,8 +795,8 @@ bib;navn
       const phase = getRacePhase(race);
       const now = Date.now();
       el('liveRaceMeta').textContent = `${race.name || 'Uten navn'} · ${formatDistance(race.config?.distance_km)} · ${state.participants.length} deltakere`;
-      const activeCount = state.participants.filter(p => !isParticipantEffectivelyDnf(p, phase)).length;
-      const dnfCount = state.participants.filter(p => isParticipantEffectivelyDnf(p, phase)).length;
+      const activeCount = state.participants.filter(p => !(getLatestLap(p.id)?.status === 'dnf' || p.status === 'finished')).length;
+      const dnfCount = state.participants.filter(p => getLatestLap(p.id)?.status === 'dnf' || p.status === 'finished').length;
       el('liveTotals').textContent = `${activeCount} aktive · ${dnfCount} DNF`;
       el('liveSinceStart').textContent = phase.state === 'planned' ? '00:00' : formatDuration(now - new Date(race.start_time).getTime(), true);
       el('liveRoundCountdownLabel').textContent = `Tid til start runde ${phase.nextRound}`;
@@ -996,14 +808,7 @@ bib;navn
         const totalTime = getTotalMovingTime(p.id);
         const lastLap = getLastFinishedLap(p.id);
         const status = computeParticipantStatus(p, phase);
-        return {
-          participant: p,
-          completedRounds,
-          totalDistance,
-          totalTime,
-          lastLap,
-          status,
-        };
+        return { participant: p, completedRounds, totalDistance, totalTime, lastLap, status };
       }).sort((a, b) => {
         if (b.completedRounds !== a.completedRounds) return b.completedRounds - a.completedRounds;
         if (a.totalTime !== b.totalTime) return a.totalTime - b.totalTime;
@@ -1058,51 +863,76 @@ bib;navn
         el('roundTablePill').textContent = 'Ingen data';
         return;
       }
-      const maxRound = Math.max(1, ...state.laps.map(l => Number(l.round_number || 0)), getRacePhase(race).currentRound || 1);
+
+      const phase = getRacePhase(race);
+      const endedRounds = (() => {
+        let count = 0;
+        const now = Date.now();
+        for (let r = 1; r < 2000; r++) {
+          const win = getRoundWindow(race.config || {}, race.start_time, r);
+          if (now >= win.endMs) count = r;
+          else break;
+        }
+        return count;
+      })();
+      const maxRound = Math.max(1, endedRounds, phase.currentRound || 1, ...state.laps.map(l => Number(l.round_number || 0)));
       const headers = ['BIB', 'Navn', 'Status'];
       for (let r = 1; r <= maxRound; r++) headers.push(`R${r}`);
       let html = '<thead><tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr></thead><tbody>';
-      const phase = getRacePhase(race);
       const rows = [...state.participants].sort(compareBib);
       rows.forEach(p => {
-        const status = computeParticipantStatus(p, phase).label;
-        html += `<tr><td>${p.bib}</td><td>${escapeHtml(p.name)}</td><td>${status}</td>`;
+        const latestLap = getLatestLap(p.id);
+        html += `<tr><td>${p.bib}</td><td>${escapeHtml(p.name)}</td><td>${latestLap?.status === 'dnf' || p.status === 'finished' ? 'Ferdig' : 'Aktiv'}</td>`;
         for (let r = 1; r <= maxRound; r++) {
           const lap = getLap(p.id, r);
           const value = lap ? (lap.status === 'dnf' ? 'DNF' : formatDuration(lap.elapsed_ms, true)) : '';
-          html += `<td><input class="editable-cell" data-participant-id="${p.id}" data-round="${r}" value="${escapeHtmlAttr(value)}" placeholder="mm:ss / DNF" /><span class="cell-hint">${r === phase.currentRound ? 'Aktuell' : ''}</span></td>`;
+          const cls = lap?.status === 'dnf' ? 'cell-dnf' : lap?.status === 'finished' ? 'cell-finished' : 'cell-empty';
+          html += `<td><input class="admin-edit ${cls}" data-lap-edit="1" data-participant-id="${p.id}" data-round-number="${r}" value="${escapeHtmlAttr(value)}" placeholder="mm:ss / hh:mm:ss / DNF" /></td>`;
         }
         html += '</tr>';
       });
       html += '</tbody>';
       table.innerHTML = html;
       el('roundTablePill').textContent = `${rows.length} deltakere · ${maxRound} runder`;
-      qa('.editable-cell', table).forEach(input => {
-        input.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            input.blur();
-          }
+
+      qa('[data-lap-edit]', table).forEach(input => {
+        const save = async () => {
+          const pid = input.dataset.participantId;
+          const round = Number(input.dataset.roundNumber);
+          await saveLapEdit(pid, round, input.value);
+        };
+        input.addEventListener('keydown', async (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
         });
-        input.addEventListener('blur', async () => {
-          await handleRoundCellEdit(input);
-        });
+        input.addEventListener('blur', save);
       });
     }
 
     function renderAdmin() {
-      const options = [...BUILTIN_TEMPLATES.filter(b => b.name !== 'Egendefinert'), ...state.templates.filter(t => !['Backyard','Frontyard'].includes(t.name)), BUILTIN_TEMPLATES.find(b => b.name === 'Egendefinert')].filter(Boolean);
+      const options = [
+        ...BUILTIN_TEMPLATES.filter(b => b.name !== 'Egendefinert'),
+        ...state.templates.filter(t => !['Backyard', 'Frontyard'].includes(t.name)),
+        BUILTIN_TEMPLATES.find(b => b.name === 'Egendefinert')
+      ].filter(Boolean);
+
       const select = el('templateSelect');
       const currentValue = select.value;
       select.innerHTML = options.map(t => `<option value="${escapeHtmlAttr(t.name)}">${escapeHtml(t.name)}</option>`).join('');
       if (options.some(t => t.name === currentValue)) select.value = currentValue;
       else if (!select.value) select.value = 'Backyard';
+
       renderDraftTable();
       renderRoundTable();
+
       const race = state.activeRace;
       el('currentRacePill').textContent = race ? `${race.name || 'Uten navn'} · ${race.status === 'stopped' ? 'Stoppet' : getRacePhase(race).state === 'planned' ? 'Planlagt' : 'Aktiv'}` : 'Uten aktivt løp';
       el('stopRaceBtn').disabled = !race || race.status === 'stopped';
-      renderTopBar();
+
+      qa('[data-collapse]').forEach(btn => {
+        const id = btn.dataset.collapse;
+        btn.textContent = state.collapse[id] ? 'Vis' : 'Skjul';
+      });
+      qa('.collapsible').forEach(panel => panel.classList.toggle('collapsed', !!state.collapse[panel.id]));
     }
 
     function renderLogs() {
@@ -1116,7 +946,6 @@ bib;navn
       el('logCountPill').textContent = `${state.logs.length} løp`;
       state.logs.forEach(log => {
         const div = document.createElement('div');
-        const completed = (log.participants || []).filter(p => p.status !== 'finished').length;
         div.className = 'list-item';
         const config = log.config || {};
         div.innerHTML = `
@@ -1142,83 +971,17 @@ bib;navn
 
     function renderAll() {
       renderNav();
-      renderTopBar();
+      renderTopInfo();
       renderRegistration();
       renderLive();
       renderAdmin();
       renderLogs();
+      el('localClock').textContent = formatLocalClock(new Date());
       el('liveLocalClock').textContent = formatLocalClock(new Date());
     }
 
     function escapeHtml(value) {
       return String(value ?? '').replace(/[&<>"']/g, s => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[s]));
-    }
-    function escapeHtmlAttr(value) { return escapeHtml(value); }
-    function getParticipantById(participantId) {
-      return state.participants.find(p => p.id === participantId) || null;
-    }
-    async function updateParticipantStatusFromLaps(participantId) {
-      const participant = getParticipantById(participantId);
-      if (!participant) return;
-      const hasDnf = state.laps.some(l => l.participant_id === participantId && l.status === 'dnf');
-      const nextStatus = hasDnf ? 'finished' : 'active';
-      if (participant.status === nextStatus) return;
-      const { data, error } = await supabase.from('participants').update({ status: nextStatus }).eq('id', participantId).select().single();
-      if (!error && data) {
-        state.participants = state.participants.map(p => p.id === participantId ? data : p);
-      }
-    }
-    async function handleRoundCellEdit(input) {
-      const participantId = input.dataset.participantId;
-      const roundNumber = Number(input.dataset.round);
-      const participant = getParticipantById(participantId);
-      if (!participant || !state.activeRace) return;
-      const parsed = parseDurationInput(input.value);
-      input.dataset.invalid = parsed.kind === 'invalid' ? 'true' : 'false';
-      if (parsed.kind === 'invalid') {
-        showToast(parsed.reason, 'error');
-        return;
-      }
-      const existingLap = getLap(participantId, roundNumber);
-      if (parsed.kind === 'empty') {
-        if (!existingLap) {
-          input.value = '';
-          return;
-        }
-        const previousLaps = [...state.laps];
-        state.laps = state.laps.filter(l => l.id !== existingLap.id);
-        renderAll();
-        const { error } = await supabase.from('lap_records').delete().eq('id', existingLap.id);
-        if (error) {
-          state.laps = previousLaps;
-          renderAll();
-          showToast(`Kunne ikke slette rundetid: ${error.message}`, 'error');
-          input.value = existingLap.status === 'dnf' ? 'DNF' : formatDuration(existingLap.elapsed_ms, true);
-          return;
-        }
-        await updateParticipantStatusFromLaps(participantId);
-        input.value = '';
-        renderAll();
-        return;
-      }
-      const payload = {
-        race_id: state.activeRace.id,
-        participant_id: participantId,
-        round_number: roundNumber,
-        registered_at: new Date().toISOString(),
-        elapsed_ms: parsed.kind === 'time' ? parsed.ms : null,
-        status: parsed.kind === 'dnf' ? 'dnf' : 'finished',
-      };
-      const { data, error } = await supabase.from('lap_records').upsert(payload, { onConflict: 'race_id,participant_id,round_number' }).select().single();
-      if (error) {
-        showToast(`Kunne ikke lagre rundetid: ${error.message}`, 'error');
-        input.value = existingLap ? (existingLap.status === 'dnf' ? 'DNF' : formatDuration(existingLap.elapsed_ms, true)) : '';
-        return;
-      }
-      state.laps = [...state.laps.filter(l => !(l.participant_id === participantId && Number(l.round_number) === Number(roundNumber))), data];
-      await updateParticipantStatusFromLaps(participantId);
-      input.value = data.status === 'dnf' ? 'DNF' : formatDuration(data.elapsed_ms, true);
-      renderAll();
     }
     function escapeHtmlAttr(value) { return escapeHtml(value); }
 
@@ -1237,7 +1000,9 @@ bib;navn
       if (!state.activeRace) return;
       if (phase.state === 'planned' || state.activeRace.status === 'stopped') return;
       const currentLap = getLap(participant.id, phase.currentRound);
-      if (isParticipantEffectivelyDnf(participant, phase) || currentLap?.status === 'dnf') return;
+      const latestLap = getLatestLap(participant.id);
+      if (latestLap?.status === 'dnf' || participant.status === 'finished') return;
+
       if (currentLap?.status === 'finished') {
         openConfirm('Slette oppføring?', `Fjerne registrert rundetid for ${participant.name} i runde ${phase.currentRound}?`, async () => {
           await deleteLap(currentLap, participant);
@@ -1247,9 +1012,21 @@ bib;navn
       const now = Date.now();
       if (now > phase.currentWindow.endMs) {
         showToast('Fristen er ute for denne runden. Deltakeren er DNF.', 'warn');
+        await autoMarkExpiredDnfs();
         return;
       }
       await createFinishedLap(participant, phase.currentRound, now - phase.currentWindow.startMs);
+    }
+
+    async function refreshParticipantStatusFromLaps(participantId) {
+      const hasDnf = state.laps.some(l => l.participant_id === participantId && l.status === 'dnf');
+      const nextStatus = hasDnf ? 'finished' : 'active';
+      const participant = state.participants.find(p => p.id === participantId);
+      if (!participant || participant.status === nextStatus) return;
+      const { data, error } = await supabase.from('participants').update({ status: nextStatus }).eq('id', participantId).select().single();
+      if (!error && data) {
+        state.participants = state.participants.map(p => p.id === participantId ? data : p);
+      }
     }
 
     async function createFinishedLap(participant, roundNumber, elapsedMs) {
@@ -1272,6 +1049,7 @@ bib;navn
         return;
       }
       state.laps = [...state.laps.filter(l => l.id !== optimistic.id && !(l.participant_id === participant.id && Number(l.round_number) === Number(roundNumber))), data];
+      await refreshParticipantStatusFromLaps(participant.id);
       renderAll();
     }
 
@@ -1285,60 +1063,101 @@ bib;navn
         state.laps = previous;
         renderAll();
         showToast(`Kunne ikke slette oppføring: ${error.message}`, 'error');
-      } else {
-        const laterDnf = state.laps.find(l => l.participant_id === participant.id && l.status === 'dnf');
-        if (!laterDnf && participant.status === 'finished') {
-          const { data: updated, error: updateError } = await supabase.from('participants').update({ status: 'active' }).eq('id', participant.id).select().single();
-          if (!updateError && updated) {
-            state.participants = state.participants.map(p => p.id === participant.id ? updated : p);
-          }
-        }
-        renderAll();
+        return;
       }
+      await refreshParticipantStatusFromLaps(participant.id);
+      renderAll();
     }
 
-    async function autoMarkDnfs() {
+    async function saveLapEdit(participantId, roundNumber, rawValue) {
+      if (!state.activeRace) return;
+      const participant = state.participants.find(p => String(p.id) === String(participantId));
+      if (!participant) return;
+      const parsed = parseDisplayDurationToMs(rawValue);
+      const existing = getLap(participant.id, roundNumber);
+
+      if (parsed.type === 'invalid') {
+        showToast('Ugyldig tid. Bruk mm:ss, hh:mm:ss eller DNF.', 'error');
+        renderRoundTable();
+        return;
+      }
+
+      if (parsed.type === 'empty') {
+        if (!existing) { renderRoundTable(); return; }
+        const { error } = await supabase.from('lap_records').delete().eq('id', existing.id);
+        if (error) {
+          showToast(`Kunne ikke slette rundetid: ${error.message}`, 'error');
+          renderRoundTable();
+          return;
+        }
+        state.laps = state.laps.filter(l => l.id !== existing.id);
+        await refreshParticipantStatusFromLaps(participant.id);
+        renderAll();
+        showToast(`Oppføring slettet for ${participant.name}, runde ${roundNumber}.`, 'success');
+        return;
+      }
+
+      const payload = {
+        race_id: state.activeRace.id,
+        participant_id: participant.id,
+        round_number: roundNumber,
+        registered_at: new Date().toISOString(),
+        elapsed_ms: parsed.type === 'finished' ? parsed.ms : null,
+        status: parsed.type === 'dnf' ? 'dnf' : 'finished',
+      };
+      const { data, error } = await supabase.from('lap_records').upsert(payload, { onConflict: 'race_id,participant_id,round_number' }).select().single();
+      if (error) {
+        showToast(`Kunne ikke lagre rundetid: ${error.message}`, 'error');
+        renderRoundTable();
+        return;
+      }
+      state.laps = [...state.laps.filter(l => !(l.participant_id === participant.id && Number(l.round_number) === Number(roundNumber))), data];
+      await refreshParticipantStatusFromLaps(participant.id);
+      renderAll();
+      showToast(`Runde ${roundNumber} oppdatert for ${participant.name}.`, 'success', 2200);
+    }
+
+    async function autoMarkExpiredDnfs() {
       if (!state.activeRace || state.syncLock || state.activeRace.status === 'stopped') return;
-      const phase = getRacePhase(state.activeRace);
-      if (phase.state === 'planned' || phase.state === 'none') return;
+      const race = state.activeRace;
+      const now = Date.now();
+      const endedRounds = [];
+      for (let r = 1; r < 2000; r++) {
+        const win = getRoundWindow(race.config || {}, race.start_time, r);
+        if (now >= win.endMs) endedRounds.push({ round: r, window: win });
+        else break;
+      }
+      if (!endedRounds.length) return;
+
       const missingRows = [];
-      const participantsToFinish = new Set();
-      const closedRounds = getClosedRoundNumbers(phase);
-      for (const participant of state.participants) {
-        if (participant.status === 'finished') continue;
-        for (const roundNumber of closedRounds) {
-          const lap = getLap(participant.id, roundNumber);
-          if (!lap) {
-            const window = getRoundWindow(state.activeRace.config || {}, state.activeRace.start_time, roundNumber);
+      const affectedParticipantIds = new Set();
+      for (const item of endedRounds) {
+        state.participants.forEach(p => {
+          const existing = getLap(p.id, item.round);
+          if (!existing && participantEligibleForRound(p.id, item.round)) {
             missingRows.push({
-              race_id: state.activeRace.id,
-              participant_id: participant.id,
-              round_number: roundNumber,
-              registered_at: new Date(window.endMs).toISOString(),
+              race_id: race.id,
+              participant_id: p.id,
+              round_number: item.round,
+              registered_at: new Date(item.window.endMs).toISOString(),
               elapsed_ms: null,
               status: 'dnf',
             });
-            participantsToFinish.add(participant.id);
-            break;
+            affectedParticipantIds.add(p.id);
           }
-          if (lap.status === 'dnf') {
-            participantsToFinish.add(participant.id);
-            break;
-          }
-        }
+        });
       }
-      if (!missingRows.length && !participantsToFinish.size) return;
+      if (!missingRows.length) return;
+
       state.syncLock = true;
       try {
-        if (missingRows.length) {
-          const { error: lapErr } = await supabase.from('lap_records').upsert(missingRows, { onConflict: 'race_id,participant_id,round_number' });
-          if (lapErr) throw lapErr;
-        }
-        if (participantsToFinish.size) {
-          const { error: pErr } = await supabase.from('participants').update({ status: 'finished' }).in('id', Array.from(participantsToFinish));
-          if (pErr) throw pErr;
-        }
+        const { error: lapErr } = await supabase.from('lap_records').upsert(missingRows, { onConflict: 'race_id,participant_id,round_number' });
+        if (lapErr) throw lapErr;
+        const ids = Array.from(affectedParticipantIds);
+        const { error: pErr } = await supabase.from('participants').update({ status: 'finished' }).in('id', ids);
+        if (pErr) throw pErr;
         await loadRace(state.activeRace.id, false);
+        showToast(`${missingRows.length} DNF-oppføring(er) opprettet automatisk.`, 'warn', 3000);
       } catch (err) {
         showToast(`Feil ved automatisk DNF-merking: ${err.message || err}`, 'error', 4800);
       } finally {
@@ -1354,7 +1173,6 @@ bib;navn
       const { data: data2 } = await supabase.from('race_templates').select('*').order('name', { ascending: true });
       state.templates = data2 || state.templates;
     }
-
     async function ensureBuiltins() {
       for (const tpl of BUILTIN_TEMPLATES.slice(0, 2)) {
         await supabase.from('race_templates').upsert({ name: tpl.name, config: tpl.config, is_builtin: true }, { onConflict: 'name' });
@@ -1378,19 +1196,13 @@ bib;navn
     async function loadLatestActiveRace() {
       const { data, error } = await supabase.from('races').select('*').in('status', ['planned', 'active']).order('created_at', { ascending: false }).limit(1);
       if (error) throw error;
-      if (data && data.length) {
-        await loadRace(data[0].id, false);
-      }
+      if (data && data.length) await loadRace(data[0].id, false);
     }
 
     async function loadRace(raceId, includeStopped = false) {
       const { data: race, error } = await supabase.from('races').select('*').eq('id', raceId).single();
       if (error) throw error;
-      if (!includeStopped && race.status === 'stopped') {
-        state.activeRace = race;
-      } else {
-        state.activeRace = race;
-      }
+      state.activeRace = race;
       const [{ data: participants, error: pErr }, { data: laps, error: lErr }] = await Promise.all([
         supabase.from('participants').select('*').eq('race_id', raceId).order('bib', { ascending: true }),
         supabase.from('lap_records').select('*').eq('race_id', raceId),
@@ -1425,11 +1237,9 @@ bib;navn
         return;
       }
       const sorted = [...state.draftParticipants].sort(compareBib);
-      const participantsRows = sorted.map((p, idx) => ({ race_id: race.id, bib: Number(p.bib), name: p.name, status: 'active' }));
+      const participantsRows = sorted.map(p => ({ race_id: race.id, bib: Number(p.bib), name: p.name, status: 'active' }));
       const { error: pErr } = await supabase.from('participants').insert(participantsRows);
-      if (pErr) {
-        showToast(`Løp opprettet, men deltakere feilet: ${pErr.message}`, 'error', 5200);
-      }
+      if (pErr) showToast(`Løp opprettet, men deltakere feilet: ${pErr.message}`, 'error', 5200);
       state.activeRace = race;
       state.participants = [];
       state.laps = [];
@@ -1484,9 +1294,7 @@ bib;navn
     function applyTemplateByName(name) {
       const template = BUILTIN_TEMPLATES.find(t => t.name === name) || state.templates.find(t => t.name === name);
       if (!template) return;
-      if (!el('raceName').value || BUILTIN_TEMPLATES.some(t => t.name === el('raceName').value)) {
-        el('raceName').value = template.name;
-      }
+      if (!el('raceName').value || BUILTIN_TEMPLATES.some(t => t.name === el('raceName').value)) el('raceName').value = template.name;
       applyConfigToForm(template.config || {});
       renderAll();
     }
@@ -1502,20 +1310,20 @@ bib;navn
 
     async function importParticipants(file) {
       if (!file) return;
-      let rows = [];
+      let rawRows = [];
       const ext = file.name.split('.').pop().toLowerCase();
       if (ext === 'csv') {
-        const rawText = await file.text();
-        rows = parseCsv(rawText.replace(/^﻿/, ''));
+        const text = await file.text();
+        rawRows = parseCsvRows(text);
       } else {
         const buffer = await file.arrayBuffer();
         const wb = XLSX.read(buffer, { type: 'array' });
         const sheet = wb.Sheets[wb.SheetNames[0]];
-        rows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
+        rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
       }
-      const mapped = normalizeParticipantRows(rows);
+      const mapped = normalizeParticipantRows(rawRows);
       if (!mapped.length) {
-        showToast('Fant ingen gyldige deltakere i filen.', 'warn');
+        showToast('Fant ingen gyldige deltakere i filen. Se beskrivelsen under importfeltet.', 'warn');
         return;
       }
       const existingByBib = new Map(state.draftParticipants.map(p => [Number(p.bib), p]));
@@ -1529,29 +1337,13 @@ bib;navn
       showToast(`${mapped.length} deltaker(e) importert.`, 'success');
     }
 
-    function parseCsv(text) {
-      const lines = text.split(/?
-/).map(line => line.trim()).filter(Boolean);
-      if (!lines.length) return [];
-      const firstLine = splitCsvLine(lines[0]).map(h => h.trim());
-      const normalizedHeaders = firstLine.map(h => h.toLowerCase());
-      const hasKnownHeaders = normalizedHeaders.some(h => ['bib', 'name', 'navn', 'startnr', 'startnummer', 'deltaker', 'runner'].includes(h));
-      const rows = [];
-      if (hasKnownHeaders) {
-        for (let i = 1; i < lines.length; i++) {
-          const values = splitCsvLine(lines[i]);
-          const obj = {};
-          firstLine.forEach((h, idx) => obj[h] = values[idx] ?? '');
-          rows.push(obj);
-        }
-      } else {
-        for (const line of lines) {
-          const values = splitCsvLine(line);
-          rows.push({ bib: values[0] ?? '', navn: values[1] ?? '' });
-        }
-      }
-      return rows;
+    function parseCsvRows(text) {
+      return text.split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(Boolean)
+        .map(splitCsvLine);
     }
+
     function splitCsvLine(line) {
       const result = [];
       let cur = '';
@@ -1559,29 +1351,66 @@ bib;navn
       for (let i = 0; i < line.length; i++) {
         const ch = line[i];
         if (ch === '"') {
-          if (quote && line[i+1] === '"') { cur += '"'; i++; }
+          if (quote && line[i + 1] === '"') { cur += '"'; i++; }
           else quote = !quote;
-        } else if (ch === ',' && !quote) {
-          result.push(cur); cur = '';
-        } else if (ch === ';' && !quote) {
-          result.push(cur); cur = '';
+        } else if ((ch === ',' || ch === ';' || ch === '\t') && !quote) {
+          result.push(cur);
+          cur = '';
         } else {
           cur += ch;
         }
       }
       result.push(cur);
-      return result;
+      return result.map(v => String(v || '').trim());
     }
+
+    function normalizeHeader(value) {
+      return String(value || '').trim().toLowerCase().replace(/[_\s-]+/g, '');
+    }
+
     function normalizeParticipantRows(rows) {
-      return rows.map(r => {
-        const entries = Object.entries(r || {}).map(([k, v]) => [String(k).trim().toLowerCase(), v]);
-        const lower = Object.fromEntries(entries);
-        const values = entries.map(([, v]) => String(v ?? '').trim());
-        const fallbackName = sanitizeName(values.find(v => /[A-Za-zÆØÅæøå]/.test(v)) || '');
-        const fallbackBib = parseNumber(values.find(v => /^\d+$/.test(v)) || 0, 0);
-        const name = sanitizeName(lower.name || lower.navn || lower.runner || lower.deltaker || fallbackName || '');
-        const bib = parseNumber(lower.bib || lower.startnr || lower.startnummer || fallbackBib || 0, 0);
-        return { name, bib };
+      if (!Array.isArray(rows) || !rows.length) return [];
+      const cleanRows = rows.filter(r => Array.isArray(r) ? r.some(cell => String(cell || '').trim() !== '') : !!r);
+      if (!cleanRows.length) return [];
+
+      const first = cleanRows[0];
+      const knownBib = ['bib', 'startnr', 'startnummer', 'startno', 'no', 'number'];
+      const knownName = ['name', 'navn', 'runner', 'deltaker'];
+
+      // Array rows (CSV / header:1 Excel)
+      if (Array.isArray(first)) {
+        const headerKeys = first.map(normalizeHeader);
+        const hasHeader = headerKeys.some(h => knownBib.includes(h) || knownName.includes(h));
+        let bibIndex = -1;
+        let nameIndex = -1;
+        let dataRows = cleanRows;
+
+        if (hasHeader) {
+          bibIndex = headerKeys.findIndex(h => knownBib.includes(h));
+          nameIndex = headerKeys.findIndex(h => knownName.includes(h));
+          dataRows = cleanRows.slice(1);
+        }
+
+        return dataRows.map(row => {
+          const cells = Array.isArray(row) ? row : [row];
+          const colA = String(cells[0] ?? '').trim();
+          const colB = String(cells[1] ?? '').trim();
+          const bib = hasHeader
+            ? parseNumber(cells[bibIndex], 0)
+            : (/^\d+$/.test(colA) ? Number(colA) : 0);
+          const name = hasHeader
+            ? sanitizeName(cells[nameIndex])
+            : sanitizeName(/^\d+$/.test(colA) ? colB : colA);
+          return { bib, name };
+        }).filter(r => r.name);
+      }
+
+      // Object rows (fallback)
+      return cleanRows.map(r => {
+        const entries = Object.fromEntries(Object.entries(r).map(([k, v]) => [normalizeHeader(k), v]));
+        const name = sanitizeName(entries.name || entries.navn || entries.runner || entries.deltaker || '');
+        const bib = parseNumber(entries.bib || entries.startnr || entries.startnummer || entries.no || entries.number || 0, 0);
+        return { bib, name };
       }).filter(r => r.name);
     }
 
@@ -1597,7 +1426,11 @@ bib;navn
 
     function computeDigest() {
       const race = state.activeRace ? `${state.activeRace.id}:${state.activeRace.status}:${state.activeRace.start_time}` : 'none';
-      return JSON.stringify({ race, p: state.participants.map(p => [p.id, p.status]).sort(), l: state.laps.map(l => [l.participant_id, l.round_number, l.status, l.elapsed_ms]).sort() });
+      return JSON.stringify({
+        race,
+        p: state.participants.map(p => [p.id, p.status]).sort(),
+        l: state.laps.map(l => [l.participant_id, l.round_number, l.status, l.elapsed_ms]).sort()
+      });
     }
 
     async function backgroundSync() {
@@ -1632,21 +1465,28 @@ bib;navn
         state.selectedScreen = btn.dataset.screen;
         renderAll();
       }));
+
+      qa('[data-collapse]').forEach(btn => btn.addEventListener('click', () => {
+        const id = btn.dataset.collapse;
+        state.collapse[id] = !state.collapse[id];
+        renderAll();
+      }));
+
       el('confirmNo').addEventListener('click', closeConfirm);
       el('confirmYes').addEventListener('click', async () => {
         if (typeof state.confirmAction === 'function') await state.confirmAction();
         closeConfirm();
       });
-      el('templateSelect').addEventListener('change', (e) => applyTemplateByName(e.target.value));
+      el('templateSelect').addEventListener('change', e => applyTemplateByName(e.target.value));
       el('saveTemplateBtn').addEventListener('click', saveTemplate);
       el('startRaceBtn').addEventListener('click', startRace);
       el('stopRaceBtn').addEventListener('click', stopRace);
       el('newDraftBtn').addEventListener('click', newDraft);
       el('reloadBtn').addEventListener('click', async () => { await refreshAllData(); showToast('Data oppdatert.', 'success'); });
       el('addParticipantBtn').addEventListener('click', addManualParticipant);
-      el('manualName').addEventListener('keydown', (e) => { if (e.key === 'Enter') addManualParticipant(); });
+      el('manualName').addEventListener('keydown', e => { if (e.key === 'Enter') addManualParticipant(); });
       el('clearDraftBtn').addEventListener('click', () => { state.draftParticipants = []; renderAll(); });
-      el('importFile').addEventListener('change', async (e) => { await importParticipants(e.target.files[0]); e.target.value = ''; });
+      el('importFile').addEventListener('change', async e => { await importParticipants(e.target.files[0]); e.target.value = ''; });
     }
 
     async function init() {
@@ -1669,11 +1509,11 @@ bib;navn
       }
       renderAll();
       setInterval(() => {
-        renderTopBar();
+        el('localClock').textContent = formatLocalClock(new Date());
         el('liveLocalClock').textContent = formatLocalClock(new Date());
+        autoMarkExpiredDnfs();
         renderRegistration();
         renderLive();
-        autoMarkDnfs();
       }, 1000);
       setInterval(backgroundSync, 4000);
     }

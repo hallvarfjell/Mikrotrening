@@ -1,26 +1,1469 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="no">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Laps – Ein til</title>
-<link rel="manifest" href="manifest.json">
-<link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Backyard / Frontyard Ultra</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-2: #1f2937;
+      --muted: #94a3b8;
+      --text: #f8fafc;
+      --accent: #2563eb;
+      --green: #16a34a;
+      --red: #dc2626;
+      --orange: #ea580c;
+      --border: #334155;
+      --shadow: 0 10px 30px rgba(0,0,0,.25);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
+      background: linear-gradient(180deg, #0b1220, #111827);
+      color: var(--text);
+    }
+    button, input, select, textarea {
+      font: inherit;
+    }
+    .app {
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      min-height: 100vh;
+      gap: 12px;
+      padding: 12px;
+    }
+    .topbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 18px;
+      background: rgba(17, 24, 39, .92);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 12px;
+      z-index: 10;
+      backdrop-filter: blur(10px);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(1.05rem, 2.2vw, 1.45rem);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .brand .subtitle {
+      color: var(--muted);
+      font-size: .92rem;
+      margin-top: 2px;
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: #0b1220;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: .92rem;
+      white-space: nowrap;
+    }
+    .status-dot {
+      width: 10px; height: 10px; border-radius: 999px; background: var(--orange);
+      box-shadow: 0 0 12px rgba(234,88,12,.65);
+    }
+    .status-dot.online { background: var(--green); box-shadow: 0 0 12px rgba(22,163,74,.75); }
+    .status-dot.offline { background: var(--red); box-shadow: 0 0 12px rgba(220,38,38,.75); }
+    .nav {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .nav button {
+      padding: 14px 12px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: rgba(15, 23, 42, .9);
+      color: var(--text);
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform .06s ease, background .15s ease, border-color .15s ease;
+    }
+    .nav button.active {
+      background: linear-gradient(180deg, #1d4ed8, #1e40af);
+      border-color: #3b82f6;
+    }
+    .nav button:active { transform: translateY(1px) scale(.995); }
+    .screen {
+      display: none;
+      min-height: 0;
+    }
+    .screen.active { display: block; }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 12px;
+      min-height: 0;
+    }
+    .panel {
+      background: rgba(17,24,39,.96);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+      min-width: 0;
+    }
+    .panel h2, .panel h3 {
+      margin: 0 0 12px 0;
+    }
+    .muted { color: var(--muted); }
+    .small { font-size: .88rem; }
+    .tiny { font-size: .78rem; }
+    .row {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 10px;
+      align-items: end;
+      margin-bottom: 10px;
+    }
+    .field { display: grid; gap: 6px; }
+    .field label { color: var(--muted); font-size: .9rem; }
+    .field input, .field select, .field textarea {
+      width: 100%;
+      background: #0f172a;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 11px 12px;
+      outline: none;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,.16);
+    }
+    .checkbox {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #0f172a;
+      min-height: 46px;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .btn {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: #0f172a;
+      color: var(--text);
+      border-radius: 14px;
+      padding: 12px 14px;
+      cursor: pointer;
+      font-weight: 700;
+      min-height: 46px;
+    }
+    .btn.primary { background: linear-gradient(180deg, #2563eb, #1d4ed8); border-color: #3b82f6; }
+    .btn.green { background: linear-gradient(180deg, #16a34a, #15803d); border-color: #22c55e; }
+    .btn.red { background: linear-gradient(180deg, #dc2626, #b91c1c); border-color: #ef4444; }
+    .btn.orange { background: linear-gradient(180deg, #ea580c, #c2410c); border-color: #fb923c; }
+    .btn.ghost { background: rgba(15, 23, 42, .7); }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+    .stack { display: grid; gap: 12px; }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .kpi {
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: #0f172a;
+      padding: 14px;
+    }
+    .kpi .label { color: var(--muted); font-size: .88rem; }
+    .kpi .value { font-size: clamp(1.5rem, 4vw, 2.7rem); font-weight: 800; margin-top: 6px; }
+    .kpi .sub { color: var(--muted); margin-top: 6px; }
+    .registration-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 12px;
+      align-content: start;
+    }
+    .runner-btn {
+      display: grid;
+      gap: 6px;
+      text-align: left;
+      min-height: 110px;
+      padding: 14px;
+      border-radius: 20px;
+      border: 2px solid #d1d5db;
+      background: #ffffff;
+      color: #0f172a;
+      cursor: pointer;
+      box-shadow: 0 10px 20px rgba(0,0,0,.12);
+      transition: transform .05s ease, box-shadow .12s ease;
+    }
+    .runner-btn:hover { box-shadow: 0 12px 24px rgba(0,0,0,.16); }
+    .runner-btn:active { transform: scale(.992); }
+    .runner-btn.done {
+      background: linear-gradient(180deg, #dcfce7, #bbf7d0);
+      border-color: #22c55e;
+    }
+    .runner-btn.dnf {
+      background: linear-gradient(180deg, #fee2e2, #fecaca);
+      border-color: #ef4444;
+    }
+    .runner-btn.disabled { opacity: .85; cursor: default; }
+    .runner-bib { font-size: 1.3rem; font-weight: 900; }
+    .runner-name { font-size: 1rem; font-weight: 700; }
+    .runner-meta { font-size: 1.15rem; font-weight: 900; }
+    .registration-header {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .result-table-wrap, .admin-table-wrap, .log-table-wrap {
+      width: 100%;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #0f172a;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 840px;
+    }
+    th, td {
+      padding: 11px 12px;
+      border-bottom: 1px solid #1f2937;
+      text-align: left;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+    th {
+      position: sticky;
+      top: 0;
+      background: #111827;
+      z-index: 2;
+      color: #cbd5e1;
+      font-size: .92rem;
+    }
+    tr:nth-child(even) td { background: rgba(255,255,255,.01); }
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: .85rem;
+      border: 1px solid transparent;
+    }
+    .chip-running { background: rgba(37,99,235,.14); color: #93c5fd; border-color: rgba(59,130,246,.35); }
+    .chip-complete { background: rgba(22,163,74,.14); color: #86efac; border-color: rgba(34,197,94,.35); }
+    .chip-dnf { background: rgba(220,38,38,.14); color: #fca5a5; border-color: rgba(239,68,68,.35); }
+    .chip-planned { background: rgba(234,88,12,.14); color: #fdba74; border-color: rgba(249,115,22,.35); }
+    .big-live {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .big-card {
+      border-radius: 20px;
+      padding: 18px;
+      background: radial-gradient(circle at top right, rgba(37,99,235,.18), transparent 35%), #0f172a;
+      border: 1px solid var(--border);
+    }
+    .big-card .title { color: var(--muted); font-weight: 700; }
+    .big-card .number {
+      font-size: clamp(2rem, 6vw, 4.25rem);
+      font-weight: 900;
+      margin-top: 6px;
+      letter-spacing: .02em;
+      line-height: 1;
+    }
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .list {
+      display: grid;
+      gap: 10px;
+    }
+    .list-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #0f172a;
+    }
+    .toast-wrap {
+      position: fixed;
+      right: 12px;
+      bottom: 12px;
+      display: grid;
+      gap: 8px;
+      z-index: 50;
+    }
+    .toast {
+      background: rgba(15,23,42,.96);
+      border: 1px solid var(--border);
+      padding: 12px 14px;
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      max-width: min(90vw, 460px);
+    }
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      display: none;
+      place-items: center;
+      z-index: 60;
+      padding: 14px;
+    }
+    .modal.open { display: grid; }
+    .modal-card {
+      width: min(94vw, 420px);
+      background: #111827;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .pill {
+      border-radius: 999px;
+      padding: 8px 10px;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: .85rem;
+    }
+    .center-empty {
+      min-height: 40vh;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: var(--muted);
+      padding: 22px;
+      border-radius: 18px;
+      border: 1px dashed var(--border);
+      background: rgba(15,23,42,.45);
+    }
+    @media (max-width: 1160px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      .registration-header, .kpi-grid, .big-live { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 760px) {
+      .topbar { grid-template-columns: 1fr; }
+      .nav { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .registration-header, .kpi-grid, .big-live { grid-template-columns: 1fr; }
+      .row { grid-template-columns: 1fr; }
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-<nav>
-<button onclick="showScreen('register')">Registrering</button>
-<button onclick="showScreen('live')">Live</button>
-<button onclick="showScreen('admin')">Admin</button>
-<button onclick="showScreen('log')">Logg</button>
-</nav>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div>
+          <h1 id="appTitle">Backyard / Frontyard Ultra</h1>
+          <div class="subtitle" id="appSubtitle">Konfigurer løp på Adminsiden og start når du er klar.</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
+        <div class="status-pill"><span class="status-dot" id="dbDot"></span><span id="dbStatus">Kobler til Supabase…</span></div>
+        <div class="status-pill"><span class="status-dot online"></span><span id="localClock">--:--:--</span></div>
+      </div>
+    </header>
 
-<section id="register" class="screen"></section>
-<section id="live" class="screen"></section>
-<section id="admin" class="screen"></section>
-<section id="log" class="screen"></section>
+    <nav class="nav">
+      <button class="active" data-screen="registrering">1. Registrering</button>
+      <button data-screen="live">2. Live</button>
+      <button data-screen="admin">3. Admin</button>
+      <button data-screen="logg">4. Logg</button>
+    </nav>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js"></script>
+    <section class="screen active" id="screen-registrering">
+      <div class="stack">
+        <div class="registration-header">
+          <div class="panel kpi"><div class="label">Løp</div><div class="value" id="regRaceName">Ingen aktivt løp</div><div class="sub" id="regRaceMeta">—</div></div>
+          <div class="panel kpi"><div class="label">Aktuell runde</div><div class="value" id="regRoundNo">—</div><div class="sub" id="regRoundWindow">—</div></div>
+          <div class="panel kpi"><div class="label">Tid igjen</div><div class="value" id="regCountdown">—</div><div class="sub" id="regStartEnd">—</div></div>
+          <div class="panel kpi"><div class="label">Status</div><div class="value" id="regSummary">—</div><div class="sub" id="regSummarySub">—</div></div>
+        </div>
+        <div class="panel">
+          <div class="section-title">
+            <h2>Registrering av fullført runde</h2>
+            <div class="pill-row">
+              <span class="pill">Trykk én gang = registrer</span>
+              <span class="pill">Trykk igjen = spør om sletting</span>
+              <span class="pill">Rød = DNF</span>
+            </div>
+          </div>
+          <div id="registrationContent" class="registration-grid"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-live">
+      <div class="stack">
+        <div class="big-live">
+          <div class="big-card">
+            <div class="title">Klokke</div>
+            <div class="number" id="liveLocalClock">--:--:--</div>
+          </div>
+          <div class="big-card">
+            <div class="title">Tid siden start</div>
+            <div class="number" id="liveSinceStart">--:--:--</div>
+          </div>
+          <div class="big-card">
+            <div class="title" id="liveRoundCountdownLabel">Tid til start runde —</div>
+            <div class="number" id="liveToNextStart">--:--:--</div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="section-title">
+            <h2>Live resultatliste</h2>
+            <div class="pill-row">
+              <span class="pill" id="liveRaceMeta">Ingen aktivt løp</span>
+              <span class="pill" id="liveTotals">—</span>
+            </div>
+          </div>
+          <div class="result-table-wrap">
+            <table id="liveTable">
+              <thead>
+                <tr>
+                  <th>Plassering</th>
+                  <th>Navn</th>
+                  <th>Antall runder</th>
+                  <th>Løpt distanse</th>
+                  <th>Total tid i løypen</th>
+                  <th>Tid på siste runde</th>
+                  <th>Fart siste runde</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-admin">
+      <div class="grid-2">
+        <div class="stack">
+          <div class="panel">
+            <div class="section-title"><h2>Løpsoppsett</h2><span class="pill" id="currentRacePill">Uten aktivt løp</span></div>
+            <div class="row">
+              <div class="field" style="grid-column: span 6;"><label>Løpsmal</label><select id="templateSelect"></select></div>
+              <div class="field" style="grid-column: span 6;"><label>Løpsnavn</label><input id="raceName" placeholder="F.eks. Bergen Backyard 2026" /></div>
+            </div>
+            <div class="row">
+              <div class="field" style="grid-column: span 4;"><label>Rundelengde (km)</label><input id="distanceKm" type="number" min="0.1" step="0.1" /></div>
+              <div class="field" style="grid-column: span 4;"><label>Tilgjengelig tid (min)</label><input id="roundMinutes" type="number" min="1" step="1" /></div>
+              <div class="field" style="grid-column: span 4;"><label>Starttid (lokal tid)</label><input id="startTime" type="datetime-local" /></div>
+            </div>
+            <div class="row">
+              <div class="field" style="grid-column: span 6;"><label>Reduser tilgjengelig tid hver runde</label><div class="checkbox"><input id="reductionEnabled" type="checkbox" /><span>Frontyard-modus</span></div></div>
+              <div class="field" style="grid-column: span 6;"><label>Reduksjon per runde (min)</label><input id="reductionPerRound" type="number" min="0" step="1" /></div>
+            </div>
+            <div class="actions">
+              <button class="btn primary" id="saveTemplateBtn">Lagre løpsmal</button>
+              <button class="btn green" id="startRaceBtn">Start løp</button>
+              <button class="btn red" id="stopRaceBtn">Stopp løp</button>
+              <button class="btn ghost" id="newDraftBtn">Nytt utkast</button>
+              <button class="btn ghost" id="reloadBtn">Oppdater data</button>
+            </div>
+            <div class="pill-row" style="margin-top:12px;">
+              <span class="pill">Backyard = 6.706 km / 60 min</span>
+              <span class="pill">Frontyard = 3.0 km / 30 min, -1 min/runde</span>
+              <span class="pill">Alle verdier kan redigeres</span>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="section-title"><h2>Deltakere</h2><span class="pill" id="draftCountPill">0 deltakere</span></div>
+            <div class="row">
+              <div class="field" style="grid-column: span 8;"><label>Legg til deltaker</label><input id="manualName" placeholder="Navn" /></div>
+              <div class="field" style="grid-column: span 4;"><label>&nbsp;</label><button class="btn primary" id="addParticipantBtn">Legg til</button></div>
+            </div>
+            <div class="row">
+              <div class="field" style="grid-column: span 8;"><label>Importer CSV/XLS/XLSX</label><input id="importFile" type="file" accept=".csv,.xls,.xlsx" /></div>
+              <div class="field" style="grid-column: span 4;"><label>&nbsp;</label><button class="btn ghost" id="clearDraftBtn">Tøm utkast</button></div>
+            </div>
+            <div class="tiny muted">Import støtter kolonner som heter <b>bib</b> og <b>name</b> / <b>navn</b>. Hvis BIB mangler, opprettes løpende nummer automatisk.</div>
+            <div class="admin-table-wrap" style="margin-top:12px; max-height: 280px;">
+              <table id="draftTable">
+                <thead><tr><th>BIB</th><th>Navn</th><th>Handling</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="stack">
+          <div class="panel">
+            <div class="section-title"><h2>Rundetider</h2><span class="pill" id="roundTablePill">Ingen data</span></div>
+            <div class="admin-table-wrap" style="max-height: calc(100vh - 220px);">
+              <table id="roundTable"></table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-logg">
+      <div class="stack">
+        <div class="panel">
+          <div class="section-title"><h2>Logg over lagrede løp</h2><span class="pill" id="logCountPill">0 løp</span></div>
+          <div id="logContent" class="list"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal" id="confirmModal">
+    <div class="modal-card">
+      <h3 id="confirmTitle">Slette oppføring?</h3>
+      <div class="muted" id="confirmText">Denne handlingen kan angres ved å registrere på nytt før fristen går ut.</div>
+      <div class="actions" style="margin-top:16px; justify-content:flex-end;">
+        <button class="btn ghost" id="confirmNo">Nei</button>
+        <button class="btn red" id="confirmYes">Ja</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-wrap" id="toastWrap"></div>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+    const SUPABASE_URL = 'https://wjmucbavcslivuzofayi.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqbXVjYmF2Y3NsaXZ1em9mYXlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNjQxNDMsImV4cCI6MjA5MDc0MDE0M30.Tr6_K5_DIoW0wafZiOjKhPxjtmlw6k-mqVmSrSrKfus';
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } });
+
+    const BUILTIN_TEMPLATES = [
+      { name: 'Backyard', config: { distance_km: 6.706, round_minutes: 60, reduction_enabled: false, reduction_per_round: 0 } },
+      { name: 'Frontyard', config: { distance_km: 3.0, round_minutes: 30, reduction_enabled: true, reduction_per_round: 1 } },
+      { name: 'Egendefinert', config: { distance_km: 6.706, round_minutes: 60, reduction_enabled: false, reduction_per_round: 0 } },
+    ];
+
+    const state = {
+      dbOnline: false,
+      templates: [],
+      draftParticipants: [],
+      activeRace: null,
+      participants: [],
+      laps: [],
+      logs: [],
+      selectedScreen: 'registrering',
+      confirmAction: null,
+      lastDigest: '',
+      syncLock: false,
+    };
+
+    const el = (id) => document.getElementById(id);
+    const q = (sel, root = document) => root.querySelector(sel);
+    const qa = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+    const dbDot = el('dbDot');
+    const dbStatus = el('dbStatus');
+
+    function showToast(message, tone = 'info', timeout = 3600) {
+      const wrap = el('toastWrap');
+      const div = document.createElement('div');
+      div.className = 'toast';
+      const toneMap = {
+        success: 'border-color:#22c55e;',
+        error: 'border-color:#ef4444;',
+        warn: 'border-color:#fb923c;'
+      };
+      div.style.cssText = toneMap[tone] || 'border-color:#3b82f6;';
+      div.textContent = message;
+      wrap.appendChild(div);
+      setTimeout(() => { div.remove(); }, timeout);
+    }
+
+    function setDbStatus(text, mode = 'loading') {
+      dbStatus.textContent = text;
+      dbDot.classList.remove('online', 'offline');
+      if (mode === 'online') dbDot.classList.add('online');
+      else if (mode === 'offline') dbDot.classList.add('offline');
+    }
+
+    function pad(v) { return String(v).padStart(2, '0'); }
+    function formatLocalClock(d = new Date()) {
+      return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+    function formatDateTimeLocal(ts) {
+      if (!ts) return '—';
+      const d = new Date(ts);
+      if (Number.isNaN(d.getTime())) return '—';
+      return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+    function toLocalInputValue(ts) {
+      if (!ts) return '';
+      const d = new Date(ts);
+      if (Number.isNaN(d.getTime())) return '';
+      const local = new Date(d.getTime() - d.getTimezoneOffset()*60000);
+      return local.toISOString().slice(0,16);
+    }
+    function localInputToIso(value) {
+      if (!value) return null;
+      const d = new Date(value);
+      return Number.isNaN(d.getTime()) ? null : d.toISOString();
+    }
+    function formatDuration(ms, compact = false) {
+      if (ms == null || !isFinite(ms)) return '—';
+      const sign = ms < 0 ? '-' : '';
+      ms = Math.abs(ms);
+      const totalSec = Math.floor(ms / 1000);
+      const hh = Math.floor(totalSec / 3600);
+      const mm = Math.floor((totalSec % 3600) / 60);
+      const ss = totalSec % 60;
+      if (compact) return `${sign}${pad(hh)}:${pad(mm)}:${pad(ss)}`;
+      const parts = [];
+      if (hh) parts.push(`${hh}t`);
+      if (mm || hh) parts.push(`${mm}m`);
+      parts.push(`${ss}s`);
+      return sign + parts.join(' ');
+    }
+    function formatDistance(km) {
+      return `${Number(km || 0).toFixed((km % 1) ? 3 : 0)} km`;
+    }
+    function formatPace(ms, distanceKm) {
+      if (!ms || !distanceKm) return '—';
+      const minPerKm = (ms / 60000) / distanceKm;
+      const minutes = Math.floor(minPerKm);
+      const seconds = Math.round((minPerKm - minutes) * 60);
+      return `${minutes}:${pad(seconds === 60 ? 0 : seconds)} min/km`;
+    }
+    function parseNumber(v, fallback = 0) {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : fallback;
+    }
+    function sanitizeName(name) {
+      return String(name || '').trim().replace(/\s+/g, ' ');
+    }
+    function nextBibFrom(list) {
+      const max = list.reduce((m, r) => Math.max(m, Number(r.bib || 0)), 0);
+      return max + 1;
+    }
+    function compareBib(a, b) { return Number(a.bib || 0) - Number(b.bib || 0); }
+
+    function getConfigFromForm() {
+      return {
+        distance_km: parseNumber(el('distanceKm').value, 6.706),
+        round_minutes: parseNumber(el('roundMinutes').value, 60),
+        reduction_enabled: !!el('reductionEnabled').checked,
+        reduction_per_round: parseNumber(el('reductionPerRound').value, 0),
+      };
+    }
+    function applyConfigToForm(config = {}) {
+      el('distanceKm').value = config.distance_km ?? 6.706;
+      el('roundMinutes').value = config.round_minutes ?? 60;
+      el('reductionEnabled').checked = !!config.reduction_enabled;
+      el('reductionPerRound').value = config.reduction_per_round ?? 0;
+    }
+
+    function getRoundDurationMinutes(config, roundNumber) {
+      const base = Math.max(1, parseNumber(config.round_minutes, 60));
+      if (!config.reduction_enabled) return base;
+      const reduction = Math.max(0, parseNumber(config.reduction_per_round, 0));
+      return Math.max(1, base - reduction * (roundNumber - 1));
+    }
+    function getRoundWindow(config, raceStartIso, roundNumber) {
+      const start = new Date(raceStartIso).getTime();
+      let offsetMs = 0;
+      for (let r = 1; r < roundNumber; r++) offsetMs += getRoundDurationMinutes(config, r) * 60000;
+      const startMs = start + offsetMs;
+      const durationMs = getRoundDurationMinutes(config, roundNumber) * 60000;
+      const endMs = startMs + durationMs;
+      return { roundNumber, startMs, endMs, durationMs };
+    }
+    function getRacePhase(race, now = Date.now()) {
+      if (!race) return { state: 'none' };
+      const startMs = new Date(race.start_time).getTime();
+      const config = race.config || {};
+      if (now < startMs) {
+        const round1 = getRoundWindow(config, race.start_time, 1);
+        return { state: 'planned', currentRound: 1, currentWindow: round1, nextStartMs: round1.startMs, nextRound: 1 };
+      }
+      let round = 1;
+      let maxGuard = 2000;
+      while (maxGuard-- > 0) {
+        const window = getRoundWindow(config, race.start_time, round);
+        if (now < window.endMs) {
+          const nextWindow = getRoundWindow(config, race.start_time, round + 1);
+          return { state: race.status === 'stopped' ? 'stopped' : 'running', currentRound: round, currentWindow: window, nextStartMs: window.endMs, nextRound: round + 1 };
+        }
+        round += 1;
+      }
+      const lastWindow = getRoundWindow(config, race.start_time, round);
+      return { state: race.status === 'stopped' ? 'stopped' : 'running', currentRound: round, currentWindow: lastWindow, nextStartMs: lastWindow.endMs, nextRound: round + 1 };
+    }
+
+    function getLap(participantId, roundNumber) {
+      return state.laps.find(l => l.participant_id === participantId && Number(l.round_number) === Number(roundNumber));
+    }
+    function getParticipantCompletedRounds(participantId) {
+      return state.laps.filter(l => l.participant_id === participantId && l.status === 'finished').length;
+    }
+    function getLastFinishedLap(participantId) {
+      return state.laps
+        .filter(l => l.participant_id === participantId && l.status === 'finished')
+        .sort((a, b) => Number(b.round_number) - Number(a.round_number))[0] || null;
+    }
+    function getTotalMovingTime(participantId) {
+      return state.laps
+        .filter(l => l.participant_id === participantId && l.status === 'finished')
+        .reduce((sum, l) => sum + Number(l.elapsed_ms || 0), 0);
+    }
+    function computeParticipantStatus(participant, racePhase) {
+      if (!state.activeRace) return { code: 'none', label: '—' };
+      if (participant.status === 'finished') return { code: 'dnf', label: 'DNF' };
+      if (racePhase.state === 'planned') return { code: 'planned', label: 'Klar' };
+      const currentLap = getLap(participant.id, racePhase.currentRound);
+      if (currentLap?.status === 'finished') return { code: 'complete', label: 'Fullført runde' };
+      return { code: 'running', label: 'I løypa' };
+    }
+    function getSortedParticipantsForRegistration(racePhase) {
+      const arr = [...state.participants];
+      if (!state.activeRace) return arr.sort(compareBib);
+      return arr.sort((a, b) => {
+        const aDone = a.status === 'finished' ? 1 : 0;
+        const bDone = b.status === 'finished' ? 1 : 0;
+        if (aDone !== bDone) return aDone - bDone;
+        return compareBib(a, b);
+      });
+    }
+
+    function renderNav() {
+      qa('.nav button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.screen === state.selectedScreen);
+      });
+      qa('.screen').forEach(screen => {
+        screen.classList.toggle('active', screen.id === `screen-${state.selectedScreen}`);
+      });
+    }
+
+    function renderTopBar() {
+      const race = state.activeRace;
+      if (!race) {
+        el('appTitle').textContent = 'Backyard / Frontyard Ultra';
+        el('appSubtitle').textContent = 'Konfigurer løp på Adminsiden og start når du er klar.';
+        return;
+      }
+      const phase = getRacePhase(race);
+      const raceType = race.config?.reduction_enabled ? 'Frontyard' : 'Backyard/Egendefinert';
+      el('appTitle').textContent = race.name || 'Uten navn';
+      el('appSubtitle').textContent = `${raceType} · ${formatDistance(race.config?.distance_km || 0)} · ${race.config?.round_minutes || 0} min${race.config?.reduction_enabled ? ` · -${race.config?.reduction_per_round || 0} min/runde` : ''} · Start ${formatDateTimeLocal(race.start_time)} · ${phase.state === 'planned' ? 'Planlagt' : race.status === 'stopped' ? 'Stoppet' : 'Aktiv'}`;
+    }
+
+    function renderRegistration() {
+      const content = el('registrationContent');
+      content.innerHTML = '';
+      const race = state.activeRace;
+      if (!race) {
+        content.innerHTML = `<div class="center-empty" style="grid-column:1/-1;">Ingen aktivt løp enda. Gå til <b>3. Admin</b>, legg inn deltakere og start løpet.</div>`;
+        el('regRaceName').textContent = 'Ingen aktivt løp';
+        el('regRaceMeta').textContent = '—';
+        el('regRoundNo').textContent = '—';
+        el('regRoundWindow').textContent = '—';
+        el('regCountdown').textContent = '—';
+        el('regStartEnd').textContent = '—';
+        el('regSummary').textContent = '—';
+        el('regSummarySub').textContent = '—';
+        return;
+      }
+      const phase = getRacePhase(race);
+      const now = Date.now();
+      const window = phase.currentWindow;
+      const totalEligible = state.participants.filter(p => p.status !== 'finished').length;
+      const doneThisRound = state.participants.filter(p => getLap(p.id, phase.currentRound)?.status === 'finished').length;
+      const dnfCount = state.participants.filter(p => p.status === 'finished').length;
+      const stillRunning = Math.max(0, totalEligible - doneThisRound);
+      el('regRaceName').textContent = race.name || 'Uten navn';
+      el('regRaceMeta').textContent = `${formatDistance(race.config?.distance_km)} · ${state.participants.length} deltakere`;
+      el('regRoundNo').textContent = phase.currentRound;
+      el('regRoundWindow').textContent = phase.state === 'planned' ? 'Løpet har ikke startet' : `Frist ${formatDuration(window.durationMs)}`;
+      if (phase.state === 'planned') {
+        el('regCountdown').textContent = formatDuration(phase.nextStartMs - now, true);
+        el('regStartEnd').textContent = `Start ${formatDateTimeLocal(race.start_time)}`;
+        el('regSummary').textContent = `0 / ${state.participants.length}`;
+        el('regSummarySub').textContent = 'Planlagt start';
+      } else {
+        el('regCountdown').textContent = formatDuration(window.endMs - now, true);
+        el('regStartEnd').textContent = `${formatLocalClock(new Date(window.startMs))}–${formatLocalClock(new Date(window.endMs))}`;
+        el('regSummary').textContent = `${doneThisRound} / ${totalEligible}`;
+        el('regSummarySub').textContent = `${stillRunning} i løypa · ${dnfCount} DNF`;
+      }
+
+      const participants = getSortedParticipantsForRegistration(phase);
+      participants.forEach(p => {
+        const currentLap = getLap(p.id, phase.currentRound);
+        const btn = document.createElement('button');
+        btn.className = 'runner-btn';
+        let meta = 'Ikke registrert';
+        let disabled = false;
+
+        if (phase.state === 'planned') {
+          meta = 'Venter på start';
+          disabled = true;
+          btn.classList.add('disabled');
+        } else if (currentLap?.status === 'finished') {
+          btn.classList.add('done');
+          meta = formatDuration(currentLap.elapsed_ms);
+        } else if (p.status === 'finished' || currentLap?.status === 'dnf') {
+          btn.classList.add('dnf');
+          meta = 'DNF';
+          disabled = true;
+        }
+        btn.innerHTML = `<div class="runner-bib">BIB ${p.bib}</div><div class="runner-name">${escapeHtml(p.name)}</div><div class="runner-meta">${meta}</div>`;
+        if (disabled) btn.classList.add('disabled');
+        btn.addEventListener('click', () => onRunnerTap(p, phase));
+        content.appendChild(btn);
+      });
+    }
+
+    function renderLive() {
+      const tbody = q('#liveTable tbody');
+      tbody.innerHTML = '';
+      const race = state.activeRace;
+      if (!race) {
+        tbody.innerHTML = '<tr><td colspan="8" class="muted">Ingen aktivt løp.</td></tr>';
+        el('liveRaceMeta').textContent = 'Ingen aktivt løp';
+        el('liveTotals').textContent = '—';
+        el('liveSinceStart').textContent = '—';
+        el('liveToNextStart').textContent = '—';
+        el('liveRoundCountdownLabel').textContent = 'Tid til start runde —';
+        return;
+      }
+      const phase = getRacePhase(race);
+      const now = Date.now();
+      el('liveRaceMeta').textContent = `${race.name || 'Uten navn'} · ${formatDistance(race.config?.distance_km)} · ${state.participants.length} deltakere`;
+      const activeCount = state.participants.filter(p => p.status !== 'finished').length;
+      const dnfCount = state.participants.filter(p => p.status === 'finished').length;
+      el('liveTotals').textContent = `${activeCount} aktive · ${dnfCount} DNF`;
+      el('liveSinceStart').textContent = phase.state === 'planned' ? '00:00:00' : formatDuration(now - new Date(race.start_time).getTime(), true);
+      el('liveRoundCountdownLabel').textContent = `Tid til start runde ${phase.nextRound}`;
+      el('liveToNextStart').textContent = formatDuration(phase.nextStartMs - now, true);
+
+      const rows = state.participants.map(p => {
+        const completedRounds = getParticipantCompletedRounds(p.id);
+        const totalDistance = completedRounds * parseNumber(race.config?.distance_km, 0);
+        const totalTime = getTotalMovingTime(p.id);
+        const lastLap = getLastFinishedLap(p.id);
+        const status = computeParticipantStatus(p, phase);
+        return {
+          participant: p,
+          completedRounds,
+          totalDistance,
+          totalTime,
+          lastLap,
+          status,
+        };
+      }).sort((a, b) => {
+        if (b.completedRounds !== a.completedRounds) return b.completedRounds - a.completedRounds;
+        if (a.totalTime !== b.totalTime) return a.totalTime - b.totalTime;
+        return compareBib(a.participant, b.participant);
+      });
+
+      rows.forEach((row, idx) => {
+        const tr = document.createElement('tr');
+        const statusClass = row.status.code === 'dnf' ? 'chip-dnf' : row.status.code === 'complete' ? 'chip-complete' : row.status.code === 'planned' ? 'chip-planned' : 'chip-running';
+        tr.innerHTML = `
+          <td>${idx + 1}</td>
+          <td>${escapeHtml(row.participant.name)}</td>
+          <td>${row.completedRounds}</td>
+          <td>${formatDistance(row.totalDistance)}</td>
+          <td>${formatDuration(row.totalTime, true)}</td>
+          <td>${row.lastLap ? formatDuration(row.lastLap.elapsed_ms, true) : '—'}</td>
+          <td>${row.lastLap ? formatPace(row.lastLap.elapsed_ms, race.config?.distance_km) : '—'}</td>
+          <td><span class="status-chip ${statusClass}">${row.status.label}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderDraftTable() {
+      const tbody = q('#draftTable tbody');
+      tbody.innerHTML = '';
+      const rows = [...state.draftParticipants].sort(compareBib);
+      rows.forEach(p => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${p.bib}</td>
+          <td>${escapeHtml(p.name)}</td>
+          <td><button class="btn ghost small-btn" data-remove-bib="${p.bib}">Slett</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+      qa('[data-remove-bib]', tbody).forEach(btn => {
+        btn.addEventListener('click', () => {
+          const bib = Number(btn.dataset.removeBib);
+          state.draftParticipants = state.draftParticipants.filter(p => Number(p.bib) !== bib);
+          renderAll();
+        });
+      });
+      el('draftCountPill').textContent = `${state.draftParticipants.length} deltakere`;
+    }
+
+    function renderRoundTable() {
+      const table = el('roundTable');
+      const race = state.activeRace;
+      if (!race) {
+        table.innerHTML = '<tbody><tr><td class="muted">Ingen aktivt eller innlastet løp.</td></tr></tbody>';
+        el('roundTablePill').textContent = 'Ingen data';
+        return;
+      }
+      const maxRound = Math.max(1, ...state.laps.map(l => Number(l.round_number || 0)), getRacePhase(race).currentRound || 1);
+      const headers = ['BIB', 'Navn', 'Status'];
+      for (let r = 1; r <= maxRound; r++) headers.push(`R${r}`);
+      let html = '<thead><tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr></thead><tbody>';
+      const rows = [...state.participants].sort(compareBib);
+      rows.forEach(p => {
+        html += `<tr><td>${p.bib}</td><td>${escapeHtml(p.name)}</td><td>${p.status === 'finished' ? 'Ferdig' : 'Aktiv'}</td>`;
+        for (let r = 1; r <= maxRound; r++) {
+          const lap = getLap(p.id, r);
+          html += `<td>${lap ? (lap.status === 'dnf' ? 'DNF' : formatDuration(lap.elapsed_ms, true)) : ''}</td>`;
+        }
+        html += '</tr>';
+      });
+      html += '</tbody>';
+      table.innerHTML = html;
+      el('roundTablePill').textContent = `${rows.length} deltakere · ${maxRound} runder`;
+    }
+
+    function renderAdmin() {
+      const options = [...BUILTIN_TEMPLATES.filter(b => b.name !== 'Egendefinert'), ...state.templates.filter(t => !['Backyard','Frontyard'].includes(t.name)), BUILTIN_TEMPLATES.find(b => b.name === 'Egendefinert')].filter(Boolean);
+      const select = el('templateSelect');
+      const currentValue = select.value;
+      select.innerHTML = options.map(t => `<option value="${escapeHtmlAttr(t.name)}">${escapeHtml(t.name)}</option>`).join('');
+      if (options.some(t => t.name === currentValue)) select.value = currentValue;
+      else if (!select.value) select.value = 'Backyard';
+      renderDraftTable();
+      renderRoundTable();
+      const race = state.activeRace;
+      el('currentRacePill').textContent = race ? `${race.name || 'Uten navn'} · ${race.status === 'stopped' ? 'Stoppet' : getRacePhase(race).state === 'planned' ? 'Planlagt' : 'Aktiv'}` : 'Uten aktivt løp';
+      el('stopRaceBtn').disabled = !race || race.status === 'stopped';
+    }
+
+    function renderLogs() {
+      const container = el('logContent');
+      container.innerHTML = '';
+      if (!state.logs.length) {
+        container.innerHTML = '<div class="center-empty">Ingen løp lagret ennå.</div>';
+        el('logCountPill').textContent = '0 løp';
+        return;
+      }
+      el('logCountPill').textContent = `${state.logs.length} løp`;
+      state.logs.forEach(log => {
+        const div = document.createElement('div');
+        const completed = (log.participants || []).filter(p => p.status !== 'finished').length;
+        div.className = 'list-item';
+        const config = log.config || {};
+        div.innerHTML = `
+          <div>
+            <div style="font-weight:800;">${escapeHtml(log.name || 'Uten navn')}</div>
+            <div class="muted small">${formatDateTimeLocal(log.start_time)}${log.end_time ? ` → ${formatDateTimeLocal(log.end_time)}` : ''}</div>
+            <div class="tiny muted">${formatDistance(config.distance_km)} · ${config.round_minutes} min${config.reduction_enabled ? ` · -${config.reduction_per_round} min/runde` : ''}</div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+            <span class="pill">${(log.participants || []).length} deltakere</span>
+            <button class="btn primary" data-load-log="${log.id}">Last inn</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+      qa('[data-load-log]').forEach(btn => btn.addEventListener('click', async () => {
+        await loadRace(btn.dataset.loadLog, true);
+        state.selectedScreen = 'admin';
+        renderAll();
+        showToast('Løp lastet inn fra logg.', 'success');
+      }));
+    }
+
+    function renderAll() {
+      renderNav();
+      renderTopBar();
+      renderRegistration();
+      renderLive();
+      renderAdmin();
+      renderLogs();
+      el('localClock').textContent = formatLocalClock(new Date());
+      el('liveLocalClock').textContent = formatLocalClock(new Date());
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, s => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[s]));
+    }
+    function escapeHtmlAttr(value) { return escapeHtml(value); }
+
+    function openConfirm(title, text, action) {
+      el('confirmTitle').textContent = title;
+      el('confirmText').textContent = text;
+      state.confirmAction = action;
+      el('confirmModal').classList.add('open');
+    }
+    function closeConfirm() {
+      el('confirmModal').classList.remove('open');
+      state.confirmAction = null;
+    }
+
+    async function onRunnerTap(participant, phase) {
+      if (!state.activeRace) return;
+      if (phase.state === 'planned' || state.activeRace.status === 'stopped') return;
+      const currentLap = getLap(participant.id, phase.currentRound);
+      if (participant.status === 'finished' || currentLap?.status === 'dnf') return;
+      if (currentLap?.status === 'finished') {
+        openConfirm('Slette oppføring?', `Fjerne registrert rundetid for ${participant.name} i runde ${phase.currentRound}?`, async () => {
+          await deleteLap(currentLap, participant);
+        });
+        return;
+      }
+      const now = Date.now();
+      if (now > phase.currentWindow.endMs) {
+        showToast('Fristen er ute for denne runden. Deltakeren er DNF.', 'warn');
+        return;
+      }
+      await createFinishedLap(participant, phase.currentRound, now - phase.currentWindow.startMs);
+    }
+
+    async function createFinishedLap(participant, roundNumber, elapsedMs) {
+      const payload = {
+        race_id: state.activeRace.id,
+        participant_id: participant.id,
+        round_number: roundNumber,
+        registered_at: new Date().toISOString(),
+        elapsed_ms: Math.max(0, Math.round(elapsedMs)),
+        status: 'finished',
+      };
+      const optimistic = { ...payload, id: `tmp-${Math.random().toString(36).slice(2)}` };
+      state.laps = [...state.laps.filter(l => !(l.participant_id === participant.id && Number(l.round_number) === Number(roundNumber))), optimistic];
+      renderAll();
+      const { data, error } = await supabase.from('lap_records').upsert(payload, { onConflict: 'race_id,participant_id,round_number' }).select().single();
+      if (error) {
+        state.laps = state.laps.filter(l => l.id !== optimistic.id);
+        renderAll();
+        showToast(`Kunne ikke lagre registrering: ${error.message}`, 'error', 5200);
+        return;
+      }
+      state.laps = [...state.laps.filter(l => l.id !== optimistic.id && !(l.participant_id === participant.id && Number(l.round_number) === Number(roundNumber))), data];
+      renderAll();
+    }
+
+    async function deleteLap(lap, participant) {
+      const previous = [...state.laps];
+      state.laps = state.laps.filter(l => l.id !== lap.id);
+      renderAll();
+      closeConfirm();
+      const { error } = await supabase.from('lap_records').delete().eq('id', lap.id);
+      if (error) {
+        state.laps = previous;
+        renderAll();
+        showToast(`Kunne ikke slette oppføring: ${error.message}`, 'error');
+      } else {
+        const laterDnf = state.laps.find(l => l.participant_id === participant.id && l.status === 'dnf');
+        if (!laterDnf && participant.status === 'finished') {
+          const { data: updated, error: updateError } = await supabase.from('participants').update({ status: 'active' }).eq('id', participant.id).select().single();
+          if (!updateError && updated) {
+            state.participants = state.participants.map(p => p.id === participant.id ? updated : p);
+          }
+        }
+        renderAll();
+      }
+    }
+
+    async function autoMarkDnfs() {
+      if (!state.activeRace || state.syncLock || state.activeRace.status === 'stopped') return;
+      const phase = getRacePhase(state.activeRace);
+      if (phase.state !== 'running') return;
+      const now = Date.now();
+      if (now <= phase.currentWindow.endMs) return;
+      const missing = state.participants.filter(p => p.status !== 'finished' && !getLap(p.id, phase.currentRound));
+      if (!missing.length) return;
+      state.syncLock = true;
+      try {
+        const lapRows = missing.map(p => ({
+          race_id: state.activeRace.id,
+          participant_id: p.id,
+          round_number: phase.currentRound,
+          registered_at: new Date(phase.currentWindow.endMs).toISOString(),
+          elapsed_ms: null,
+          status: 'dnf',
+        }));
+        const participantIds = missing.map(p => p.id);
+        const { error: lapErr } = await supabase.from('lap_records').upsert(lapRows, { onConflict: 'race_id,participant_id,round_number' });
+        if (lapErr) throw lapErr;
+        const { error: pErr } = await supabase.from('participants').update({ status: 'finished' }).in('id', participantIds);
+        if (pErr) throw pErr;
+        await loadRace(state.activeRace.id, false);
+        showToast(`${missing.length} deltaker(e) markert som DNF i runde ${phase.currentRound}.`, 'warn', 4200);
+      } catch (err) {
+        showToast(`Feil ved automatisk DNF-merking: ${err.message || err}`, 'error', 4800);
+      } finally {
+        state.syncLock = false;
+      }
+    }
+
+    async function fetchTemplates() {
+      const { data, error } = await supabase.from('race_templates').select('*').order('name', { ascending: true });
+      if (error) throw error;
+      state.templates = data || [];
+      await ensureBuiltins();
+      const { data: data2 } = await supabase.from('race_templates').select('*').order('name', { ascending: true });
+      state.templates = data2 || state.templates;
+    }
+
+    async function ensureBuiltins() {
+      for (const tpl of BUILTIN_TEMPLATES.slice(0, 2)) {
+        await supabase.from('race_templates').upsert({ name: tpl.name, config: tpl.config, is_builtin: true }, { onConflict: 'name' });
+      }
+    }
+
+    async function fetchLogs() {
+      const { data: races, error } = await supabase.from('races').select('*').eq('status', 'stopped').order('created_at', { ascending: false }).limit(100);
+      if (error) throw error;
+      const logs = [];
+      for (const race of races || []) {
+        const [{ data: participants }, { data: laps }] = await Promise.all([
+          supabase.from('participants').select('*').eq('race_id', race.id).order('bib', { ascending: true }),
+          supabase.from('lap_records').select('*').eq('race_id', race.id),
+        ]);
+        logs.push({ ...race, participants: participants || [], laps: laps || [] });
+      }
+      state.logs = logs;
+    }
+
+    async function loadLatestActiveRace() {
+      const { data, error } = await supabase.from('races').select('*').in('status', ['planned', 'active']).order('created_at', { ascending: false }).limit(1);
+      if (error) throw error;
+      if (data && data.length) {
+        await loadRace(data[0].id, false);
+      }
+    }
+
+    async function loadRace(raceId, includeStopped = false) {
+      const { data: race, error } = await supabase.from('races').select('*').eq('id', raceId).single();
+      if (error) throw error;
+      if (!includeStopped && race.status === 'stopped') {
+        state.activeRace = race;
+      } else {
+        state.activeRace = race;
+      }
+      const [{ data: participants, error: pErr }, { data: laps, error: lErr }] = await Promise.all([
+        supabase.from('participants').select('*').eq('race_id', raceId).order('bib', { ascending: true }),
+        supabase.from('lap_records').select('*').eq('race_id', raceId),
+      ]);
+      if (pErr) throw pErr;
+      if (lErr) throw lErr;
+      state.participants = participants || [];
+      state.laps = laps || [];
+      el('raceName').value = race.name || '';
+      applyConfigToForm(race.config || {});
+      el('startTime').value = toLocalInputValue(race.start_time);
+    }
+
+    async function startRace() {
+      const name = sanitizeName(el('raceName').value) || `Løp ${new Date().toLocaleDateString('no-NO')}`;
+      const config = getConfigFromForm();
+      if (config.distance_km <= 0 || config.round_minutes <= 0) {
+        showToast('Rundelengde og tilgjengelig tid må være større enn 0.', 'error');
+        return;
+      }
+      if (!state.draftParticipants.length) {
+        showToast('Legg inn minst én deltaker før du starter løpet.', 'error');
+        return;
+      }
+      const startIso = localInputToIso(el('startTime').value) || new Date().toISOString();
+      const startMs = new Date(startIso).getTime();
+      const status = startMs > Date.now() ? 'planned' : 'active';
+      const raceRow = { name, status, start_time: startIso, config, current_round: 1 };
+      const { data: race, error } = await supabase.from('races').insert(raceRow).select().single();
+      if (error) {
+        showToast(`Kunne ikke starte løp: ${error.message}`, 'error', 5200);
+        return;
+      }
+      const sorted = [...state.draftParticipants].sort(compareBib);
+      const participantsRows = sorted.map((p, idx) => ({ race_id: race.id, bib: Number(p.bib), name: p.name, status: 'active' }));
+      const { error: pErr } = await supabase.from('participants').insert(participantsRows);
+      if (pErr) {
+        showToast(`Løp opprettet, men deltakere feilet: ${pErr.message}`, 'error', 5200);
+      }
+      state.activeRace = race;
+      state.participants = [];
+      state.laps = [];
+      await loadRace(race.id, false);
+      await fetchLogs();
+      showToast(status === 'planned' ? 'Løp planlagt.' : 'Løp startet.', 'success');
+      state.selectedScreen = 'registrering';
+      renderAll();
+    }
+
+    async function stopRace() {
+      if (!state.activeRace || state.activeRace.status === 'stopped') return;
+      const { data, error } = await supabase.from('races').update({ status: 'stopped', end_time: new Date().toISOString() }).eq('id', state.activeRace.id).select().single();
+      if (error) {
+        showToast(`Kunne ikke stoppe løp: ${error.message}`, 'error');
+        return;
+      }
+      state.activeRace = data;
+      await fetchLogs();
+      renderAll();
+      showToast('Løpet er stoppet og ligger nå i loggen.', 'success');
+    }
+
+    async function saveTemplate() {
+      const name = sanitizeName(prompt('Navn på løpsmal:', el('raceName').value || 'Ny mal') || '');
+      if (!name) return;
+      const config = getConfigFromForm();
+      const { error } = await supabase.from('race_templates').upsert({ name, config, is_builtin: false }, { onConflict: 'name' });
+      if (error) {
+        showToast(`Kunne ikke lagre løpsmal: ${error.message}`, 'error');
+        return;
+      }
+      await fetchTemplates();
+      el('templateSelect').value = name;
+      renderAll();
+      showToast(`Løpsmal «${name}» lagret.`, 'success');
+    }
+
+    function newDraft() {
+      state.activeRace = null;
+      state.participants = [];
+      state.laps = [];
+      state.draftParticipants = [];
+      el('raceName').value = '';
+      el('startTime').value = '';
+      applyConfigToForm(BUILTIN_TEMPLATES[0].config);
+      el('templateSelect').value = 'Backyard';
+      renderAll();
+      showToast('Nytt utkast klart.', 'success');
+    }
+
+    function applyTemplateByName(name) {
+      const template = BUILTIN_TEMPLATES.find(t => t.name === name) || state.templates.find(t => t.name === name);
+      if (!template) return;
+      if (!el('raceName').value || BUILTIN_TEMPLATES.some(t => t.name === el('raceName').value)) {
+        el('raceName').value = template.name;
+      }
+      applyConfigToForm(template.config || {});
+      renderAll();
+    }
+
+    function addManualParticipant() {
+      const name = sanitizeName(el('manualName').value);
+      if (!name) return;
+      state.draftParticipants.push({ bib: nextBibFrom(state.draftParticipants), name });
+      state.draftParticipants.sort(compareBib);
+      el('manualName').value = '';
+      renderAll();
+    }
+
+    async function importParticipants(file) {
+      if (!file) return;
+      let rows = [];
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (ext === 'csv') {
+        const text = await file.text();
+        rows = parseCsv(text);
+      } else {
+        const buffer = await file.arrayBuffer();
+        const wb = XLSX.read(buffer, { type: 'array' });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+      }
+      const mapped = normalizeParticipantRows(rows);
+      if (!mapped.length) {
+        showToast('Fant ingen gyldige deltakere i filen.', 'warn');
+        return;
+      }
+      const existingByBib = new Map(state.draftParticipants.map(p => [Number(p.bib), p]));
+      mapped.forEach(item => {
+        let bib = Number(item.bib);
+        if (!Number.isFinite(bib) || bib <= 0 || existingByBib.has(bib)) bib = nextBibFrom([...state.draftParticipants, ...Array.from(existingByBib.values())]);
+        existingByBib.set(bib, { bib, name: item.name });
+      });
+      state.draftParticipants = Array.from(existingByBib.values()).sort(compareBib);
+      renderAll();
+      showToast(`${mapped.length} deltaker(e) importert.`, 'success');
+    }
+
+    function parseCsv(text) {
+      const lines = text.split(/\r?\n/).filter(Boolean);
+      if (!lines.length) return [];
+      const rows = [];
+      const headers = splitCsvLine(lines[0]).map(h => h.trim());
+      for (let i = 1; i < lines.length; i++) {
+        const values = splitCsvLine(lines[i]);
+        const obj = {};
+        headers.forEach((h, idx) => obj[h] = values[idx] ?? '');
+        rows.push(obj);
+      }
+      return rows;
+    }
+    function splitCsvLine(line) {
+      const result = [];
+      let cur = '';
+      let quote = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') {
+          if (quote && line[i+1] === '"') { cur += '"'; i++; }
+          else quote = !quote;
+        } else if (ch === ',' && !quote) {
+          result.push(cur); cur = '';
+        } else if (ch === ';' && !quote) {
+          result.push(cur); cur = '';
+        } else {
+          cur += ch;
+        }
+      }
+      result.push(cur);
+      return result;
+    }
+    function normalizeParticipantRows(rows) {
+      return rows.map(r => {
+        const lower = Object.fromEntries(Object.entries(r).map(([k, v]) => [String(k).trim().toLowerCase(), v]));
+        const name = sanitizeName(lower.name || lower.navn || lower.runner || lower.deltaker || '');
+        const bib = parseNumber(lower.bib || lower.startnr || lower.startnummer || 0, 0);
+        return { name, bib };
+      }).filter(r => r.name);
+    }
+
+    async function refreshAllData() {
+      await Promise.allSettled([fetchTemplates(), fetchLogs(), loadLatestActiveRace()]);
+      renderAll();
+    }
+
+    async function healthCheck() {
+      const { error } = await supabase.from('races').select('id').limit(1);
+      if (error) throw error;
+    }
+
+    function computeDigest() {
+      const race = state.activeRace ? `${state.activeRace.id}:${state.activeRace.status}:${state.activeRace.start_time}` : 'none';
+      return JSON.stringify({ race, p: state.participants.map(p => [p.id, p.status]).sort(), l: state.laps.map(l => [l.participant_id, l.round_number, l.status, l.elapsed_ms]).sort() });
+    }
+
+    async function backgroundSync() {
+      try {
+        if (state.activeRace) {
+          const raceId = state.activeRace.id;
+          const [{ data: race }, { data: participants }, { data: laps }] = await Promise.all([
+            supabase.from('races').select('*').eq('id', raceId).single(),
+            supabase.from('participants').select('*').eq('race_id', raceId).order('bib', { ascending: true }),
+            supabase.from('lap_records').select('*').eq('race_id', raceId),
+          ]);
+          if (race) state.activeRace = race;
+          if (participants) state.participants = participants;
+          if (laps) state.laps = laps;
+        } else {
+          await loadLatestActiveRace();
+        }
+        await fetchLogs();
+      } catch (e) {
+        console.warn('sync error', e);
+      } finally {
+        const digest = computeDigest();
+        if (digest !== state.lastDigest) {
+          state.lastDigest = digest;
+          renderAll();
+        }
+      }
+    }
+
+    function bindEvents() {
+      qa('.nav button').forEach(btn => btn.addEventListener('click', () => {
+        state.selectedScreen = btn.dataset.screen;
+        renderAll();
+      }));
+      el('confirmNo').addEventListener('click', closeConfirm);
+      el('confirmYes').addEventListener('click', async () => {
+        if (typeof state.confirmAction === 'function') await state.confirmAction();
+        closeConfirm();
+      });
+      el('templateSelect').addEventListener('change', (e) => applyTemplateByName(e.target.value));
+      el('saveTemplateBtn').addEventListener('click', saveTemplate);
+      el('startRaceBtn').addEventListener('click', startRace);
+      el('stopRaceBtn').addEventListener('click', stopRace);
+      el('newDraftBtn').addEventListener('click', newDraft);
+      el('reloadBtn').addEventListener('click', async () => { await refreshAllData(); showToast('Data oppdatert.', 'success'); });
+      el('addParticipantBtn').addEventListener('click', addManualParticipant);
+      el('manualName').addEventListener('keydown', (e) => { if (e.key === 'Enter') addManualParticipant(); });
+      el('clearDraftBtn').addEventListener('click', () => { state.draftParticipants = []; renderAll(); });
+      el('importFile').addEventListener('change', async (e) => { await importParticipants(e.target.files[0]); e.target.value = ''; });
+    }
+
+    async function init() {
+      bindEvents();
+      applyConfigToForm(BUILTIN_TEMPLATES[0].config);
+      el('templateSelect').innerHTML = BUILTIN_TEMPLATES.map(t => `<option value="${escapeHtmlAttr(t.name)}">${escapeHtml(t.name)}</option>`).join('');
+      try {
+        setDbStatus('Sjekker Supabase…', 'loading');
+        await healthCheck();
+        state.dbOnline = true;
+        setDbStatus('Supabase tilkoblet', 'online');
+        await refreshAllData();
+      } catch (err) {
+        console.error(err);
+        state.dbOnline = false;
+        setDbStatus('Supabase utilgjengelig / schema mangler', 'offline');
+        showToast('Kunne ikke koble til Supabase. Kjør SQL-schemaet i zip-filen og oppdater siden.', 'error', 7200);
+        state.templates = [];
+        state.logs = [];
+      }
+      renderAll();
+      setInterval(() => {
+        el('localClock').textContent = formatLocalClock(new Date());
+        el('liveLocalClock').textContent = formatLocalClock(new Date());
+        renderRegistration();
+        renderLive();
+        autoMarkDnfs();
+      }, 1000);
+      setInterval(backgroundSync, 4000);
+    }
+
+    init();
+  </script>
 </body>
 </html>

@@ -62,7 +62,11 @@
     .nav button:active { transform: translateY(1px) scale(.995); }
     .screen { display: none; min-height: 0; }
     .screen.active { display: block; }
-    .grid-2 { display: grid; grid-template-columns: 430px 1fr; gap: 12px; min-height: 0; }
+    .grid-2 { display: grid; grid-template-columns: minmax(520px, 560px) minmax(0, 1fr); gap: 12px; min-height: 0; }
+    .log-actions { display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+    .wake-ok { border-color: rgba(34,197,94,.55); }
+    .wake-warn { border-color: rgba(249,115,22,.55); }
+    .wake-off { border-color: rgba(239,68,68,.55); }
     .stack { display: grid; gap: 12px; }
     .panel {
       background: var(--panel);
@@ -258,13 +262,6 @@
       .registration-header, .kpi-grid, .big-live, .info-grid { grid-template-columns: 1fr; }
       .row { grid-template-columns: 1fr; }
     }
-    /* [PATCH 1] Full bredde-rad for starttid */
-.row-full {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-  margin-bottom: 10px;
-}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
@@ -367,6 +364,7 @@
                   <div style="display:grid;gap:8px;margin-top:6px;">
                     <div class="status-pill"><span class="status-dot" id="dbDot"></span><span id="dbStatus">Kobler til Supabase…</span></div>
                     <div class="status-pill"><span class="status-dot online"></span><span id="localClock">--:--:--</span></div>
+                <div class="status-pill" id="wakeLockPill"><span class="status-dot" id="wakeLockDot"></span><span id="wakeLockStatus">Skjermlås-beskyttelse ikke aktiv</span></div>
                   </div>
                 </div>
               </div>
@@ -378,10 +376,7 @@
               <div class="row">
                 <div class="field" style="grid-column: span 4;"><label>Rundelengde (km)</label><input id="distanceKm" type="number" min="0.1" step="0.001" /></div>
                 <div class="field" style="grid-column: span 4;"><label>Tilgjengelig tid (min)</label><input id="roundMinutes" type="number" min="1" step="1" /></div>
-                <!-- [PATCH 1] Starttid i egen rad -->
-                <div class="row-full"><div class="field"><label>Starttid (lokal tid)</label><input id="startTime" type="datetime-local" /></div>
-                </div>
-
+                <div class="field" style="grid-column: span 4;"><label>Starttid (lokal tid)</label><input id="startTime" type="datetime-local" /></div>
               </div>
               <div class="row">
                 <div class="field" style="grid-column: span 6;"><label>Reduser tilgjengelig tid hver runde</label><div class="checkbox"><input id="reductionEnabled" type="checkbox" /><span>Frontyard-modus</span></div></div>
@@ -488,6 +483,13 @@
       logs: [],
       selectedScreen: 'registrering',
       confirmAction: null,
+      confirmCancelAction: null,
+      wakeLock: null,
+      wakeLockSupported: !!(navigator.wakeLock && navigator.wakeLock.request),
+      wakeLockEnabled: false,
+      wakeLockMessage: 'Skjermlås-beskyttelse ikke aktiv',
+      autoStopDeclinedRaceId: null,
+      autoStopPromptShownForRaceId: null,
       lastDigest: '',
       syncLock: false,
       collapse: { setupPanel: false, participantsPanel: false },
@@ -521,8 +523,47 @@
       else if (mode === 'offline') dbDot.classList.add('offline');
     }
 
+function renderWakeLockUi() {
+  const pill = el('wakeLockPill');
+  const dot = el('wakeLockDot');
+  const label = el('wakeLockStatus');
+  if (!pill || !dot || !label) return;
+  pill.classList.remove('wake-ok', 'wake-warn', 'wake-off');
+  dot.classList.remove('online', 'offline');
+  label.textContent = state.wakeLockMessage;
+  if (!state.wakeLockSupported) {
+    pill.classList.add('wake-off');
+    dot.classList.add('offline');
+    return;
+  }
+  if (state.wakeLockEnabled) {
+    pill.classList.add('wake-ok');
+    dot.classList.add('online');
+    return;
+  }
+  pill.classList.add('wake-warn');
+}
+
     function pad(v) { return String(v).padStart(2, '0'); }
     function formatLocalClock(d = new Date()) { return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; }
+
+function getRaceDisplayNowMs(race, fallbackNow = Date.now()) {
+  if (!race) return fallbackNow;
+  if (race.status === 'stopped' && race.end_time) {
+    const stoppedMs = new Date(race.end_time).getTime();
+    if (Number.isFinite(stoppedMs)) return stoppedMs;
+  }
+  return fallbackNow;
+}
+
+function describeConfig(config = {}) {
+  return `${formatDistance(config.distance_km)} · ${config.round_minutes ?? 0} min${config.reduction_enabled ? ` · -${config.reduction_per_round ?? 0} min/runde` : ''}`;
+}
+
+function buildTemplateNameSuggestion(config = {}) {
+  const reduction = config.reduction_enabled ? ` / -${config.reduction_per_round ?? 0} min/r` : '';
+  return `Mal ${Number(config.distance_km ?? 0).toFixed(3).replace(/\.0+$/, '')} km / ${config.round_minutes ?? 0} min${reduction}`;
+}
     function formatDateTimeLocal(ts) {
       if (!ts) return '—';
       const d = new Date(ts);
@@ -713,10 +754,10 @@
         el('appSubtitle').textContent = 'Konfigurer løp og start når du er klar.';
         return;
       }
-      const phase = getRacePhase(race);
+      const phase = getRacePhase(race, getRaceDisplayNowMs(race));
       const raceType = race.config?.reduction_enabled ? 'Frontyard' : 'Backyard/Egendefinert';
       el('appTitle').textContent = race.name || 'Uten navn';
-      el('appSubtitle').textContent = `${raceType} · ${formatDistance(race.config?.distance_km || 0)} · ${race.config?.round_minutes || 0} min${race.config?.reduction_enabled ? ` · -${race.config?.reduction_per_round || 0} min/runde` : ''} · Start ${formatDateTimeLocal(race.start_time)} · ${phase.state === 'planned' ? 'Planlagt' : race.status === 'stopped' ? 'Stoppet' : 'Aktiv'}`;
+      el('appSubtitle').textContent = `${raceType} · ${describeConfig(race.config || {})} · Start ${formatDateTimeLocal(race.start_time)}${race.end_time ? ` · Stopp ${formatDateTimeLocal(race.end_time)}` : ''} · ${phase.state === 'planned' ? 'Planlagt' : race.status === 'stopped' ? 'Stoppet' : 'Aktiv'}`;
     }
 
     function renderRegistration() {
@@ -736,8 +777,8 @@
         return;
       }
 
-      const phase = getRacePhase(race);
-      const now = Date.now();
+      const now = getRaceDisplayNowMs(race);
+      const phase = getRacePhase(race, now);
       const window = phase.currentWindow;
       const activeParticipants = state.participants.filter(p => !(getLatestLap(p.id)?.status === 'dnf' || p.status === 'finished'));
       const doneThisRound = activeParticipants.filter(p => getLap(p.id, phase.currentRound)?.status === 'finished').length;
@@ -750,15 +791,16 @@
       el('regRoundWindow').textContent = phase.state === 'planned' ? 'Løpet har ikke startet' : `Frist ${formatDuration(window.durationMs)}`;
 
       if (phase.state === 'planned') {
-        el('regCountdown').textContent = formatDuration(phase.nextStartMs - now, true);
+        el('regCountdown').textContent = race.status === 'stopped' ? '00:00' : formatDuration(phase.nextStartMs - now, true);
         el('regStartEnd').textContent = `Start ${formatDateTimeLocal(race.start_time)}`;
         el('regSummary').textContent = `0 / ${state.participants.length}`;
-        el('regSummarySub').textContent = 'Planlagt start';
+        el('regSummarySub').textContent = race.status === 'stopped' ? 'Løpet er stoppet' : 'Planlagt start';
       } else {
-        el('regCountdown').textContent = formatDuration(window.endMs - now, true);
+        const remainingMs = race.status === 'stopped' ? 0 : Math.max(0, window.endMs - now);
+        el('regCountdown').textContent = formatDuration(remainingMs, true);
         el('regStartEnd').textContent = `${formatLocalClock(new Date(window.startMs))}–${formatLocalClock(new Date(window.endMs))}`;
         el('regSummary').textContent = `${doneThisRound} / ${activeParticipants.length}`;
-        el('regSummarySub').textContent = `${stillRunning} i løypa · ${dnfCount} DNF`;
+        el('regSummarySub').textContent = race.status === 'stopped' ? `Stoppet · ${dnfCount} DNF` : `${stillRunning} i løypa · ${dnfCount} DNF`;
       }
 
       getSortedParticipantsForRegistration().forEach(p => {
@@ -802,15 +844,15 @@
         el('liveRoundCountdownLabel').textContent = 'Tid til start runde —';
         return;
       }
-      const phase = getRacePhase(race);
-      const now = Date.now();
-      el('liveRaceMeta').textContent = `${race.name || 'Uten navn'} · ${formatDistance(race.config?.distance_km)} · ${state.participants.length} deltakere`;
+      const now = getRaceDisplayNowMs(race);
+      const phase = getRacePhase(race, now);
+      el('liveRaceMeta').textContent = `${race.name || 'Uten navn'} · ${formatDistance(race.config?.distance_km)} · ${state.participants.length} deltakere${race.status === 'stopped' ? ' · Stoppet' : ''}`;
       const activeCount = state.participants.filter(p => !(getLatestLap(p.id)?.status === 'dnf' || p.status === 'finished')).length;
       const dnfCount = state.participants.filter(p => getLatestLap(p.id)?.status === 'dnf' || p.status === 'finished').length;
       el('liveTotals').textContent = `${activeCount} aktive · ${dnfCount} DNF`;
-      el('liveSinceStart').textContent = phase.state === 'planned' ? '00:00' : formatDuration(now - new Date(race.start_time).getTime(), true);
-      el('liveRoundCountdownLabel').textContent = `Tid til start runde ${phase.nextRound}`;
-      el('liveToNextStart').textContent = formatDuration(phase.nextStartMs - now, true);
+      el('liveSinceStart').textContent = phase.state === 'planned' ? '00:00' : formatDuration(Math.max(0, now - new Date(race.start_time).getTime()), true);
+      el('liveRoundCountdownLabel').textContent = race.status === 'stopped' ? 'Neste start' : `Tid til start runde ${phase.nextRound}`;
+      el('liveToNextStart').textContent = race.status === 'stopped' ? '00:00' : formatDuration(Math.max(0, phase.nextStartMs - now), true);
 
       const rows = state.participants.map(p => {
         const completedRounds = getParticipantCompletedRounds(p.id);
@@ -874,10 +916,11 @@
         return;
       }
 
-      const phase = getRacePhase(race);
+      const raceNow = getRaceDisplayNowMs(race);
+      const phase = getRacePhase(race, raceNow);
       const endedRounds = (() => {
         let count = 0;
-        const now = Date.now();
+        const now = raceNow;
         for (let r = 1; r < 2000; r++) {
           const win = getRoundWindow(race.config || {}, race.start_time, r);
           if (now >= win.endMs) count = r;
@@ -935,7 +978,7 @@
       renderRoundTable();
 
       const race = state.activeRace;
-      el('currentRacePill').textContent = race ? `${race.name || 'Uten navn'} · ${race.status === 'stopped' ? 'Stoppet' : getRacePhase(race).state === 'planned' ? 'Planlagt' : 'Aktiv'}` : 'Uten aktivt løp';
+      el('currentRacePill').textContent = race ? `${race.name || 'Uten navn'} · ${race.status === 'stopped' ? 'Stoppet' : getRacePhase(race, getRaceDisplayNowMs(race)).state === 'planned' ? 'Planlagt' : 'Aktiv'}` : 'Uten aktivt løp';
       el('stopRaceBtn').disabled = !race || race.status === 'stopped';
 
       qa('[data-collapse]').forEach(btn => {
@@ -945,47 +988,63 @@
       qa('.collapsible').forEach(panel => panel.classList.toggle('collapsed', !!state.collapse[panel.id]));
     }
 
-    function renderLogs() {
-      const container = el('logContent');
-      container.innerHTML = '';
-      if (!state.logs.length) {
-        container.innerHTML = '<div class="center-empty">Ingen løp lagret ennå.</div>';
-        el('logCountPill').textContent = '0 løp';
-        return;
-      }
-      el('logCountPill').textContent = `${state.logs.length} løp`;
-      state.logs.forEach(log => {
-        const div = document.createElement('div');
-        div.className = 'list-item';
-        const config = log.config || {};
-        div.innerHTML = `
-          <div>
-            <div style="font-weight:800;">${escapeHtml(log.name || 'Uten navn')}</div>
-            <div class="muted small">${formatDateTimeLocal(log.start_time)}${log.end_time ? ` → ${formatDateTimeLocal(log.end_time)}` : ''}</div>
-            <div class="tiny muted">${formatDistance(config.distance_km)} · ${config.round_minutes} min${config.reduction_enabled ? ` · -${config.reduction_per_round} min/runde` : ''}</div>
-          </div>
-          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
-            <span class="pill">${(log.participants || []).length} deltakere</span>
-            <button class="btn primary" data-load-log="${log.id}">Last inn</button>
-          </div>
-        `;
-        container.appendChild(div);
-      });
-      qa('[data-load-log]').forEach(btn => btn.addEventListener('click', async () => {
-        await loadRace(btn.dataset.loadLog, true);
-        state.selectedScreen = 'admin';
-        renderAll();
-        showToast('Løp lastet inn fra logg.', 'success');
-      }));
-    }
 
-    function renderAll() {
+function renderLogs() {
+  const container = el('logContent');
+  container.innerHTML = '';
+  if (!state.logs.length) {
+    container.innerHTML = '<div class="center-empty">Ingen løp lagret ennå.</div>';
+    el('logCountPill').textContent = '0 løp';
+    return;
+  }
+  el('logCountPill').textContent = `${state.logs.length} løp`;
+  state.logs.forEach(log => {
+    const div = document.createElement('div');
+    div.className = 'list-item';
+    const config = log.config || {};
+    div.innerHTML = `
+      <div>
+        <div style="font-weight:800;">${escapeHtml(log.name || 'Uten navn')}</div>
+        <div class="muted small">${formatDateTimeLocal(log.start_time)}${log.end_time ? ` → ${formatDateTimeLocal(log.end_time)}` : ''}</div>
+        <div class="tiny muted">${describeConfig(config)}</div>
+      </div>
+      <div class="log-actions">
+        <span class="pill">${(log.participants || []).length} deltakere</span>
+        <button class="btn ghost" data-export-log="${log.id}">Eksporter</button>
+        <button class="btn red" data-delete-log="${log.id}">Slett</button>
+        <button class="btn primary" data-load-log="${log.id}">Last inn</button>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+  qa('[data-load-log]').forEach(btn => btn.addEventListener('click', async () => {
+    await loadRace(btn.dataset.loadLog, true);
+    state.selectedScreen = 'admin';
+    renderAll();
+    showToast('Løp lastet inn fra logg.', 'success');
+  }));
+  qa('[data-export-log]').forEach(btn => btn.addEventListener('click', async () => {
+    await exportRaceLog(btn.dataset.exportLog);
+  }));
+  qa('[data-delete-log]').forEach(btn => btn.addEventListener('click', () => {
+    const raceId = btn.dataset.deleteLog;
+    const race = state.logs.find(item => String(item.id) === String(raceId));
+    openConfirm(
+      'Slette løp fra logg?',
+      `Løpet «${race?.name || 'Uten navn'}» med alle deltakere og rundetider blir slettet permanent.`,
+      async () => { await deleteRaceLog(raceId); }
+    );
+  }));
+}
+
+function renderAll() {
       renderNav();
       renderTopInfo();
       renderRegistration();
       renderLive();
       renderAdmin();
       renderLogs();
+      renderWakeLockUi();
       el('localClock').textContent = formatLocalClock(new Date());
       el('liveLocalClock').textContent = formatLocalClock(new Date());
     }
@@ -995,15 +1054,18 @@
     }
     function escapeHtmlAttr(value) { return escapeHtml(value); }
 
-    function openConfirm(title, text, action) {
+    function openConfirm(title, text, action, cancelAction = null) {
       el('confirmTitle').textContent = title;
       el('confirmText').textContent = text;
       state.confirmAction = action;
+      state.confirmCancelAction = cancelAction;
       el('confirmModal').classList.add('open');
     }
-    function closeConfirm() {
+    function closeConfirm(runCancel = false) {
+      if (runCancel && typeof state.confirmCancelAction === 'function') state.confirmCancelAction();
       el('confirmModal').classList.remove('open');
       state.confirmAction = null;
+      state.confirmCancelAction = null;
     }
 
     async function onRunnerTap(participant, phase) {
@@ -1060,7 +1122,9 @@
       }
       state.laps = [...state.laps.filter(l => l.id !== optimistic.id && !(l.participant_id === participant.id && Number(l.round_number) === Number(roundNumber))), data];
       await refreshParticipantStatusFromLaps(participant.id);
+      resetAutoStopPromptState();
       renderAll();
+      maybePromptAutoStop();
     }
 
     async function deleteLap(lap, participant) {
@@ -1076,7 +1140,9 @@
         return;
       }
       await refreshParticipantStatusFromLaps(participant.id);
+      resetAutoStopPromptState();
       renderAll();
+      maybePromptAutoStop();
     }
 
     async function saveLapEdit(participantId, roundNumber, rawValue) {
@@ -1123,7 +1189,9 @@
       }
       state.laps = [...state.laps.filter(l => !(l.participant_id === participant.id && Number(l.round_number) === Number(roundNumber))), data];
       await refreshParticipantStatusFromLaps(participant.id);
+      resetAutoStopPromptState();
       renderAll();
+      maybePromptAutoStop();
       showToast(`Runde ${roundNumber} oppdatert for ${participant.name}.`, 'success', 2200);
     }
 
@@ -1167,6 +1235,8 @@
         const { error: pErr } = await supabase.from('participants').update({ status: 'finished' }).in('id', ids);
         if (pErr) throw pErr;
         await loadRace(state.activeRace.id, false);
+        resetAutoStopPromptState();
+        maybePromptAutoStop();
         showToast(`${missingRows.length} DNF-oppføring(er) opprettet automatisk.`, 'warn', 3000);
       } catch (err) {
         showToast(`Feil ved automatisk DNF-merking: ${err.message || err}`, 'error', 4800);
@@ -1255,28 +1325,83 @@
       state.laps = [];
       await loadRace(race.id, false);
       await fetchLogs();
+      await requestWakeLock();
       showToast(status === 'planned' ? 'Løp planlagt.' : 'Løp startet.', 'success');
       state.selectedScreen = 'registrering';
       renderAll();
     }
 
-    async function stopRace() {
-      if (!state.activeRace || state.activeRace.status === 'stopped') return;
-      const { data, error } = await supabase.from('races').update({ status: 'stopped', end_time: new Date().toISOString() }).eq('id', state.activeRace.id).select().single();
-      if (error) {
-        showToast(`Kunne ikke stoppe løp: ${error.message}`, 'error');
-        return;
-      }
-      state.activeRace = data;
-      await fetchLogs();
-      renderAll();
-      showToast('Løpet er stoppet og ligger nå i loggen.', 'success');
-    }
 
-    async function saveTemplate() {
-      const name = sanitizeName(prompt('Navn på løpsmal:', el('raceName').value || 'Ny mal') || '');
-      if (!name) return;
+function resetAutoStopPromptState() {
+  if (!state.activeRace) {
+    state.autoStopDeclinedRaceId = null;
+    state.autoStopPromptShownForRaceId = null;
+    return;
+  }
+  const stillHasActive = state.participants.some(p => !(getLatestLap(p.id)?.status === 'dnf' || p.status === 'finished'));
+  if (stillHasActive) {
+    if (state.autoStopDeclinedRaceId === state.activeRace.id) state.autoStopDeclinedRaceId = null;
+    if (state.autoStopPromptShownForRaceId === state.activeRace.id) state.autoStopPromptShownForRaceId = null;
+  }
+}
+
+function shouldPromptAutoStop() {
+  if (!state.activeRace || state.activeRace.status === 'stopped' || !state.participants.length) return false;
+  const everyoneOut = state.participants.every(p => (getLatestLap(p.id)?.status === 'dnf') || p.status === 'finished');
+  if (!everyoneOut) {
+    resetAutoStopPromptState();
+    return false;
+  }
+  if (state.autoStopDeclinedRaceId === state.activeRace.id) return false;
+  if (state.autoStopPromptShownForRaceId === state.activeRace.id) return false;
+  return true;
+}
+
+function maybePromptAutoStop() {
+  if (!shouldPromptAutoStop()) return;
+  state.autoStopPromptShownForRaceId = state.activeRace.id;
+  openConfirm(
+    'Alle deltakere er DNF',
+    'Vil du stoppe løpet nå? Hvis du velger Nei, fortsetter løpetidtakeren til du stopper løpet manuelt.',
+    async () => { await stopRace({ source: 'auto' }); },
+    () => { state.autoStopDeclinedRaceId = state.activeRace?.id || null; }
+  );
+}
+
+async function stopRace({ source = 'manual' } = {}) {
+  if (!state.activeRace || state.activeRace.status === 'stopped') return;
+  const stopIso = new Date().toISOString();
+  const previousRace = state.activeRace;
+  state.activeRace = { ...state.activeRace, status: 'stopped', end_time: stopIso };
+  renderAll();
+  const { data, error } = await supabase.from('races').update({ status: 'stopped', end_time: stopIso }).eq('id', previousRace.id).select().single();
+  if (error) {
+    state.activeRace = previousRace;
+    renderAll();
+    showToast(`Kunne ikke stoppe løp: ${error.message}`, 'error');
+    return;
+  }
+  state.activeRace = data;
+  state.autoStopDeclinedRaceId = null;
+  state.autoStopPromptShownForRaceId = null;
+  await fetchLogs();
+  renderAll();
+  showToast(source === 'auto' ? 'Alle deltakere er DNF. Løpet er stoppet og lagt i loggen.' : 'Løpet er stoppet og ligger nå i loggen.', 'success');
+}
+
+function requestStopRace() {
+  if (!state.activeRace || state.activeRace.status === 'stopped') return;
+  openConfirm(
+    'Stoppe løp?',
+    'Er du sikker på at du vil stoppe løpet nå? Løpstidtakeren fryses og løpet flyttes til loggen.',
+    async () => { await stopRace({ source: 'manual' }); }
+  );
+}
+
+async function saveTemplate() {
       const config = getConfigFromForm();
+      const name = sanitizeName(prompt('Navn på løpsmal:', buildTemplateNameSuggestion(config)) || '');
+      if (!name) return;
       const { error } = await supabase.from('race_templates').upsert({ name, config, is_builtin: false }, { onConflict: 'name' });
       if (error) {
         showToast(`Kunne ikke lagre løpsmal: ${error.message}`, 'error');
@@ -1304,7 +1429,6 @@
     function applyTemplateByName(name) {
       const template = BUILTIN_TEMPLATES.find(t => t.name === name) || state.templates.find(t => t.name === name);
       if (!template) return;
-      if (!el('raceName').value || BUILTIN_TEMPLATES.some(t => t.name === el('raceName').value)) el('raceName').value = template.name;
       applyConfigToForm(template.config || {});
       renderAll();
     }
@@ -1424,6 +1548,90 @@
       }).filter(r => r.name);
     }
 
+
+function downloadBlob(filename, blob) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+
+function buildRaceExportRows(race, participants, laps) {
+  const config = race.config || {};
+  const summaryRows = participants.map(p => {
+    const completedRounds = laps.filter(l => l.participant_id === p.id && l.status === 'finished').length;
+    const totalTime = laps.filter(l => l.participant_id === p.id && l.status === 'finished').reduce((sum, l) => sum + Number(l.elapsed_ms || 0), 0);
+    const lastLap = laps.filter(l => l.participant_id === p.id && l.status === 'finished').sort((a, b) => Number(b.round_number) - Number(a.round_number))[0] || null;
+    const latestLap = laps.filter(l => l.participant_id === p.id).sort((a, b) => Number(b.round_number) - Number(a.round_number))[0] || null;
+    return {
+      BIB: p.bib,
+      Navn: p.name,
+      Status: latestLap?.status === 'dnf' || p.status === 'finished' ? 'DNF/Ferdig' : 'Aktiv',
+      Runder: completedRounds,
+      'Distanse (km)': Number((completedRounds * Number(config.distance_km || 0)).toFixed(3)),
+      'Total tid': formatDuration(totalTime, true),
+      'Siste runde': lastLap ? formatDuration(lastLap.elapsed_ms, true) : '',
+      'Fart siste runde': lastLap ? formatPace(lastLap.elapsed_ms, config.distance_km) : ''
+    };
+  }).sort((a, b) => Number(a.BIB) - Number(b.BIB));
+  const lapRows = laps.slice().sort((a, b) => Number(a.round_number) - Number(b.round_number) || String(a.participant_id).localeCompare(String(b.participant_id))).map(l => {
+    const participant = participants.find(p => p.id === l.participant_id);
+    return {
+      BIB: participant?.bib ?? '',
+      Navn: participant?.name ?? '',
+      Runde: l.round_number,
+      Status: l.status,
+      Tid: l.status === 'finished' ? formatDuration(l.elapsed_ms, true) : 'DNF',
+      'Registrert': formatDateTimeLocal(l.registered_at)
+    };
+  });
+  return { summaryRows, lapRows };
+}
+
+async function exportRaceLog(raceId) {
+  const race = state.logs.find(item => String(item.id) === String(raceId));
+  if (!race) {
+    showToast('Fant ikke løpet i loggen.', 'error');
+    return;
+  }
+  const { summaryRows, lapRows } = buildRaceExportRows(race, race.participants || [], race.laps || []);
+  const wb = XLSX.utils.book_new();
+  const overview = [
+    ['Løpsnavn', race.name || 'Uten navn'],
+    ['Start', formatDateTimeLocal(race.start_time)],
+    ['Stopp', formatDateTimeLocal(race.end_time)],
+    ['Oppsett', describeConfig(race.config || {})],
+    ['Deltakere', (race.participants || []).length],
+    ['Registreringer', (race.laps || []).length]
+  ];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(overview), 'Oversikt');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryRows), 'Resultater');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(lapRows), 'Rundetider');
+  const safeName = String(race.name || 'lop').replace(/[^a-z0-9_-]+/gi, '_').replace(/^_+|_+$/g, '') || 'lop';
+  XLSX.writeFile(wb, `${safeName}_${new Date().toISOString().slice(0,10)}.xlsx`);
+  showToast('Logg eksportert til Excel.', 'success');
+}
+
+async function deleteRaceLog(raceId) {
+  const { error } = await supabase.from('races').delete().eq('id', raceId);
+  if (error) {
+    showToast(`Kunne ikke slette logg: ${error.message}`, 'error');
+    return;
+  }
+  if (state.activeRace?.id === raceId) {
+    state.activeRace = null;
+    state.participants = [];
+    state.laps = [];
+  }
+  await fetchLogs();
+  renderAll();
+  showToast('Løpet er slettet fra loggen.', 'success');
+}
+
     async function refreshAllData() {
       await Promise.allSettled([fetchTemplates(), fetchLogs(), loadLatestActiveRace()]);
       renderAll();
@@ -1470,6 +1678,48 @@
       }
     }
 
+
+async function requestWakeLock() {
+  if (!state.wakeLockSupported || document.visibilityState !== 'visible') {
+    state.wakeLockEnabled = false;
+    state.wakeLockMessage = state.wakeLockSupported ? 'Skjermlås-beskyttelse venter til fanen er aktiv' : 'Wake Lock støttes ikke i denne nettleseren';
+    renderWakeLockUi();
+    return;
+  }
+  try {
+    if (state.wakeLock) {
+      state.wakeLockEnabled = true;
+      state.wakeLockMessage = 'Skjermlås-beskyttelse aktiv';
+      renderWakeLockUi();
+      return;
+    }
+    const sentinel = await navigator.wakeLock.request('screen');
+    state.wakeLock = sentinel;
+    state.wakeLockEnabled = true;
+    state.wakeLockMessage = 'Skjermlås-beskyttelse aktiv';
+    sentinel.addEventListener('release', () => {
+      state.wakeLock = null;
+      state.wakeLockEnabled = false;
+      state.wakeLockMessage = document.visibilityState === 'visible' ? 'Skjermlås-beskyttelse ble sluppet' : 'Skjermlås-beskyttelse pauset';
+      renderWakeLockUi();
+    });
+  } catch (err) {
+    state.wakeLock = null;
+    state.wakeLockEnabled = false;
+    state.wakeLockMessage = `Kunne ikke aktivere skjermlås-beskyttelse: ${err.message || err}`;
+  }
+  renderWakeLockUi();
+}
+
+async function releaseWakeLock() {
+  if (!state.wakeLock) return;
+  try { await state.wakeLock.release(); } catch (_) {}
+  state.wakeLock = null;
+  state.wakeLockEnabled = false;
+  state.wakeLockMessage = 'Skjermlås-beskyttelse ikke aktiv';
+  renderWakeLockUi();
+}
+
     function bindEvents() {
       qa('.nav button').forEach(btn => btn.addEventListener('click', () => {
         state.selectedScreen = btn.dataset.screen;
@@ -1482,21 +1732,27 @@
         renderAll();
       }));
 
-      el('confirmNo').addEventListener('click', closeConfirm);
+      el('confirmNo').addEventListener('click', () => closeConfirm(true));
       el('confirmYes').addEventListener('click', async () => {
         if (typeof state.confirmAction === 'function') await state.confirmAction();
-        closeConfirm();
+        closeConfirm(false);
       });
       el('templateSelect').addEventListener('change', e => applyTemplateByName(e.target.value));
       el('saveTemplateBtn').addEventListener('click', saveTemplate);
       el('startRaceBtn').addEventListener('click', startRace);
-      el('stopRaceBtn').addEventListener('click', stopRace);
+      el('stopRaceBtn').addEventListener('click', requestStopRace);
       el('newDraftBtn').addEventListener('click', newDraft);
       el('reloadBtn').addEventListener('click', async () => { await refreshAllData(); showToast('Data oppdatert.', 'success'); });
       el('addParticipantBtn').addEventListener('click', addManualParticipant);
       el('manualName').addEventListener('keydown', e => { if (e.key === 'Enter') addManualParticipant(); });
       el('clearDraftBtn').addEventListener('click', () => { state.draftParticipants = []; renderAll(); });
       el('importFile').addEventListener('change', async e => { await importParticipants(e.target.files[0]); e.target.value = ''; });
+      document.addEventListener('visibilitychange', async () => {
+        if (document.visibilityState === 'visible') await requestWakeLock();
+        else state.wakeLockMessage = 'Skjermlås-beskyttelse pauset';
+        renderWakeLockUi();
+      });
+      window.addEventListener('beforeunload', () => { if (state.wakeLock) state.wakeLock.release().catch(() => {}); });
     }
 
     async function init() {
@@ -1518,12 +1774,15 @@
         state.logs = [];
       }
       renderAll();
+      await requestWakeLock();
       setInterval(() => {
         el('localClock').textContent = formatLocalClock(new Date());
         el('liveLocalClock').textContent = formatLocalClock(new Date());
         autoMarkExpiredDnfs();
+        maybePromptAutoStop();
         renderRegistration();
         renderLive();
+        renderWakeLockUi();
       }, 1000);
       setInterval(backgroundSync, 4000);
     }

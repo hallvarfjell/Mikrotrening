@@ -258,6 +258,13 @@
       .registration-header, .kpi-grid, .big-live, .info-grid { grid-template-columns: 1fr; }
       .row { grid-template-columns: 1fr; }
     }
+    /* [PATCH 1] Full bredde-rad for starttid */
+.row-full {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
@@ -371,7 +378,10 @@
               <div class="row">
                 <div class="field" style="grid-column: span 4;"><label>Rundelengde (km)</label><input id="distanceKm" type="number" min="0.1" step="0.001" /></div>
                 <div class="field" style="grid-column: span 4;"><label>Tilgjengelig tid (min)</label><input id="roundMinutes" type="number" min="1" step="1" /></div>
-                <div class="field" style="grid-column: span 4;"><label>Starttid (lokal tid)</label><input id="startTime" type="datetime-local" /></div>
+                <!-- [PATCH 1] Starttid i egen rad -->
+                <div class="row-full"><div class="field"><label>Starttid (lokal tid)</label><input id="startTime" type="datetime-local" /></div>
+                </div>
+
               </div>
               <div class="row">
                 <div class="field" style="grid-column: span 6;"><label>Reduser tilgjengelig tid hver runde</label><div class="checkbox"><input id="reductionEnabled" type="checkbox" /><span>Frontyard-modus</span></div></div>
